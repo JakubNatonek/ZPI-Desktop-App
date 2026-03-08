@@ -1,6 +1,7 @@
 import { Component, OnInit, HostListener, signal } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { addIcons } from 'ionicons';
 import { 
   chevronBackOutline, chevronForwardOutline, cloudDownloadOutline, 
@@ -17,6 +18,8 @@ import {
 export class HomePage implements OnInit {
   sidebarWidth = signal(280); 
   isResizing = false;
+  isProfileMenuOpen = false;
+  profileMenuEvent?: Event;
 
   hours24 = Array.from({ length: 24 }, (_, i) => i);
   selectedDate: Date = new Date();
@@ -29,7 +32,7 @@ export class HomePage implements OnInit {
     { name: 'Prof. Adam Nowak', progress: 0.4 }
   ];
 
-  constructor() {
+  constructor(private router: Router) {
     addIcons({ chevronBackOutline, chevronForwardOutline, cloudDownloadOutline, cloudUploadOutline, addOutline, peopleOutline, menuOutline });
   }
 
@@ -93,6 +96,25 @@ export class HomePage implements OnInit {
 
   prevWeek() { this.selectedDate.setDate(this.selectedDate.getDate() - 7); this.updateView(); }
   nextWeek() { this.selectedDate.setDate(this.selectedDate.getDate() + 7); this.updateView(); }
+  toggleProfileMenu(event: Event) {
+    this.profileMenuEvent = event;
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+  }
+
+  closeProfileMenu() {
+    this.isProfileMenuOpen = false;
+  }
+
+  openProfile() {
+    this.closeProfileMenu();
+    this.router.navigateByUrl('/profile');
+  }
+
+  logout() {
+    this.closeProfileMenu();
+    console.log('Wylogowanie...');
+  }
+
   exportRaply() { console.log('Export...'); }
   importRaply() { console.log('Import...'); }
 }
