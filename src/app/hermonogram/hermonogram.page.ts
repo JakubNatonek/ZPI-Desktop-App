@@ -3,11 +3,10 @@ import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-profile',
-  templateUrl: 'profile.page.html',
-  styleUrls: ['profile.page.scss'],
+  selector: 'app-hermonogram',
+  templateUrl: 'hermonogram.page.html',
+  styleUrls: ['hermonogram.page.scss'],
   standalone: true,
   imports: [IonicModule, CommonModule],
 })
-export class ProfilePage {}
-
+export class HermonogramPage {}

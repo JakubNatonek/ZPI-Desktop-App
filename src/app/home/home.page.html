@@ -1,42 +1,16 @@
-<ion-app>
-  <div class="app-shell">
-    
-    <div class="sidebar" [style.width.px]="sidebarWidth()">
-      <ion-content class="ion-padding no-scroll">
-        
-        <div class="sidebar-inner" [class.hidden]="sidebarWidth() < 160">
-          <ion-button expand="block" shape="round" color="light" class="create-btn ion-margin-bottom">
-            <ion-icon slot="start" name="add-outline"></ion-icon>
-            <span class="ion-padding-start"></span>
-          </ion-button>
-
-          <ion-datetime 
-            presentation="date" 
-            size="cover" 
-            class="mini-calendar"
-            [value]="selectedDate.toISOString()"
-            (ionChange)="onDateSelect($event)">
-          </ion-datetime>
-        </div>
-        <div class="collapsed-view" *ngIf="sidebarWidth() < 160">
-           <ion-icon name="menu-outline" class="big-menu-icon"></ion-icon>
-        </div>
-      </ion-content>
-
-      <div class="resizer" (mousedown)="startResizing($event)"></div>
-    </div>
-
-    <div class="main-content">
+﻿<div class="app-shell">
+  <div class="main-content">
       <ion-header class="ion-no-border">
         <ion-toolbar mode="md">
           <ion-buttons slot="start">
-            <ion-button fill="outline" class="today-btn ion-margin-start" (click)="goToToday()">Dzisiaj</ion-button>
+            <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
             <ion-button fill="clear" (click)="prevWeek()"><ion-icon name="chevron-back-outline"></ion-icon></ion-button>
             <ion-button fill="clear" (click)="nextWeek()"><ion-icon name="chevron-forward-outline"></ion-icon></ion-button>
             <ion-title class="calendar-title">{{ currentMonthName }} {{ currentYear }}</ion-title>
           </ion-buttons>
 
           <ion-buttons slot="end">
+            <ion-button fill="outline" class="today-btn ion-margin-start" (click)="goToToday()">Dzisiaj</ion-button>
             <ion-button fill="outline" color="primary" (click)="exportRaply()">Export Raply</ion-button>
             <ion-button fill="solid" color="primary" (click)="importRaply()">Import</ion-button>
             <ion-avatar
@@ -44,19 +18,20 @@
               role="button"
               tabindex="0"
               (click)="toggleProfileMenu($event)">
-              <img src="https://ionicframework.com/docs/img/demos/avatar.svg" alt="Profil użytkownika" />
+              <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
             </ion-avatar>
 
             <ion-popover
               [isOpen]="isProfileMenuOpen"
               [event]="profileMenuEvent"
+              [dismissOnSelect]="true"
               side="bottom"
               alignment="end"
               (didDismiss)="closeProfileMenu()">
               <ng-template>
                 <ion-list lines="none">
-                  <ion-item button detail="false" (click)="openProfile()">Profil</ion-item>
-                  <ion-item button detail="false" color="danger" (click)="logout()">Wyloguj</ion-item>
+                  <ion-item button detail="false" (click)="openSettings()">Ustawienia</ion-item>
+                  <ion-item button detail="false" class="logout-item" (click)="logout()">Wyloguj</ion-item>
                 </ion-list>
               </ng-template>
             </ion-popover>
@@ -81,7 +56,7 @@
               <div class="day-cell" *ngFor="let day of weekDays">
                 
                 <div class="event standard" *ngIf="hour === 11 && day.name === 'WT'">
-                   <b>Algorytmy</b><br><small>S. 201 | Dr Storm</small>
+                   <b>Algorytmy</b><br><small>S. 201 | Nowak</small>
                 </div>
 
                 <div class="event version-new" *ngIf="hour === 10 && day.name === 'PN'">
@@ -101,5 +76,24 @@
       </ion-content>
     </div>
 
-  </div>
-</ion-app>
+    <div class="sidebar" [style.width.px]="sidebarWidth()">
+      <ion-content class="ion-padding no-scroll">
+        
+        <div class="sidebar-inner" [class.hidden]="sidebarWidth() < 160">
+          <ion-datetime 
+            presentation="date" 
+            size="cover" 
+            class="mini-calendar"
+            [value]="selectedDate.toISOString()"
+            (ionChange)="onDateSelect($event)">
+          </ion-datetime>
+        </div>
+          <div class="collapsed-view" *ngIf="sidebarWidth() < 160" (click)="expandSidebar()" role="button" tabindex="0">
+           <ion-icon name="menu-outline" class="big-menu-icon"></ion-icon>
+        </div>
+      </ion-content>
+
+      <div class="resizer" (mousedown)="startResizing($event)" (touchstart)="startResizing($event)"></div>
+    </div>
+
+</div>

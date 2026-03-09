@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, signal } from '@angular/core';
+﻿import { Component, OnInit, HostListener, signal } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -7,6 +7,7 @@ import {
   chevronBackOutline, chevronForwardOutline, cloudDownloadOutline, 
   cloudUploadOutline, addOutline, peopleOutline, menuOutline 
 } from 'ionicons/icons';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-home',
@@ -16,12 +17,16 @@ import {
   imports: [IonicModule, CommonModule],
 })
 export class HomePage implements OnInit {
+  private readonly minSidebarWidth = 64;
+  private readonly maxSidebarWidth = 500;
+  private readonly collapsedThreshold = 160;
+
   sidebarWidth = signal(280); 
   isResizing = false;
   isProfileMenuOpen = false;
   profileMenuEvent?: Event;
 
-  hours24 = Array.from({ length: 24 }, (_, i) => i);
+  hours24 = Array.from({ length: 16 }, (_, i) => i + 6);
   selectedDate: Date = new Date();
   currentMonthName = '';
   currentYear = 0;
@@ -32,7 +37,7 @@ export class HomePage implements OnInit {
     { name: 'Prof. Adam Nowak', progress: 0.4 }
   ];
 
-  constructor(private router: Router) {
+  constructor(private router: Router, private auth: AuthService) {
     addIcons({ chevronBackOutline, chevronForwardOutline, cloudDownloadOutline, cloudUploadOutline, addOutline, peopleOutline, menuOutline });
   }
 
@@ -40,26 +45,40 @@ export class HomePage implements OnInit {
     this.updateView();
   }
 
-  startResizing(event: MouseEvent) {
+  startResizing(event: MouseEvent | TouchEvent) {
     this.isResizing = true;
     event.preventDefault();
   }
 
   @HostListener('window:mousemove', ['$event'])
-  onMouseMove(event: MouseEvent) {
+  @HostListener('window:touchmove', ['$event'])
+  onMouseMove(event: MouseEvent | TouchEvent) {
     if (!this.isResizing) return;
-    const newWidth = event.clientX;
-    if (newWidth > 64 && newWidth < 500) {
-      this.sidebarWidth.set(newWidth);
-    }
+    const clientX = event instanceof TouchEvent
+      ? event.touches[0]?.clientX
+      : (event as MouseEvent).clientX;
+
+    if (clientX == null) return;
+
+    // Sidebar is on the right, so width is measured from right edge of viewport.
+    const calculatedWidth = window.innerWidth - clientX;
+    const clampedWidth = Math.max(this.minSidebarWidth, Math.min(this.maxSidebarWidth, calculatedWidth));
+    this.sidebarWidth.set(clampedWidth);
   }
 
   @HostListener('window:mouseup')
+  @HostListener('window:touchend')
   onMouseUp() {
     this.isResizing = false;
   }
 
-  // KALENDARZ
+  expandSidebar() {
+    if (this.sidebarWidth() < this.collapsedThreshold) {
+      this.sidebarWidth.set(280);
+    }
+  }
+
+  
   onDateSelect(event: any) {
     this.selectedDate = new Date(event.detail.value);
     this.updateView();
@@ -96,6 +115,7 @@ export class HomePage implements OnInit {
 
   prevWeek() { this.selectedDate.setDate(this.selectedDate.getDate() - 7); this.updateView(); }
   nextWeek() { this.selectedDate.setDate(this.selectedDate.getDate() + 7); this.updateView(); }
+
   toggleProfileMenu(event: Event) {
     this.profileMenuEvent = event;
     this.isProfileMenuOpen = !this.isProfileMenuOpen;
@@ -105,14 +125,14 @@ export class HomePage implements OnInit {
     this.isProfileMenuOpen = false;
   }
 
-  openProfile() {
+  async openSettings() {
     this.closeProfileMenu();
-    this.router.navigateByUrl('/profile');
+    await this.router.navigateByUrl('/profile');
   }
 
-  logout() {
+  async logout() {
     this.closeProfileMenu();
-    console.log('Wylogowanie...');
+    this.auth.logout();
   }
 
   exportRaply() { console.log('Export...'); }

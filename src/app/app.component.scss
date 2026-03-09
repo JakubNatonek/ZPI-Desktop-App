@@ -1,0 +1,43 @@
+﻿.menu-action-btn {
+  --color: #000000;
+  color: #000000;
+  --background: transparent;
+}
+
+ion-menu {
+  color-scheme: light;
+  --background: #ffffff;
+  --ion-background-color: #ffffff;
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color: #000000;
+  --ion-text-color-rgb: 0, 0, 0;
+  --ion-toolbar-background: #ffffff;
+  --ion-toolbar-color: #000000;
+  --ion-item-background: #ffffff;
+  --ion-item-color: #000000;
+  --backdrop-opacity: 0.12;
+}
+
+ion-menu::part(container) {
+  background: #ffffff;
+}
+
+ion-menu ion-toolbar {
+  --background: #ffffff;
+  --color: #000000;
+}
+
+ion-menu ion-content {
+  --background: #ffffff;
+}
+
+ion-menu ion-list {
+  background: #ffffff;
+}
+
+ion-menu ion-item {
+  --background: #ffffff;
+  --color: #000000;
+  --background-hover: #f8f9fa;
+  --background-focused: #f3f4f6;
+}

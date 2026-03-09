@@ -1,4 +1,4 @@
-.app-shell {
+﻿.app-shell {
   display: flex;
   height: 100vh;
   width: 100vw;
@@ -6,19 +6,46 @@
 }
 
 .sidebar {
+    ion-content.no-scroll {
+      --background: #ffffff;
+    }
+
   position: relative;
   height: 100%;
   background: white;
-  border-right: 1px solid #dadce0;
-  min-width: 64px; /* Szerokość ikonek */
+  border-left: 1px solid #dadce0;
+  min-width: 64px; 
   max-width: 600px;
+  order: 2;
   
   .create-btn {
     --box-shadow: 0 1px 3px rgba(60,64,67,0.3);
     height: 48px; font-weight: 500; margin: 8px 0;
   }
 
-  .mini-calendar { scale: 0.9; border-radius: 12px; --background: transparent; }
+  .mini-calendar {
+    scale: 0.9;
+    border-radius: 12px;
+    --background: #ffffff;
+    --color: #000000;
+    --title-color: #000000;
+    --wheel-fade-background-rgb: 255, 255, 255;
+    --wheel-highlight-background: #f3f4f6;
+    background: #ffffff;
+    color: #000000;
+  }
+
+  .mini-calendar::part(month-year-button) {
+    color: #000000;
+  }
+
+  .mini-calendar::part(wheel-item) {
+    color: #000000;
+  }
+
+  .mini-calendar::part(calendar-day) {
+    color: #000000;
+  }
 
   .hidden { opacity: 0; pointer-events: none; }
   
@@ -30,7 +57,7 @@
 
 .resizer {
   position: absolute;
-  top: 0; right: -3px; width: 6px; height: 100%;
+  top: 0; left: -3px; width: 6px; height: 100%;
   cursor: col-resize; z-index: 1000;
   &:hover { background: rgba(26, 115, 232, 0.2); }
   &:active { background: #1a73e8; }
@@ -38,20 +65,36 @@
 
 .main-content {
   flex: 1; display: flex; flex-direction: column; background: white;
-  .calendar-title { font-size: 1.3rem; font-weight: 400; color: #3c4043; margin-left: 10px; }
-  .today-btn { --border-color: #dadce0; --color: #3c4043; }
-  .user-avatar { width: 32px; height: 32px; border: 1px solid #eee; cursor: pointer; }
+  min-width: 0;
+  order: 1;
+
+  ion-toolbar {
+    --background: #ffffff;
+    --color: #000000;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .menu-nav-btn {
+    --color: #000000;
+    color: #000000;
+  }
+  .calendar-title { font-size: 1.3rem; font-weight: 400; color: #000000; margin-left: 10px; }
+  .today-btn { --border-color: #dadce0; --color: #000000; }
+  .user-avatar { width: 32px; height: 32px; border: 1px solid #eee; }
 }
 
 .google-calendar-grid {
   display: flex; flex-direction: column; height: 100%; background: white;
+  min-width: 0;
+  
+  overflow-x: hidden;
 
   .grid-header {
-    display: grid; grid-template-columns: 70px repeat(7, 1fr); border-bottom: 1px solid #dadce0;
+    display: grid; grid-template-columns: 70px repeat(7, minmax(0,1fr)); border-bottom: 1px solid #dadce0;
     position: sticky; top: 0; background: white; z-index: 100;
 
     .day-col-header {
-      text-align: center; padding: 10px 0; display: flex; flex-direction: column; color: #70757a;
+      text-align: center; padding: 10px 0; display: flex; flex-direction: column; color: #000000;
       .day-name { font-size: 11px; font-weight: 500; }
       .day-num { 
         font-size: 22px; width: 42px; height: 42px; line-height: 42px; 
@@ -64,7 +107,9 @@
   .grid-body {
     flex: 1; overflow-y: auto;
     .hour-row {
-      display: grid; grid-template-columns: 70px repeat(7, 1fr); height: 80px;
+      display: grid; grid-template-columns: 70px repeat(7, minmax(0,1fr));
+      
+      height: calc((100vh - 56px) / 15); 
       border-bottom: 1px solid #f1f3f4;
       .hour-label { font-size: 10px; color: #000000; text-align: center; padding-right: 12px; margin-top: -12px; }
       .day-cell { border-right: 1px solid #f1f3f4; position: relative; &:hover { background: #f8f9fa; } }
@@ -84,3 +129,4 @@
   b { display: block; margin-bottom: 2px; }
   small { opacity: 0.9; }
 }
+
