@@ -27,6 +27,16 @@ ion-menu ion-toolbar {
   --color: #000000;
 }
 
+ion-menu ion-toolbar.role-toolbar {
+  --min-height: 36px;
+  border-top: 1px solid #eef2f7;
+}
+
+ion-menu ion-toolbar.role-toolbar ion-title {
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
 ion-menu ion-content {
   --background: #ffffff;
 }

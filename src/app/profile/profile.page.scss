@@ -10,3 +10,34 @@
 ion-toolbar {
   border-bottom: 1px solid #d1d5db;
 }
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+}
+
+.profile-layout {
+  display: grid;
+  gap: 12px;
+  max-width: 720px;
+}
+
+.avatar-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatar-large {
+  width: 72px;
+  height: 72px;
+  border: 1px solid #e2e8f0;
+}
+
+.password-message {
+  margin: 10px 0 0;
+  font-size: 0.86rem;
+  color: #0f766e;
+}

@@ -33,11 +33,48 @@
  */
 
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
+@import "@ionic/angular/css/palettes/dark.class.css";
 /* @import '@ionic/angular/css/palettes/dark.system.css'; */
 
 ion-item.logout-item {
 	--background: #ffffff;
 	--color: #000000;
 	color: #000000;
+}
+
+html.ion-palette-dark .menu-nav-btn {
+	--color: #ffffff !important;
+	color: #ffffff !important;
+}
+
+html.ion-palette-dark ion-toolbar {
+	--background: #111827;
+	--color: #f9fafb;
+	border-bottom-color: #374151 !important;
+}
+
+html.ion-palette-dark ion-title,
+html.ion-palette-dark ion-label,
+html.ion-palette-dark ion-item,
+html.ion-palette-dark ion-card-title,
+html.ion-palette-dark p,
+html.ion-palette-dark h1,
+html.ion-palette-dark h2,
+html.ion-palette-dark h3,
+html.ion-palette-dark h4 {
+	color: #f9fafb;
+}
+
+html.ion-palette-dark ion-card,
+html.ion-palette-dark ion-content,
+html.ion-palette-dark ion-list,
+html.ion-palette-dark ion-item {
+	--background: #111827;
+	background: #111827;
+}
+
+html.ion-palette-dark ion-item.logout-item {
+	--background: #1f2937;
+	--color: #f9fafb;
+	color: #f9fafb;
 }

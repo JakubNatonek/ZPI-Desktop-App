@@ -1,12 +1,6 @@
 ﻿<ion-app>
-  <ion-menu
-    menuId="mainMenu"
-    side="start"
-    contentId="main-content"
-    type="overlay"
-    [disabled]="!(auth.isAuthenticated$ | async)"
-    style="--width:300px"
-  >
+  <ion-menu menuId="mainMenu" side="start" contentId="main-content" type="overlay"
+    [disabled]="!(auth.isAuthenticated$ | async)" style="--width:300px">
     <ion-header>
       <ion-toolbar>
         <ion-title>Menu</ion-title>
@@ -16,12 +10,15 @@
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
+      <ion-toolbar *ngIf="auth.isAuthenticated$ | async" class="role-toolbar">
+        <ion-title size="small">Rola: {{ auth.roleLabel }}</ion-title>
+      </ion-toolbar>
     </ion-header>
     <ion-content>
       <ion-list>
-        <ion-item button (click)="navigate('/home')">Kalendarz</ion-item>
-        <ion-item button (click)="navigate('/hermonogram')">Harmonogram</ion-item>
-        <ion-item button (click)="navigate('/konflikty')">Konflikty</ion-item>
+        <ion-item button (click)="navigate('/home')">Wykładowcy</ion-item>
+        <ion-item button *ngIf="auth.role !== 'lecturer'" (click)="navigate('/hermonogram')">Harmonogram</ion-item>
+        <ion-item button *ngIf="auth.role !== 'lecturer'" (click)="navigate('/konflikty')">Konflikty</ion-item>
         <ion-item button (click)="navigate('/profile')">Profil</ion-item>
       </ion-list>
     </ion-content>
@@ -29,4 +26,3 @@
 
   <ion-router-outlet id="main-content"></ion-router-outlet>
 </ion-app>
-

@@ -1,99 +1,231 @@
-﻿<div class="app-shell">
-  <div class="main-content">
-      <ion-header class="ion-no-border">
-        <ion-toolbar mode="md">
-          <ion-buttons slot="start">
-            <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
-            <ion-button fill="clear" (click)="prevWeek()"><ion-icon name="chevron-back-outline"></ion-icon></ion-button>
-            <ion-button fill="clear" (click)="nextWeek()"><ion-icon name="chevron-forward-outline"></ion-icon></ion-button>
-            <ion-title class="calendar-title">{{ currentMonthName }} {{ currentYear }}</ion-title>
-          </ion-buttons>
+﻿<div class="app-shell" [class.lecturer-layout]="isLecturer">
+  <div class="sidebar" [style.width.px]="sidebarWidth()">
+    <ion-content class="ion-padding no-scroll">
+      <div class="sidebar-inner" [class.hidden]="sidebarWidth() < 160">
+        <h3>Tryb pracy</h3>
+        <p class="role-label">Rola: {{ userRoleLabel }}</p>
 
-          <ion-buttons slot="end">
-            <ion-button fill="outline" class="today-btn ion-margin-start" (click)="goToToday()">Dzisiaj</ion-button>
-            <ion-button fill="outline" color="primary" (click)="exportRaply()">Export Raply</ion-button>
-            <ion-button fill="solid" color="primary" (click)="importRaply()">Import</ion-button>
-            <ion-avatar
-              class="ion-margin-start user-avatar"
-              role="button"
-              tabindex="0"
-              (click)="toggleProfileMenu($event)">
-              <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
-            </ion-avatar>
+        <ng-container *ngIf="isLecturer; else adminPlannerFolders">
+          <ion-segment [value]="selectionMode" (ionChange)="onModeChange($event)" data-tour-step="mode-selector"
+            [class.tutorial-target-active]="isTutorialStepTarget('mode-selector')">
+            <ion-segment-button value="available">
+              <ion-label>Dostępny</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="unavailable">
+              <ion-label>Niedostępny</ion-label>
+            </ion-segment-button>
+          </ion-segment>
 
-            <ion-popover
-              [isOpen]="isProfileMenuOpen"
-              [event]="profileMenuEvent"
-              [dismissOnSelect]="true"
-              side="bottom"
-              alignment="end"
-              (didDismiss)="closeProfileMenu()">
-              <ng-template>
-                <ion-list lines="none">
-                  <ion-item button detail="false" (click)="openSettings()">Ustawienia</ion-item>
-                  <ion-item button detail="false" class="logout-item" (click)="logout()">Wyloguj</ion-item>
-                </ion-list>
-              </ng-template>
-            </ion-popover>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-
-      <ion-content class="calendar-scroll">
-        <div class="google-calendar-grid">
-          
-          <div class="grid-header">
-            <div class="time-spacer"></div>
-            <div class="day-col-header" *ngFor="let day of weekDays">
-              <span class="day-name">{{ day.name }}</span>
-              <span class="day-num" [class.is-today]="day.isToday">{{ day.date }}</span>
-            </div>
+          <div class="hours-box">
+            <p>Tydzień {{ currentWeekType }}</p>
+            <p>Minimum dostępności: <strong>{{ requiredAvailabilityHours }} h</strong></p>
+            <p *ngIf="selectionStrategy">Tryb: <strong>{{ strategyLabel(selectionStrategy) }}</strong></p>
+            <p>Zaznaczone: <strong>{{ markedHours }} h</strong></p>
+            <p>Dla planisty: <strong>{{ plannerAvailabilityHours }} h</strong></p>
+            <p *ngIf="!canConfirmHours">Pozostało: <strong>{{ remainingAvailabilityHours }} h</strong></p>
           </div>
 
-          <div class="grid-body">
-            <div class="hour-row" *ngFor="let hour of hours24">
-              <div class="hour-label">{{ hour }}:00</div>
-              <div class="day-cell" *ngFor="let day of weekDays">
-                
-                <div class="event standard" *ngIf="hour === 11 && day.name === 'WT'">
-                   <b>Algorytmy</b><br><small>S. 201 | Nowak</small>
-                </div>
+          <ion-button expand="block" fill="outline" color="medium" (click)="clearSelection()"
+            [disabled]="isHoursConfirmed" data-tour-step="clear-button"
+            [class.tutorial-target-active]="isTutorialStepTarget('clear-button')">
+            Wyczyść zaznaczenia
+          </ion-button>
 
-                <div class="event version-new" *ngIf="hour === 10 && day.name === 'PN'">
-                   <ion-badge color="success" mode="ios">NOWE</ion-badge><br>
-                   <b>Programowanie</b><br><small>S. 102 | Nowak</small>
-                </div>
+          <p class="lecturer-message" *ngIf="lecturerMessage">{{ lecturerMessage }}</p>
 
-                <div class="event version-conflict" *ngIf="hour === 14 && day.name === 'ŚR'">
-                   <b>KONFLIKT SALI</b><br><small>Sala 201 zajęta</small>
-                </div>
+          <div class="sent-data" *ngIf="lecturerSubmissions.length > 0">
+            <h4>Wysłane dane</h4>
+            <div class="submission-card" *ngFor="let entry of lecturerSubmissions">
+              <p><strong>Tydzień:</strong> {{ entry.weekType }} ({{ entry.weekStartIso }})</p>
+              <p><strong>Typ:</strong> {{ strategyLabel(entry.strategy) }}</p>
+              <p><strong>Dla planisty:</strong> {{ entry.plannerAvailabilityHours }} h</p>
+            </div>
+          </div>
+        </ng-container>
 
+        <ng-template #adminPlannerFolders>
+          <div class="sent-data" *ngIf="submissionsForAdminPlanner.length > 0; else emptyFolderState">
+            <h4>Wpisy wykładowców</h4>
+            <p>Wczytane wpisy: {{ allSubmissions.length }}</p>
+            <button type="button" class="submission-card is-clickable" *ngFor="let entry of submissionsForAdminPlanner"
+              [class.is-active]="isPlannerSubmissionActive(entry)" (click)="selectPlannerSubmission(entry)">
+              <div class="submission-row">
+                <span class="submission-label">Wykładowca</span>
+                <span class="submission-value">{{ entry.lecturerDisplayName }}</span>
+              </div>
+              <div class="submission-row">
+                <span class="submission-label">Tydzień</span>
+                <span class="submission-value">{{ entry.weekType }} ({{ entry.weekStartIso || 'brak daty' }})</span>
+              </div>
+              <div class="submission-row">
+                <span class="submission-label">Typ</span>
+                <span class="submission-value">{{ strategyLabel(entry.strategy) }}</span>
+              </div>
+              <div class="submission-row">
+                <span class="submission-label">Akcja</span>
+                <span class="submission-value">Pokaż w planie</span>
+              </div>
+            </button>
+
+            <div class="preview-box" *ngIf="selectedSubmissionPreview">
+              <p><strong>Podgląd:</strong> {{ selectedSubmissionPreview.lecturerDisplayName }}</p>
+              <p><strong>Tydzień:</strong> {{ selectedSubmissionPreview.weekType }} ({{
+                selectedSubmissionPreview.weekStartIso }})</p>
+              <p><strong>Tryb zaznaczeń:</strong> {{ strategyLabel(selectedSubmissionPreview.strategy) }}</p>
+              <p><strong>Zaznaczone:</strong> {{ selectedSubmissionPreview.markedHours }} h</p>
+              <p><strong>Dostępne dla planisty:</strong> {{ selectedSubmissionPreview.plannerAvailabilityHours }} h</p>
+            </div>
+
+            <div class="preview-box" *ngIf="activePlannerSubmission">
+              <p><strong>Aktualny plan w siatce:</strong> {{ activePlannerSubmission.lecturerDisplayName }}</p>
+              <p><strong>Tydzień:</strong> {{ activePlannerSubmission.weekType }} ({{
+                activePlannerSubmission.weekStartIso
+                }})</p>
+              <p><strong>Tryb zaznaczeń:</strong> {{ strategyLabel(activePlannerSubmission.strategy) }}</p>
+              <ion-button size="small" fill="outline" (click)="previewSubmission(activePlannerSubmission)">
+                Szczegóły wpisu
+              </ion-button>
+            </div>
+          </div>
+          <ng-template #emptyFolderState>
+            <p>Brak zatwierdzonych danych od wykładowców.</p>
+          </ng-template>
+        </ng-template>
+      </div>
+
+      <div class="collapsed-view" *ngIf="sidebarWidth() < 160" (click)="expandSidebar()" role="button" tabindex="0">
+        <ion-icon name="swap-horizontal-outline" class="big-menu-icon"></ion-icon>
+      </div>
+    </ion-content>
+
+    <div class="resizer" (mousedown)="startResizing($event)" (touchstart)="startResizing($event)"></div>
+  </div>
+
+  <div class="main-content">
+    <ion-header class="ion-no-border">
+      <ion-toolbar mode="md">
+        <ion-buttons slot="start">
+          <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
+          <ion-title class="calendar-title">{{ currentMonthName }} {{ currentYear }}</ion-title>
+        </ion-buttons>
+
+        <ion-buttons slot="end">
+          <ion-chip color="primary" outline *ngIf="isLecturer">
+            <ion-label>Tydzień {{ currentWeekType }}</ion-label>
+          </ion-chip>
+          <ion-chip color="medium" outline>
+            <ion-label>{{ userRoleLabel }}</ion-label>
+          </ion-chip>
+
+          <ng-container *ngIf="isLecturer">
+            <ion-button fill="outline" color="medium" *ngIf="!isTutorialDisabledPermanently"
+              (click)="disableTutorial()">
+              Wyłącz tutorial
+            </ion-button>
+            <ion-button fill="outline" color="medium" *ngIf="isTutorialDisabledPermanently" (click)="enableTutorial()">
+              Włącz tutorial
+            </ion-button>
+
+            <ion-button fill="solid" color="success" (click)="confirmHours()" [disabled]="isHoursConfirmed"
+              data-tour-step="confirm-button" [class.tutorial-target-active]="isTutorialStepTarget('confirm-button')">
+              <ion-icon slot="start" name="checkmark-done-outline"></ion-icon>
+              Zatwierdź godziny
+            </ion-button>
+            <ion-button fill="outline" color="warning" (click)="editHours()" [disabled]="!isHoursConfirmed"
+              data-tour-step="edit-button" [class.tutorial-target-active]="isTutorialStepTarget('edit-button')">
+              <ion-icon slot="start" name="create-outline"></ion-icon>
+              Popraw godziny
+            </ion-button>
+          </ng-container>
+
+          <ion-avatar class="ion-margin-start user-avatar" role="button" tabindex="0"
+            (click)="toggleProfileMenu($event)">
+            <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+          </ion-avatar>
+
+          <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
+            alignment="end" (didDismiss)="closeProfileMenu()">
+            <ng-template>
+              <ion-list lines="none">
+                <ion-item button detail="false" (click)="openSettings()">Ustawienia</ion-item>
+                <ion-item button detail="false" class="logout-item" (click)="logout()">Wyloguj</ion-item>
+              </ion-list>
+            </ng-template>
+          </ion-popover>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="calendar-scroll">
+      <div class="google-calendar-grid">
+        <div class="grid-header">
+          <div class="time-spacer"></div>
+          <div class="day-col-header" *ngFor="let day of weekDays">
+            <span class="day-name">{{ day.name }}</span>
+          </div>
+        </div>
+
+        <div class="grid-body" [attr.data-tour-step]="isLecturer ? 'calendar-cell' : null"
+          [class.tutorial-target-active]="isTutorialStepTarget('calendar-cell')">
+          <div class="hour-row" *ngFor="let hour of hours24">
+            <div class="hour-label">{{ hour }}:00</div>
+            <div class="day-cell" *ngFor="let day of weekDays">
+              <button *ngIf="isLecturer" type="button" class="availability-slot"
+                [class.available]="getSlotState(day, hour) === 'available'"
+                [class.unavailable]="getSlotState(day, hour) === 'unavailable'"
+                (mousedown)="startCellSelection(day, hour, $event)" (mouseenter)="onCellHover(day, hour)">
+              </button>
+
+              <div *ngIf="!isLecturer" class="planner-slot"
+                [class.available]="getPlannerSlotState(day, hour) === 'available'"
+                [class.unavailable]="getPlannerSlotState(day, hour) === 'unavailable'">
               </div>
             </div>
           </div>
-
         </div>
-      </ion-content>
+      </div>
+    </ion-content>
+  </div>
+
+  <div class="tutorial-overlay" *ngIf="isLecturer && isTutorialActive">
+    <div class="tutorial-backdrop"></div>
+    <div class="tutorial-spotlight" [ngStyle]="tutorialSpotlightStyle"></div>
+
+    <div class="tutorial-panel">
+      <p class="tutorial-step">{{ tutorialProgressLabel }}</p>
+      <h3>{{ activeTutorialStep?.title }}</h3>
+      <p>{{ tutorialStepDescription }}</p>
+      <p class="tutorial-hint">Kliknij podświetlony element, aby przejść do kolejnego kroku.</p>
     </div>
+  </div>
 
-    <div class="sidebar" [style.width.px]="sidebarWidth()">
-      <ion-content class="ion-padding no-scroll">
-        
-        <div class="sidebar-inner" [class.hidden]="sidebarWidth() < 160">
-          <ion-datetime 
-            presentation="date" 
-            size="cover" 
-            class="mini-calendar"
-            [value]="selectedDate.toISOString()"
-            (ionChange)="onDateSelect($event)">
-          </ion-datetime>
-        </div>
-          <div class="collapsed-view" *ngIf="sidebarWidth() < 160" (click)="expandSidebar()" role="button" tabindex="0">
-           <ion-icon name="menu-outline" class="big-menu-icon"></ion-icon>
-        </div>
-      </ion-content>
+  <div class="preview-modal-backdrop" *ngIf="isSubmissionModalOpen" (click)="closeSubmissionPreview()">
+    <div class="preview-modal" (click)="$event.stopPropagation()" *ngIf="selectedSubmissionPreview">
+      <div class="preview-modal-header">
+        <h3>Podgląd godzin: {{ selectedSubmissionPreview.lecturerDisplayName }}</h3>
+        <button type="button" class="close-modal-btn" (click)="closeSubmissionPreview()">Zamknij</button>
+      </div>
 
-      <div class="resizer" (mousedown)="startResizing($event)" (touchstart)="startResizing($event)"></div>
+      <div class="submission-preview-grid">
+        <p><strong>Tydzień:</strong> {{ selectedSubmissionPreview.weekType }} ({{ selectedSubmissionPreview.weekStartIso
+          }})</p>
+        <p><strong>Tryb:</strong> {{ strategyLabel(selectedSubmissionPreview.strategy) }}</p>
+
+        <div class="preview-header-row">
+          <div class="time-col"></div>
+          <div class="day-col" *ngFor="let day of submissionPreviewWeekDays">{{ day.name }}</div>
+        </div>
+
+        <div class="preview-body">
+          <div class="preview-row" *ngFor="let hour of hours24">
+            <div class="time-col">{{ hour }}:00</div>
+            <div class="preview-cell" *ngFor="let day of submissionPreviewWeekDays"
+              [class.available]="getSubmissionSlotState(day, hour) === 'available'"
+              [class.unavailable]="getSubmissionSlotState(day, hour) === 'unavailable'">
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-
+  </div>
 </div>

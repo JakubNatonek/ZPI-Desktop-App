@@ -1,38 +1,43 @@
 ﻿<ion-content class="login-view">
   <div class="page-container">
-    
+
     <div class="page-header">
       <h1>Projekt Harmonogramu</h1>
       <p class="subtitle">Zaloguj się do swojego konta</p>
     </div>
 
     <div class="card-wrapper">
-    <ion-card>
-      <ion-card-content>
-        <label class="field-label" for="email">Email</label>
-        <ion-item lines="none">
-          <ion-icon name="mail-outline" slot="start"></ion-icon>
-          <ion-input id="email" type="email" placeholder="mail@gmail.com" [(ngModel)]="email" required></ion-input>
-        </ion-item>
+      <ion-card>
+        <ion-card-content>
+          <label class="field-label" for="email">Email</label>
+          <ion-item lines="none">
+            <ion-icon name="mail-outline" slot="start"></ion-icon>
+            <ion-input id="email" type="email" placeholder="mail@gmail.com" [(ngModel)]="email" required></ion-input>
+          </ion-item>
 
-        <label class="field-label" for="password">Hasło</label>
-        <ion-item lines="none">
-          <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
-          <ion-input id="password" type="password" placeholder="********" [(ngModel)]="password" required></ion-input>
-        </ion-item>
+          <label class="field-label" for="password">Hasło</label>
+          <ion-item lines="none">
+            <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+            <ion-input id="password" type="password" placeholder="********" [(ngModel)]="password" required></ion-input>
+          </ion-item>
 
-        <ion-button expand="block" class="ion-margin-top" (click)="login()">Zaloguj się</ion-button>
-        <div *ngIf="error" class="error-message ion-text-center ion-margin-top">
-          {{ error }}
-        </div>
+          <ion-button expand="block" class="ion-margin-top" (click)="login()">Zaloguj się</ion-button>
+          <div *ngIf="error" class="error-message ion-text-center ion-margin-top">
+            {{ error }}
+          </div>
 
-        <div class="demo-credentials ion-margin-top" (click)="copyDemo()" tabindex="0">
-          <strong>Dane logowania:</strong><br />
-          Email: <code>{{ demoEmail }}</code><br />
-          Hasło: <code>{{ demoPassword }}</code>
-        </div>
-      </ion-card-content>
-    </ion-card>
+          <div class="demo-credentials ion-margin-top" tabindex="0">
+            <strong>Dane logowania:</strong>
+            <div class="account-list">
+              <button type="button" class="account-item" *ngFor="let account of demoAccounts"
+                (click)="fillDemo(account.email, account.password)">
+                <span class="account-role">{{ account.displayName }}</span>
+                <span>{{ account.email }} / {{ account.password }}</span>
+              </button>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
     </div>
   </div>
   <div class="login-footer">

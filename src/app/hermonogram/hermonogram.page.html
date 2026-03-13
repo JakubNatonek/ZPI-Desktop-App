@@ -1,13 +1,88 @@
-﻿<ion-header>
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
-    </ion-buttons>
-    <ion-title>Harmonogram</ion-title>
-  </ion-toolbar>
-</ion-header>
+﻿<div class="harmonogram-shell">
+  <ng-container *ngIf="canAccessHarmonogram; else noAccessState">
+    <div class="sidebar">
+      <ion-content class="ion-padding sidebar-content">
+        <h3>Podgląd planu</h3>
+        <div class="import-row">
+          <ion-button fill="outline" color="primary" (click)="importRaply(raplyImportInput)">
+            Import Raply
+          </ion-button>
+          <p class="plan-summary">{{ activePlanSummary }}</p>
+        </div>
+        <input #raplyImportInput type="file" accept=".json,.csv,.raply" multiple hidden
+          (change)="onRaplyFileSelected($event)">
+        <p class="import-msg" *ngIf="raplyImportMessage">{{ raplyImportMessage }}</p>
+      </ion-content>
+    </div>
 
-<ion-content class="ion-padding">
-  
-  <p>Strona z harmonogramem.</p>
-</ion-content>
+    <div class="main-content">
+      <ion-header class="ion-no-border">
+        <ion-toolbar>
+          <ion-buttons slot="start">
+            <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
+            <ion-button fill="clear" (click)="prevWeek()">
+              <ion-icon name="chevron-back-outline"></ion-icon>
+            </ion-button>
+            <ion-button fill="clear" (click)="nextWeek()">
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </ion-button>
+            <ion-title>{{ currentMonthName }} {{ currentYear }}</ion-title>
+          </ion-buttons>
+          <ion-buttons slot="end">
+            <ion-button fill="outline" (click)="goToToday()">Dzisiaj</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="calendar-scroll">
+        <div class="google-calendar-grid">
+          <div class="grid-header">
+            <div class="time-spacer"></div>
+            <div class="day-col-header" *ngFor="let day of weekDays">
+              <span class="day-name">{{ day.name }}</span>
+            </div>
+          </div>
+
+          <div class="grid-body">
+            <div class="hour-row" *ngFor="let hour of hours24">
+              <div class="hour-label">{{ hour }}:00</div>
+              <div class="day-cell" *ngFor="let day of weekDays">
+                <div class="plan-cell">
+                  <ng-container *ngIf="getCellScheduleItems(day, hour).length > 0; else legacySlotView">
+                    <div class="plan-item" *ngFor="let event of getCellScheduleItems(day, hour)">
+                      <p class="plan-subject">{{ event.subject }}</p>
+                      <p class="plan-meta" *ngIf="event.location">{{ event.location }}</p>
+                      <p class="plan-meta" *ngIf="event.instructor">{{ event.instructor }}</p>
+                    </div>
+                  </ng-container>
+
+                  <ng-template #legacySlotView>
+                    <div class="plan-item legacy" *ngIf="isPlanSlotImported(day, hour)">
+                      <p class="plan-subject">Zajęcia</p>
+                    </div>
+                  </ng-template>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ion-content>
+    </div>
+  </ng-container>
+
+  <ng-template #noAccessState>
+    <div class="main-content">
+      <ion-header class="ion-no-border">
+        <ion-toolbar>
+          <ion-buttons slot="start">
+            <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
+            <ion-title>Harmonogram</ion-title>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <p>Brak dostępu do tej zakładki dla roli wykładowcy.</p>
+      </ion-content>
+    </div>
+  </ng-template>
+</div>

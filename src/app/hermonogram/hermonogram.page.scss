@@ -2,6 +2,127 @@
   display: block;
 }
 
+.harmonogram-shell {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 320px;
+  min-width: 280px;
+  border-right: 1px solid #d1d5db;
+  background: #ffffff;
+}
+
+.sidebar-content {
+  --background: #ffffff;
+
+  h3,
+  h4 {
+    margin-top: 0;
+  }
+}
+
+.import-msg {
+  margin: 10px 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: #ecfdf3;
+  color: #166534;
+  font-size: 0.84rem;
+}
+
+.import-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-summary {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #334155;
+}
+
+.submission-folder {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.folder-header {
+  width: 100%;
+  border: 0;
+  text-align: left;
+  padding: 10px 12px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.folder-name {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.folder-meta {
+  margin: 2px 0 0;
+  font-size: 0.74rem;
+  color: #6b7280;
+}
+
+.folder-content {
+  padding: 10px;
+  background: #f8fafc;
+}
+
+.submission-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: #ffffff;
+  color: #0f172a;
+
+  p {
+    margin: 0 0 4px;
+    font-size: 0.83rem;
+  }
+}
+
+.submission-card.is-active {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.25);
+  background: #f0fdfa;
+}
+
+.preview-box {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px;
+  background: #f1f5f9;
+  margin-top: 10px;
+
+  p {
+    margin: 0 0 6px;
+    font-size: 0.84rem;
+  }
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #ffffff;
+}
+
 .menu-nav-btn {
   --color: #000000;
   color: #000000;
@@ -11,3 +132,206 @@ ion-toolbar {
   border-bottom: 1px solid #d1d5db;
 }
 
+.google-calendar-grid {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .grid-header {
+    display: grid;
+    grid-template-columns: 70px repeat(7, minmax(0, 1fr));
+    border-bottom: 1px solid #dadce0;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 50;
+  }
+
+  .day-col-header {
+    text-align: center;
+    padding: 10px 0;
+
+    .day-name {
+      font-size: 12px;
+      font-weight: 600;
+    }
+  }
+
+  .grid-body {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .hour-row {
+    display: grid;
+    grid-template-columns: 70px repeat(7, minmax(0, 1fr));
+    height: calc((100vh - 56px) / 14);
+    border-bottom: 1px solid #f1f3f4;
+  }
+
+  .hour-label {
+    font-size: 10px;
+    text-align: center;
+    padding-right: 12px;
+    margin-top: -12px;
+    color: #111827;
+  }
+
+  .day-cell {
+    position: relative;
+    border-right: 1px solid #f1f3f4;
+  }
+}
+
+.plan-cell {
+  position: absolute;
+  inset: 2px 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.plan-item {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 3px 4px;
+  line-height: 1.15;
+}
+
+.plan-item.legacy {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+.plan-subject {
+  margin: 0;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plan-meta {
+  margin: 0;
+  font-size: 0.6rem;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:host-context(.ion-palette-dark) {
+
+  .harmonogram-shell,
+  .main-content {
+    background: #0f172a;
+  }
+
+  ion-content {
+    --background: #0f172a;
+    color: #e2e8f0;
+  }
+
+  .sidebar {
+    background: #111827;
+    border-right-color: #334155;
+  }
+
+  .sidebar-content {
+    --background: #111827;
+
+    h3,
+    h4,
+    p,
+    .plan-summary {
+      color: #e5e7eb;
+    }
+  }
+
+  ion-toolbar {
+    --background: #111827;
+    --color: #f8fafc;
+    border-bottom-color: #334155;
+  }
+
+  ion-title,
+  ion-label,
+  p {
+    color: #e2e8f0;
+  }
+
+  .menu-nav-btn {
+    --color: #ffffff;
+    color: #ffffff;
+  }
+
+  ion-toolbar ion-button {
+    --color: #e2e8f0;
+    color: #e2e8f0;
+    --border-color: #64748b;
+  }
+
+  .import-row ion-button {
+    --color: #e2e8f0;
+    --border-color: #64748b;
+  }
+
+  .calendar-scroll {
+    --background: #0f172a;
+  }
+
+  .google-calendar-grid {
+    .grid-header {
+      background: #111827;
+      border-bottom-color: #334155;
+    }
+
+    .day-col-header .day-name {
+      color: #f1f5f9;
+    }
+
+    .hour-row {
+      border-bottom-color: #334155;
+    }
+
+    .hour-label {
+      color: #cbd5e1;
+    }
+
+    .day-cell {
+      border-right-color: #334155;
+    }
+  }
+
+  .plan-item {
+    background: #1f2937;
+    border-color: #475569;
+  }
+
+  .plan-item.legacy {
+    background: #1e293b;
+    border-color: #64748b;
+  }
+
+  .plan-subject {
+    color: #f8fafc;
+  }
+
+  .plan-meta {
+    color: #cbd5e1;
+  }
+
+  .import-msg {
+    background: #14532d;
+    color: #dcfce7;
+  }
+
+  .no-access-state,
+  .no-access-state p {
+    color: #e2e8f0;
+  }
+}

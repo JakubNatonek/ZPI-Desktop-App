@@ -19,8 +19,7 @@ export class LoginPage implements OnInit {
   password = '';
   error = '';
 
-  demoEmail = 'test@gmail.com';
-  demoPassword = '12345';
+  demoAccounts = this.auth.availableAccounts;
 
   constructor(private auth: AuthService, private router: Router) {
     addIcons({ mailOutline, lockClosedOutline });
@@ -37,12 +36,19 @@ export class LoginPage implements OnInit {
     if (this.auth.login(this.email, this.password)) {
       this.router.navigateByUrl('/home');
     } else {
-      this.error = 'NieprawidĹ‚owe dane logowania';
+      this.error = 'Nieprawidłowe dane logowania';
     }
   }
 
+  fillDemo(email: string, password: string) {
+    this.email = email;
+    this.password = password;
+  }
+
   copyDemo() {
-    const text = `${this.demoEmail}\n`;
+    const text = this.demoAccounts
+      .map((account) => `${account.displayName}: ${account.email} / ${account.password}`)
+      .join('\n');
     navigator.clipboard.writeText(text).then(() => {
       console.log('skopiowano dane');
     });
