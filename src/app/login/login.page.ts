@@ -33,11 +33,19 @@ export class LoginPage implements OnInit {
 
   login() {
     this.error = '';
-    if (this.auth.login(this.email, this.password)) {
-      this.router.navigateByUrl('/home');
-    } else {
-      this.error = 'Nieprawidłowe dane logowania';
-    }
+    this.auth.login(this.email, this.password).subscribe({
+      next: (success) => {
+        if (success) {
+          this.router.navigateByUrl('/home');
+          return;
+        }
+
+        this.error = 'Nieprawidłowe dane logowania';
+      },
+      error: () => {
+        this.error = 'Nieprawidłowe dane logowania';
+      },
+    });
   }
 
   fillDemo(email: string, password: string) {

@@ -1,6 +1,10 @@
 ﻿import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, map, of, switchMap, tap } from 'rxjs';
+
+import { environment } from '../../environments/environment';
+import { AccessTokenService } from './access-token.service';
 
 export type UserRole = 'admin' | 'lecturer' | 'planner';
 export type AppTheme = 'light' | 'dark';
@@ -16,6 +20,23 @@ interface UserPreferences {
   password?: string;
   avatar?: string;
   theme?: AppTheme;
+}
+
+interface ApiLoginResponse {
+  user_id: number;
+  login: string;
+  email: string;
+  access_token: string;
+  token_type: string;
+  access_token_expires_in: number;
+}
+
+interface ApiCurrentUserResponse {
+  user_id: number;
+  login: string;
+  email: string;
+  role: string;
+  dzial: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -61,8 +82,15 @@ export class AuthService {
   readonly userRole$ = this._userRole.asObservable();
   readonly displayName$ = this._displayName.asObservable();
   readonly email$ = this._email.asObservable();
+  private readonly loginUrl = `${environment.apiBaseUrl}/auth/`;
+  private readonly meUrl = `${environment.apiBaseUrl}/auth/me`;
+  private readonly logoutUrl = `${environment.apiBaseUrl}/auth/logout`;
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private http: HttpClient,
+    private accessTokenService: AccessTokenService
+  ) {
     const authenticated = localStorage.getItem('authenticated') === 'true';
     const role = localStorage.getItem('userRole') as UserRole | null;
     const displayName = localStorage.getItem('displayName') || '';
@@ -86,33 +114,72 @@ export class AuthService {
     this.clearSessionState(false);
   }
 
-  login(email: string, password: string): boolean {
-    const normalizedEmail = email.trim();
+  login(email: string, password: string): Observable<boolean> {
+    const identifier = email.trim();
+
+    return this.http
+      .post<ApiLoginResponse>(
+        this.loginUrl,
+        {
+          login: identifier,
+          password,
+        },
+        { withCredentials: true }
+      )
+      .pipe(
+        switchMap((loginResponse) => {
+          this.accessTokenService.setToken(loginResponse.access_token);
+
+          return this.http.get<ApiCurrentUserResponse>(this.meUrl, { withCredentials: true }).pipe(
+            tap((me) => {
+              const mappedRole = this.mapBackendRoleToAppRole(me.role, me.email);
+              this.activateSession(mappedRole, this.resolveDisplayName(me.email, me.login), me.email);
+            }),
+            map(() => true)
+          );
+        }),
+        catchError(() => of(this.loginWithLocalAccount(identifier, password)))
+      );
+  }
+
+  private loginWithLocalAccount(identifier: string, password: string): boolean {
+    this.accessTokenService.clear();
     const account = this.accounts.find(
-      (candidate) => candidate.email === normalizedEmail
+      (candidate) => candidate.email === identifier
     );
 
     if (!account || this.getEffectivePassword(account) !== password) {
       return false;
     }
 
-    this._authenticated.next(true);
-    this._userRole.next(account.role);
-    this._displayName.next(account.displayName);
-    this._email.next(account.email);
-
-    const sessionStartedAt = Date.now();
-    localStorage.setItem('authenticated', 'true');
-    localStorage.setItem('userRole', account.role);
-    localStorage.setItem('displayName', account.displayName);
-    localStorage.setItem('userEmail', account.email);
-    localStorage.setItem(this.sessionStorageKey, String(sessionStartedAt));
-    this.scheduleSessionExpiry(this.sessionDurationMs);
-    this.applyCurrentTheme();
+    this.activateSession(account.role, account.displayName, account.email);
     return true;
   }
 
+  private activateSession(role: UserRole, displayName: string, email: string): void {
+    this._authenticated.next(true);
+    this._userRole.next(role);
+    this._displayName.next(displayName);
+    this._email.next(email);
+
+    const sessionStartedAt = Date.now();
+    localStorage.setItem('authenticated', 'true');
+    localStorage.setItem('userRole', role);
+    localStorage.setItem('displayName', displayName);
+    localStorage.setItem('userEmail', email);
+    localStorage.setItem(this.sessionStorageKey, String(sessionStartedAt));
+    this.scheduleSessionExpiry(this.sessionDurationMs);
+    this.applyCurrentTheme();
+  }
+
   logout() {
+    this.http.post(this.logoutUrl, {}, { withCredentials: true }).subscribe({
+      error: () => {
+        // Local cleanup still runs even if backend cannot revoke current cookie.
+      },
+    });
+
+    this.accessTokenService.clear();
     this.clearSessionState(true);
   }
 
@@ -281,6 +348,7 @@ export class AuthService {
     localStorage.removeItem('displayName');
     localStorage.removeItem('userEmail');
     localStorage.removeItem(this.sessionStorageKey);
+    this.accessTokenService.clear();
 
     if (redirectToLogin) {
       this.applyTheme('light');
@@ -291,6 +359,30 @@ export class AuthService {
   private getEffectivePassword(account: UserAccount): string {
     const preferences = this.getUserPreferences(account.email);
     return preferences?.password || account.password;
+  }
+
+  private mapBackendRoleToAppRole(backendRole: string, email: string): UserRole {
+    const localAccount = this.accounts.find((account) => account.email === email);
+    if (localAccount) {
+      return localAccount.role;
+    }
+
+    switch (backendRole) {
+      case 'wykladowca':
+      case 'cwiczenia':
+      case 'laboratorium':
+      case 'seminarium':
+        return 'lecturer';
+      case 'student':
+        return 'planner';
+      default:
+        return 'admin';
+    }
+  }
+
+  private resolveDisplayName(email: string, backendLogin: string): string {
+    const localAccount = this.accounts.find((account) => account.email === email);
+    return localAccount?.displayName || backendLogin;
   }
 
   private getUserPreferences(email: string): UserPreferences | null {
