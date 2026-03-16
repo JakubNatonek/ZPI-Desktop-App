@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 import { AccessTokenService } from './access-token.service';
 
 export type UserRole = 'admin' | 'lecturer' | 'planner';

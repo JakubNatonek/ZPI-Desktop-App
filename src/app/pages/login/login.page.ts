@@ -3,7 +3,7 @@ import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../core/services/auth.service';
 import { addIcons } from 'ionicons';
 import { mailOutline, lockClosedOutline } from 'ionicons/icons';
 
@@ -34,7 +34,7 @@ export class LoginPage implements OnInit {
   login() {
     this.error = '';
     this.auth.login(this.email, this.password).subscribe({
-      next: (success) => {
+      next: (success: boolean) => {
         if (success) {
           this.router.navigateByUrl('/home');
           return;
@@ -55,7 +55,7 @@ export class LoginPage implements OnInit {
 
   copyDemo() {
     const text = this.demoAccounts
-      .map((account) => `${account.displayName}: ${account.email} / ${account.password}`)
+      .map((account: { displayName: string; email: string; password: string }) => `${account.displayName}: ${account.email} / ${account.password}`)
       .join('\n');
     navigator.clipboard.writeText(text).then(() => {
       console.log('skopiowano dane');

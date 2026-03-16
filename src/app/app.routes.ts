@@ -3,23 +3,23 @@
 export const routes: Routes = [
   {
     path: 'login',
-    loadComponent: () => import('./login/login.page').then((m) => m.LoginPage),
+    loadComponent: () => import('./pages/login/login.page').then((m) => m.LoginPage),
   },
   {
     path: 'home',
-    loadComponent: () => import('./home/home.page').then((m) => m.HomePage),
+    loadComponent: () => import('./features/home/pages/home.page').then((m) => m.HomePage),
   },
   {
     path: 'hermonogram',
-    loadComponent: () => import('./hermonogram/hermonogram.page').then((m) => m.HermonogramPage),
+    loadComponent: () => import('./features/hermonogram/pages/hermonogram.page').then((m) => m.HermonogramPage),
   },
   {
     path: 'konflikty',
-    loadComponent: () => import('./konflikty/konflikty.page').then((m) => m.KonfliktyPage),
+    loadComponent: () => import('./features/konflikty/pages/konflikty.page').then((m) => m.KonfliktyPage),
   },
   {
     path: 'profile',
-    loadComponent: () => import('./profile/profile.page').then((m) => m.ProfilePage),
+    loadComponent: () => import('./features/profile/pages/profile.page').then((m) => m.ProfilePage),
   },
   {
     path: '',

@@ -2,7 +2,7 @@ import { HttpBackend, HttpClient, HttpInterceptorFn } from '@angular/common/http
 import { inject } from '@angular/core';
 import { catchError, finalize, map, Observable, shareReplay, switchMap, throwError } from 'rxjs';
 
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 import { AccessTokenService } from '../services/access-token.service';
 
 interface RefreshResponse {

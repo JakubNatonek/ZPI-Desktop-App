@@ -8,7 +8,7 @@ import {
   cloudUploadOutline, addOutline, peopleOutline, menuOutline,
   checkmarkDoneOutline, createOutline, swapHorizontalOutline
 } from 'ionicons/icons';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 type AvailabilityMode = 'available' | 'unavailable';
 
