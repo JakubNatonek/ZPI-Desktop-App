@@ -44,15 +44,15 @@
         <ion-card-title>Zmiana hasła</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <ion-item>
+        <ion-item multiple-inputs="true">
           <ion-label position="stacked">Aktualne hasło</ion-label>
           <ion-input type="password" [(ngModel)]="currentPassword"></ion-input>
         </ion-item>
-        <ion-item>
+        <ion-item multiple-inputs="true">
           <ion-label position="stacked">Nowe hasło</ion-label>
           <ion-input type="password" [(ngModel)]="newPassword"></ion-input>
         </ion-item>
-        <ion-item>
+        <ion-item multiple-inputs="true">
           <ion-label position="stacked">Powtórz nowe hasło</ion-label>
           <ion-input type="password" [(ngModel)]="confirmPassword"></ion-input>
         </ion-item>

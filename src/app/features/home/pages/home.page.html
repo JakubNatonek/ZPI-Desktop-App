@@ -1,10 +1,12 @@
 ﻿<div class="app-shell" [class.lecturer-layout]="isLecturer">
+  <!-- Panel boczny: sterowanie zalezne od roli i dane wykladowcow -->
   <div class="sidebar" [style.width.px]="sidebarWidth()">
     <ion-content class="ion-padding no-scroll">
       <div class="sidebar-inner" [class.hidden]="sidebarWidth() < 160">
         <h3>Tryb pracy</h3>
         <p class="role-label">Rola: {{ userRoleLabel }}</p>
 
+        <!-- Tryb wykladowcy: przeplyw zaznaczania dostepnosci -->
         <ng-container *ngIf="isLecturer; else adminPlannerFolders">
           <ion-segment [value]="selectionMode" (ionChange)="onModeChange($event)" data-tour-step="mode-selector"
             [class.tutorial-target-active]="isTutorialStepTarget('mode-selector')">
@@ -43,6 +45,7 @@
           </div>
         </ng-container>
 
+        <!-- Tryb admina/planisty: lista wpisow wykladowcow -->
         <ng-template #adminPlannerFolders>
           <div class="sent-data" *ngIf="submissionsForAdminPlanner.length > 0; else emptyFolderState">
             <h4>Wpisy wykładowców</h4>
@@ -101,6 +104,7 @@
     <div class="resizer" (mousedown)="startResizing($event)" (touchstart)="startResizing($event)"></div>
   </div>
 
+  <!-- Glowny obszar roboczy kalendarza -->
   <div class="main-content">
     <ion-header class="ion-no-border">
       <ion-toolbar mode="md">
@@ -157,6 +161,7 @@
     </ion-header>
 
     <ion-content class="calendar-scroll">
+      <!-- Siatka tygodnia z godzinami (07:00-21:00) -->
       <div class="google-calendar-grid">
         <div class="grid-header">
           <div class="time-spacer"></div>
@@ -187,6 +192,7 @@
     </ion-content>
   </div>
 
+  <!-- Nakladka tutoriala dla pierwszego uruchomienia u wykladowcy -->
   <div class="tutorial-overlay" *ngIf="isLecturer && isTutorialActive">
     <div class="tutorial-backdrop"></div>
     <div class="tutorial-spotlight" [ngStyle]="tutorialSpotlightStyle"></div>

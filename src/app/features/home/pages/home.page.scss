@@ -1,4 +1,5 @@
-﻿.app-shell {
+﻿/* Glowny uklad dwoch kolumn: panel boczny + obszar kalendarza */
+.app-shell {
   display: flex;
   height: 100vh;
   width: 100vw;
@@ -9,6 +10,7 @@
   flex-direction: row-reverse;
 }
 
+/* Zawartosc panelu bocznego: filtry, sterowanie i podglad wpisow */
 .sidebar {
   ion-content.no-scroll {
     --background: #ffffff;
@@ -185,6 +187,7 @@
   }
 }
 
+/* Glowny obszar z paskiem narzedzi i siatka kalendarza */
 .main-content {
   flex: 1;
   display: flex;
@@ -222,6 +225,7 @@
   }
 }
 
+/* Tygodniowa siatka kalendarza i tabela slotow godzinowych */
 .google-calendar-grid {
   display: flex;
   flex-direction: column;
@@ -285,6 +289,7 @@
   }
 }
 
+/* Interaktywny slot do zaznaczania dostepnosci przez wykladowce */
 .availability-slot {
   position: absolute;
   inset: 2px 4px;
@@ -312,6 +317,7 @@
   box-shadow: inset 0 0 0 1px rgba(127, 29, 29, 0.3);
 }
 
+/* Widok planisty tylko do odczytu z zaznaczeniami wykladowcy */
 .planner-slot {
   position: absolute;
   inset: 2px 4px;
@@ -389,6 +395,7 @@
   }
 }
 
+/* Modal ze szczegolami wpisu dla planisty/admina */
 .preview-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -424,6 +431,78 @@
   }
 }
 
+:host-context(html.ion-palette-dark) {
+  .sidebar {
+    ion-content.no-scroll {
+      --background: #0f172a;
+    }
+  }
+
+  .google-calendar-grid {
+    background: #0b1220;
+
+    .grid-header {
+      background: #0f172a;
+      border-bottom-color: #334155;
+
+      .day-col-header {
+        color: #f8fafc;
+      }
+    }
+
+    .grid-body {
+      .hour-row {
+        border-bottom-color: #334155;
+
+        .hour-label {
+          color: #ffffff;
+          font-weight: 600;
+        }
+
+        .day-cell {
+          border-right-color: #334155;
+
+          &:hover {
+            background: #1e293b;
+          }
+        }
+      }
+    }
+  }
+
+  .sidebar .sidebar-inner {
+    .submission-card {
+      background: #111827;
+      border-color: #334155;
+      color: #f8fafc;
+    }
+
+    .submission-label {
+      color: #93c5fd;
+    }
+
+    .submission-value {
+      color: #ffffff;
+    }
+
+    .submission-card.is-clickable:hover {
+      background: #1e293b;
+      border-color: #60a5fa;
+    }
+
+    .submission-card.is-active {
+      background: #1d4ed8;
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.45);
+    }
+
+    .submission-card.is-active .submission-label,
+    .submission-card.is-active .submission-value {
+      color: #ffffff;
+    }
+  }
+}
+
 .close-modal-btn {
   border: 1px solid #cbd5e1;
   background: #f8fafc;
@@ -432,9 +511,10 @@
   cursor: pointer;
 }
 
+/* Warstwy tutoriala i reguly podswietlenia */
 .tutorial-target-active {
   position: relative;
-  z-index: 4600 !important;
+  z-index: 12000 !important;
   outline: 3px solid #ffffff;
   outline-offset: 2px;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.75);
@@ -443,7 +523,7 @@
 .tutorial-overlay {
   position: fixed;
   inset: 0;
-  z-index: 4500;
+  z-index: 11000;
   pointer-events: none;
 }
 
@@ -468,7 +548,7 @@
 .tutorial-panel {
   position: fixed;
   right: 16px;
-  bottom: 16px;
+  bottom: 108px;
   width: min(360px, calc(100vw - 32px));
   border-radius: 12px;
   border: 1px solid #ffffff;

@@ -1,0 +1,101 @@
+/* Bazowy blok strony, aby widok standalone wypelnial dostepne miejsce */
+:host {
+  display: block;
+}
+
+ion-toolbar {
+  border-bottom: 1px solid #d1d5db;
+}
+
+.menu-nav-btn {
+  --color: #000000;
+  color: #000000;
+}
+
+.room-form-content {
+  --background: #f5f7fb;
+}
+
+/* Wycentrowany uklad karty formularza */
+ion-card {
+  max-width: 860px;
+  margin: 0 auto;
+  border-radius: 16px;
+}
+
+.section-block {
+  margin: 20px 0 8px;
+}
+
+.section-block h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.section-block p {
+  margin: 0 0 12px;
+  color: #4b5563;
+  font-size: 0.92rem;
+}
+
+/* Rzad przyciskow akcji pod formularzem */
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.submit-message {
+  display: block;
+  margin-top: 16px;
+  font-weight: 600;
+}
+
+/* Nadpisania trybu ciemnego dla strony formularza sal */
+:host-context(html.ion-palette-dark) {
+  ion-toolbar {
+    --background: #0f172a;
+    --color: #f8fafc;
+    border-bottom-color: #334155;
+  }
+
+  .room-form-content {
+    --background: #0b1220;
+  }
+
+  ion-card {
+    --background: #0f172a;
+    background: #0f172a;
+    border: 1px solid #334155;
+  }
+
+  ion-card-title,
+  ion-card-subtitle,
+  ion-label,
+  .section-block h3,
+  .section-block p,
+  .submit-message,
+  ion-title {
+    color: #f8fafc;
+  }
+
+  ion-item {
+    --background: #111827;
+    --color: #f8fafc;
+    --border-color: #334155;
+  }
+
+  ion-input,
+  ion-select,
+  ion-textarea {
+    --color: #f8fafc;
+    --placeholder-color: #cbd5e1;
+    --background: #111827;
+  }
+
+  ion-list {
+    background: transparent;
+  }
+}

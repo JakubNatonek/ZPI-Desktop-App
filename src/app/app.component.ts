@@ -4,6 +4,7 @@ import { MenuController } from '@ionic/angular';
 import { IonApp, IonRouterOutlet, IonMenu, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonButtons, IonButton, IonIcon } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { AuthService } from './core/services/auth.service';
+import { ChatComponent } from './features/chat/chat.component';
 
 @Component({
   selector: 'app-root',
@@ -22,7 +23,8 @@ import { AuthService } from './core/services/auth.service';
     IonButtons,
     IonButton,
     IonIcon,
-    CommonModule
+    CommonModule,
+    ChatComponent,
   ],
 })
 export class AppComponent implements OnInit {

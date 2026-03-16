@@ -19,10 +19,13 @@
         <ion-item button (click)="navigate('/home')">Wykładowcy</ion-item>
         <ion-item button *ngIf="auth.role !== 'lecturer'" (click)="navigate('/hermonogram')">Harmonogram</ion-item>
         <ion-item button *ngIf="auth.role !== 'lecturer'" (click)="navigate('/konflikty')">Konflikty</ion-item>
+        <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/sale')">Dodawanie sal</ion-item>
         <ion-item button (click)="navigate('/profile')">Profil</ion-item>
       </ion-list>
     </ion-content>
   </ion-menu>
 
   <ion-router-outlet id="main-content"></ion-router-outlet>
+
+  <app-chat *ngIf="auth.isAuthenticated$ | async"></app-chat>
 </ion-app>

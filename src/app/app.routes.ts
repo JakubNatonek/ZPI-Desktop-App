@@ -22,6 +22,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/profile/pages/profile.page').then((m) => m.ProfilePage),
   },
   {
+    path: 'sale',
+    loadComponent: () => import('./features/sale/sale.page').then((m) => m.SalePage),
+  },
+  {
     path: '',
     redirectTo: 'login',
     pathMatch: 'full',

@@ -10,16 +10,16 @@
       <ion-card>
         <ion-card-content>
           <label class="field-label" for="email">Email</label>
-          <ion-item lines="none">
-            <ion-icon name="mail-outline" slot="start"></ion-icon>
+          <div class="input-shell">
+            <ion-icon name="mail-outline"></ion-icon>
             <ion-input id="email" type="email" placeholder="mail@gmail.com" [(ngModel)]="email" required></ion-input>
-          </ion-item>
+          </div>
 
           <label class="field-label" for="password">Hasło</label>
-          <ion-item lines="none">
-            <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+          <div class="input-shell">
+            <ion-icon name="lock-closed-outline"></ion-icon>
             <ion-input id="password" type="password" placeholder="********" [(ngModel)]="password" required></ion-input>
-          </ion-item>
+          </div>
 
           <ion-button expand="block" class="ion-margin-top" (click)="login()">Zaloguj się</ion-button>
           <div *ngIf="error" class="error-message ion-text-center ion-margin-top">

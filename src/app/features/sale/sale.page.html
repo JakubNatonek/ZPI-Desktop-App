@@ -1,0 +1,101 @@
+<!-- Gorny pasek z dostepem do menu aplikacji -->
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Dodawanie sal</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding room-form-content">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Nowa sala</ion-card-title>
+      <ion-card-subtitle>Szkielet formularza (front-end)</ion-card-subtitle>
+    </ion-card-header>
+
+    <ion-card-content>
+      <!-- Glowny formularz sali z walidacja template-driven -->
+      <form #roomForm="ngForm" (ngSubmit)="onSubmit(roomForm)">
+        <ion-list lines="none">
+          <ion-item>
+            <ion-label position="stacked">Numer sali</ion-label>
+            <ion-input
+              name="roomNumber"
+              [(ngModel)]="roomNumber"
+              required
+              placeholder="Np. A-205"
+              clearInput="true">
+            </ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Ilosc miejsc</ion-label>
+            <ion-input
+              name="seatsCount"
+              type="number"
+              min="1"
+              [(ngModel)]="seatsCount"
+              required
+              placeholder="Np. 30">
+            </ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Typ sali</ion-label>
+            <ion-select
+              name="roomType"
+              interface="popover"
+              [(ngModel)]="roomType"
+              (ionChange)="onRoomTypeChange()"
+              required>
+              <ion-select-option *ngFor="let type of roomTypeOptions" [value]="type.value">
+                {{ type.label }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+        </ion-list>
+
+        <!-- Dynamiczna lista zajec dla wybranego typu sali -->
+        <div class="section-block">
+          <h3>Możliwe zajęcia w sali</h3>
+          <p>Zaznacz zajecia, do ktorych ta sala jest odpowiednia.</p>
+
+          <ion-list>
+            <ion-item *ngFor="let activity of activityOptions">
+              <ion-checkbox
+                slot="start"
+                [name]="'activity-' + activity"
+                [(ngModel)]="selectedActivities[activity]">
+              </ion-checkbox>
+              <ion-label>{{ activity }}</ion-label>
+            </ion-item>
+          </ion-list>
+        </div>
+
+        <ion-item>
+          <ion-label position="stacked">Wyposazenie specjalne</ion-label>
+          <ion-textarea
+            name="specialEquipment"
+            [(ngModel)]="specialEquipment"
+            autoGrow="true"
+            placeholder="Np. firewalle, szafy rack, stanowiska pomiarowe, zasilacze laboratoryjne...">
+          </ion-textarea>
+        </ion-item>
+
+        <!-- Akcje: wyslanie i reset formularza -->
+        <div class="form-actions">
+          <ion-button type="submit" color="primary">Dodaj sale</ion-button>
+          <ion-button type="button" fill="outline" color="medium" (click)="resetForm(roomForm)">
+            Wyczysc formularz
+          </ion-button>
+        </div>
+      </form>
+
+      <ion-note color="success" *ngIf="submitMessage" class="submit-message">
+        {{ submitMessage }}
+      </ion-note>
+    </ion-card-content>
+  </ion-card>
+</ion-content>
