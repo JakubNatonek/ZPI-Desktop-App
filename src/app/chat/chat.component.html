@@ -1,0 +1,220 @@
+<!-- Chat bubble trigger -->
+<div class="chat-bubble" (click)="toggle()" [class.open]="isOpen()" title="Czat">
+  <svg *ngIf="!isOpen()" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+  </svg>
+  <svg *ngIf="isOpen()" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+  </svg>
+</div>
+
+<!-- Chat panel -->
+<div class="chat-panel" [class.chat-panel--open]="isOpen()">
+
+  <!-- Panel header -->
+  <div class="chat-panel__header">
+    <ng-container *ngIf="view() === 'contacts' || view() === 'rooms'">
+      <span class="chat-panel__title">Czat</span>
+    </ng-container>
+    <ng-container *ngIf="view() === 'conversation' && selectedUser() as user">
+      <button class="chat-back-btn" (click)="goBack()" title="Wróć">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+      </button>
+      <div class="chat-panel__user-info">
+        <div class="chat-avatar chat-avatar--sm">{{ getInitials(user.displayName) }}</div>
+        <div class="chat-panel__title">{{ user.displayName }}</div>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="view() === 'room-chat' && selectedRoom() as room">
+      <button class="chat-back-btn" (click)="goBack()" title="Wróć">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+      </button>
+      <div>
+        <div class="chat-panel__title"># {{ room.name }}</div>
+        <div class="chat-panel__subtitle">{{ room.members.length }} uczestników</div>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="view() === 'create-room'">
+      <button class="chat-back-btn" (click)="goBack()" title="Wróć">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+      </button>
+      <span class="chat-panel__title">Nowy pokój</span>
+    </ng-container>
+    <button class="chat-close-btn" (click)="close()" title="Zamknij">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Tab bar (only on contacts/rooms views) -->
+  <div class="chat-tabs" *ngIf="view() === 'contacts' || view() === 'rooms'">
+    <button class="chat-tab" [class.active]="activeTab() === 'messages'" (click)="setTab('messages')">
+      Wiadomości
+    </button>
+    <button class="chat-tab" [class.active]="activeTab() === 'rooms'" (click)="setTab('rooms')">
+      Pokoje
+    </button>
+  </div>
+
+  <!-- ─── CONTACTS VIEW ─────────────────────────────── -->
+  <div class="chat-panel__body" *ngIf="view() === 'contacts'">
+    <div class="chat-list">
+      <div
+        class="chat-list__item"
+        *ngFor="let user of mockUsers"
+        (click)="openConversation(user)"
+      >
+        <div class="chat-avatar" >{{ getInitials(user.displayName) }}</div>
+        <div class="chat-list__info">
+          <div class="chat-list__name">{{ user.displayName }}</div>
+          <div class="chat-list__preview">{{ getLastMessage(user.id) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── CONVERSATION VIEW ─────────────────────────── -->
+  <ng-container *ngIf="view() === 'conversation' && selectedUser() as user">
+    <div class="chat-panel__body chat-panel__body--messages" #messagesContainer>
+      <div class="chat-messages">
+        <ng-container *ngIf="conversations[user.id] && conversations[user.id].length > 0; else noMessages">
+          <div
+            class="chat-message"
+            *ngFor="let msg of conversations[user.id]"
+            [class.chat-message--own]="msg.isOwn"
+          >
+            <div class="chat-message__bubble">{{ msg.content }}</div>
+            <div class="chat-message__time">{{ formatTime(msg.timestamp) }}</div>
+          </div>
+        </ng-container>
+        <ng-template #noMessages>
+          <div class="chat-empty">Napisz pierwszą wiadomość</div>
+        </ng-template>
+      </div>
+    </div>
+    <div class="chat-input-bar">
+      <textarea
+        class="chat-input"
+        [(ngModel)]="messageInput"
+        (keydown)="handleKeydown($event)"
+        placeholder="Napisz wiadomość…"
+        rows="1"
+      ></textarea>
+      <button class="chat-send-btn" (click)="sendMessage()" [disabled]="!messageInput.trim()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+  </ng-container>
+
+  <!-- ─── ROOMS VIEW ────────────────────────────────── -->
+  <div class="chat-panel__body" *ngIf="view() === 'rooms'">
+    <button class="chat-create-room-btn" (click)="showCreateRoom()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+      </svg>
+      Utwórz nowy pokój
+    </button>
+    <div class="chat-list">
+      <div
+        class="chat-list__item"
+        *ngFor="let room of rooms"
+        (click)="openRoom(room)"
+      >
+        <div class="chat-avatar chat-avatar--room">#</div>
+        <div class="chat-list__info">
+          <div class="chat-list__name">{{ room.name }}</div>
+          <div class="chat-list__preview">{{ getLastRoomMessage(room.id) }}</div>
+        </div>
+        <div class="chat-list__meta">
+          <div class="chat-list__members-count">{{ room.members.length }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── ROOM CHAT VIEW ───────────────────────────── -->
+  <ng-container *ngIf="view() === 'room-chat' && selectedRoom() as room">
+    <div class="chat-panel__body chat-panel__body--messages" #messagesContainer>
+      <div class="chat-messages">
+        <ng-container *ngIf="roomMessages[room.id] && roomMessages[room.id].length > 0; else noRoomMessages">
+          <div
+            class="chat-message"
+            *ngFor="let msg of roomMessages[room.id]"
+            [class.chat-message--own]="msg.isOwn"
+          >
+            <div class="chat-message__sender" *ngIf="!msg.isOwn">{{ msg.senderName }}</div>
+            <div class="chat-message__bubble">{{ msg.content }}</div>
+            <div class="chat-message__time">{{ formatTime(msg.timestamp) }}</div>
+          </div>
+        </ng-container>
+        <ng-template #noRoomMessages>
+          <div class="chat-empty">Brak wiadomości w tym pokoju</div>
+        </ng-template>
+      </div>
+    </div>
+    <div class="chat-input-bar">
+      <textarea
+        class="chat-input"
+        [(ngModel)]="messageInput"
+        (keydown)="handleKeydown($event)"
+        placeholder="Napisz wiadomość…"
+        rows="1"
+      ></textarea>
+      <button class="chat-send-btn" (click)="sendMessage()" [disabled]="!messageInput.trim()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+  </ng-container>
+
+  <!-- ─── CREATE ROOM VIEW ─────────────────────────── -->
+  <div class="chat-panel__body chat-panel__body--form" *ngIf="view() === 'create-room'">
+    <div class="chat-form">
+      <label class="chat-form__label">Nazwa pokoju</label>
+      <input
+        class="chat-form__input"
+        type="text"
+        [(ngModel)]="newRoomName"
+        placeholder="np. Organizacja zajęć"
+        maxlength="50"
+      />
+
+      <label class="chat-form__label" style="margin-top: 16px;">Dodaj uczestników</label>
+      <div class="chat-member-list">
+        <div
+          class="chat-member-item"
+          *ngFor="let user of mockUsers"
+          [class.selected]="isMemberSelected(user.id)"
+          (click)="toggleRoomMember(user.id)"
+        >
+          <div class="chat-avatar chat-avatar--sm">{{ getInitials(user.displayName) }}</div>
+          <div class="chat-member-item__name">{{ user.displayName }}</div>
+          <div class="chat-member-item__check">
+            <svg *ngIf="isMemberSelected(user.id)" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <button
+        class="chat-submit-btn"
+        (click)="createRoom()"
+        [disabled]="!newRoomName.trim()"
+      >
+        Utwórz pokój
+      </button>
+    </div>
+  </div>
+
+</div>

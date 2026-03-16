@@ -26,4 +26,6 @@
   </ion-menu>
 
   <ion-router-outlet id="main-content"></ion-router-outlet>
+
+  <app-chat *ngIf="auth.isAuthenticated$ | async"></app-chat>
 </ion-app>
