@@ -1,0 +1,51 @@
+:host {
+  display: block;
+}
+
+ion-toolbar {
+  border-bottom: 1px solid #d1d5db;
+}
+
+.menu-nav-btn {
+  --color: #000000;
+  color: #000000;
+}
+
+.room-form-content {
+  --background: #f5f7fb;
+}
+
+ion-card {
+  max-width: 860px;
+  margin: 0 auto;
+  border-radius: 16px;
+}
+
+.section-block {
+  margin: 20px 0 8px;
+}
+
+.section-block h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.section-block p {
+  margin: 0 0 12px;
+  color: #4b5563;
+  font-size: 0.92rem;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.submit-message {
+  display: block;
+  margin-top: 16px;
+  font-weight: 600;
+}
