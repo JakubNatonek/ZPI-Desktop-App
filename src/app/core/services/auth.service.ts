@@ -1,4 +1,4 @@
-﻿import { Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, catchError, map, of, switchMap, tap } from 'rxjs';
@@ -29,6 +29,7 @@ interface ApiLoginResponse {
   access_token: string;
   token_type: string;
   access_token_expires_in: number;
+  must_change_password: boolean;
 }
 
 interface ApiCurrentUserResponse {
@@ -76,12 +77,14 @@ export class AuthService {
   private _userRole = new BehaviorSubject<UserRole | null>(null);
   private _displayName = new BehaviorSubject<string>('');
   private _email = new BehaviorSubject<string>('');
+  private _mustChangePassword = new BehaviorSubject<boolean>(false);
   private sessionTimeoutId: number | null = null;
 
   readonly isAuthenticated$ = this._authenticated.asObservable();
   readonly userRole$ = this._userRole.asObservable();
   readonly displayName$ = this._displayName.asObservable();
   readonly email$ = this._email.asObservable();
+  readonly mustChangePassword$ = this._mustChangePassword.asObservable();
   private readonly loginUrl = `${environment.apiBaseUrl}/auth/`;
   private readonly meUrl = `${environment.apiBaseUrl}/auth/me`;
   private readonly logoutUrl = `${environment.apiBaseUrl}/auth/logout`;
@@ -94,7 +97,8 @@ export class AuthService {
     const authenticated = localStorage.getItem('authenticated') === 'true';
     const role = localStorage.getItem('userRole') as UserRole | null;
     const displayName = localStorage.getItem('displayName') || '';
-    const email = localStorage.getItem('userEmail') || '';
+    const emailLocal = localStorage.getItem('userEmail') || '';
+    const mustChangePw = localStorage.getItem('mustChangePassword') === 'true';
     const sessionStartedAtRaw = localStorage.getItem(this.sessionStorageKey);
     const sessionStartedAt = sessionStartedAtRaw ? Number(sessionStartedAtRaw) : NaN;
     const sessionAgeMs = Date.now() - sessionStartedAt;
@@ -104,7 +108,8 @@ export class AuthService {
       this._authenticated.next(true);
       this._userRole.next(role);
       this._displayName.next(displayName);
-      this._email.next(email);
+      this._email.next(emailLocal);
+      this._mustChangePassword.next(mustChangePw);
       this.scheduleSessionExpiry(this.sessionDurationMs - sessionAgeMs);
       this.applyCurrentTheme();
       return;
@@ -114,7 +119,7 @@ export class AuthService {
     this.clearSessionState(false);
   }
 
-  login(email: string, password: string): Observable<boolean> {
+  login(email: string, password: string): Observable<{ success: boolean; mustChangePassword?: boolean }> {
     const identifier = email.trim();
 
     return this.http
@@ -129,44 +134,47 @@ export class AuthService {
       .pipe(
         switchMap((loginResponse) => {
           this.accessTokenService.setToken(loginResponse.access_token);
+          const needsPasswordChange = loginResponse.must_change_password;
 
           return this.http.get<ApiCurrentUserResponse>(this.meUrl, { withCredentials: true }).pipe(
             tap((me) => {
               const mappedRole = this.mapBackendRoleToAppRole(me.role, me.email);
-              this.activateSession(mappedRole, this.resolveDisplayName(me.email, me.login), me.email);
+              this.activateSession(mappedRole, this.resolveDisplayName(me.email, me.login), me.email, needsPasswordChange);
             }),
-            map(() => true)
+            map(() => ({ success: true, mustChangePassword: needsPasswordChange }))
           );
         }),
         catchError(() => of(this.loginWithLocalAccount(identifier, password)))
       );
   }
 
-  private loginWithLocalAccount(identifier: string, password: string): boolean {
+  private loginWithLocalAccount(identifier: string, password: string): { success: boolean; mustChangePassword?: boolean } {
     this.accessTokenService.clear();
     const account = this.accounts.find(
       (candidate) => candidate.email === identifier
     );
 
     if (!account || this.getEffectivePassword(account) !== password) {
-      return false;
+      return { success: false };
     }
 
-    this.activateSession(account.role, account.displayName, account.email);
-    return true;
+    this.activateSession(account.role, account.displayName, account.email, false);
+    return { success: true, mustChangePassword: false };
   }
 
-  private activateSession(role: UserRole, displayName: string, email: string): void {
+  private activateSession(role: UserRole, displayName: string, email: string, mustChangePassword: boolean = false): void {
     this._authenticated.next(true);
     this._userRole.next(role);
     this._displayName.next(displayName);
     this._email.next(email);
+    this._mustChangePassword.next(mustChangePassword);
 
     const sessionStartedAt = Date.now();
     localStorage.setItem('authenticated', 'true');
     localStorage.setItem('userRole', role);
     localStorage.setItem('displayName', displayName);
     localStorage.setItem('userEmail', email);
+    localStorage.setItem('mustChangePassword', mustChangePassword ? 'true' : 'false');
     localStorage.setItem(this.sessionStorageKey, String(sessionStartedAt));
     this.scheduleSessionExpiry(this.sessionDurationMs);
     this.applyCurrentTheme();
@@ -232,6 +240,13 @@ export class AuthService {
     return this._email.value;
   }
 
+  get mustChangePassword(): boolean {
+    if (!this.ensureActiveSession()) {
+      return false;
+    }
+    return this._mustChangePassword.value;
+  }
+
   get availableAccounts() {
     return this.accounts.map(({ email, password, role, displayName }) => ({
       email,
@@ -260,25 +275,45 @@ export class AuthService {
     });
   }
 
-  changePassword(currentPassword: string, newPassword: string): { success: boolean; message: string } {
+  changePassword(currentPassword: string, newPassword: string): Observable<{ success: boolean; message: string }> {
     if (!this.ensureActiveSession()) {
-      return { success: false, message: 'Sesja wygasła. Zaloguj się ponownie.' };
+      return of({ success: false, message: 'Sesja wygasła. Zaloguj się ponownie.' });
     }
 
+    // Jeśli używamy backendowego auth z access_tokenem
+    if (this.accessTokenService.getToken()) {
+      const url = `${environment.apiBaseUrl}/auth/change-one-time-password`;
+      return this.http.post<{ message: string }>(url, {
+        new_password: newPassword,
+        confirm_new_password: newPassword
+      }, { withCredentials: true }).pipe(
+        tap(() => {
+          this._mustChangePassword.next(false);
+          localStorage.setItem('mustChangePassword', 'false');
+        }),
+        map(res => ({ success: true, message: res.message })),
+        catchError(err => of({ success: false, message: err.error?.detail || 'Nie udało się zmienić hasła.' }))
+      );
+    }
+
+    // Fallback dla kont lokalnych demo
     const account = this.accounts.find((candidate) => candidate.email === this._email.value);
     if (!account) {
-      return { success: false, message: 'Nie znaleziono konta.' };
+      return of({ success: false, message: 'Nie znaleziono konta.' });
     }
 
     if (this.getEffectivePassword(account) !== currentPassword) {
-      return { success: false, message: 'Aktualne hasło jest niepoprawne.' };
+      return of({ success: false, message: 'Aktualne hasło jest niepoprawne.' });
     }
 
     this.updateUserPreferences(this._email.value, {
       password: newPassword,
     });
+    
+    this._mustChangePassword.next(false);
+    localStorage.setItem('mustChangePassword', 'false');
 
-    return { success: true, message: 'Hasło zostało zmienione.' };
+    return of({ success: true, message: 'Hasło zostało zmienione.' });
   }
 
   getCurrentTheme(): AppTheme {
@@ -343,10 +378,12 @@ export class AuthService {
     this._userRole.next(null);
     this._displayName.next('');
     this._email.next('');
+    this._mustChangePassword.next(false);
     localStorage.removeItem('authenticated');
     localStorage.removeItem('userRole');
     localStorage.removeItem('displayName');
     localStorage.removeItem('userEmail');
+    localStorage.removeItem('mustChangePassword');
     localStorage.removeItem(this.sessionStorageKey);
     this.accessTokenService.clear();
 

@@ -1,4 +1,4 @@
-﻿import { Component } from '@angular/core';
+import { Component } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -79,14 +79,20 @@ export class ProfilePage {
       return;
     }
 
-    const result = this.auth.changePassword(this.currentPassword, this.newPassword);
-    this.passwordMessage = result.message;
+    this.auth.changePassword(this.currentPassword, this.newPassword).subscribe({
+      next: (result) => {
+        this.passwordMessage = result.message;
 
-    if (result.success) {
-      this.currentPassword = '';
-      this.newPassword = '';
-      this.confirmPassword = '';
-    }
+        if (result.success) {
+          this.currentPassword = '';
+          this.newPassword = '';
+          this.confirmPassword = '';
+        }
+      },
+      error: () => {
+        this.passwordMessage = 'Wystąpił nieoczekiwany błąd';
+      }
+    });
   }
 
   private readFileAsDataUrl(file: File): Promise<string> {

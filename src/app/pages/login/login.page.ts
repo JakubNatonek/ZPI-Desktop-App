@@ -1,4 +1,4 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -34,9 +34,13 @@ export class LoginPage implements OnInit {
   login() {
     this.error = '';
     this.auth.login(this.email, this.password).subscribe({
-      next: (success: boolean) => {
-        if (success) {
-          this.router.navigateByUrl('/home');
+      next: (res: { success: boolean; mustChangePassword?: boolean }) => {
+        if (res.success) {
+          if (res.mustChangePassword) {
+            this.router.navigateByUrl('/change-password');
+          } else {
+            this.router.navigateByUrl('/home');
+          }
           return;
         }
 
