@@ -27,6 +27,14 @@ export const routes: Routes = [
   },
   {
     path: 'sale',
+    loadComponent: () => import('./features/sale/sale-list.page').then((m) => m.SaleListPage),
+  },
+  {
+    path: 'sale/new',
+    loadComponent: () => import('./features/sale/sale.page').then((m) => m.SalePage),
+  },
+  {
+    path: 'sale/:id/edit',
     loadComponent: () => import('./features/sale/sale.page').then((m) => m.SalePage),
   },
   {

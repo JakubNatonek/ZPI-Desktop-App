@@ -4,20 +4,27 @@
     <ion-buttons slot="start">
       <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
-    <ion-title>Dodawanie sal</ion-title>
+    <ion-title>{{ isEditMode ? 'Edycja sali' : 'Tworzenie sali' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="navigateToList()">Lista sal</ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding room-form-content">
   <ion-card>
     <ion-card-header>
-      <ion-card-title>Nowa sala</ion-card-title>
-      <ion-card-subtitle>Szkielet formularza (front-end)</ion-card-subtitle>
+      <ion-card-title>{{ isEditMode ? 'Edycja sali' : 'Nowa sala' }}</ion-card-title>
+      <ion-card-subtitle>
+        {{ isEditMode ? 'Zmien dane i zapisz aktualizacje.' : 'Uzupelnij formularz, aby dodac sale.' }}
+      </ion-card-subtitle>
     </ion-card-header>
 
     <ion-card-content>
+      <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
+
       <!-- Glowny formularz sali z walidacja template-driven -->
-      <form #roomForm="ngForm" (ngSubmit)="onSubmit(roomForm)">
+      <form #roomForm="ngForm" (ngSubmit)="onSubmit(roomForm)" *ngIf="!isLoading">
         <ion-list lines="none">
           <ion-item>
             <ion-label position="stacked">Numer sali</ion-label>
@@ -86,12 +93,18 @@
 
         <!-- Akcje: wyslanie i reset formularza -->
         <div class="form-actions">
-          <ion-button type="submit" color="primary">Dodaj sale</ion-button>
+          <ion-button type="submit" color="primary" [disabled]="isSaving">
+            {{ isEditMode ? 'Zapisz zmiany' : 'Dodaj sale' }}
+          </ion-button>
           <ion-button type="button" fill="outline" color="medium" (click)="resetForm(roomForm)">
             Wyczysc formularz
           </ion-button>
         </div>
       </form>
+
+      <ion-note color="danger" *ngIf="errorMessage" class="submit-message">
+        {{ errorMessage }}
+      </ion-note>
 
       <ion-note color="success" *ngIf="submitMessage" class="submit-message">
         {{ submitMessage }}
