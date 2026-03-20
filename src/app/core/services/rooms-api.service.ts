@@ -31,7 +31,7 @@ export interface RoomPayload {
 }
 
 interface RoomsListResponse {
-  items: RoomDto[];
+  items?: RoomDto[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -42,8 +42,17 @@ export class RoomsApiService {
 
   getRooms(): Observable<RoomDto[]> {
     return this.http
-      .get<RoomsListResponse>(this.roomsUrl)
-      .pipe(map((response) => response.items ?? []));
+      .get<RoomsListResponse | RoomDto[]>(this.roomsUrl)
+      .pipe(
+        map((response) => {
+          const sourceRooms = Array.isArray(response) ? response : (response.items ?? []);
+          return sourceRooms.map((room) => ({
+            ...room,
+            special_equipment: room.special_equipment ?? '',
+            activities: Array.isArray(room.activities) ? room.activities : [],
+          }));
+        })
+      );
   }
 
   getRoomById(roomId: number): Observable<RoomDto> {
