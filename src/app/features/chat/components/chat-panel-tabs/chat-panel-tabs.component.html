@@ -1,0 +1,8 @@
+<div class="chat-tabs" *ngIf="view === 'contacts' || view === 'rooms'">
+  <button class="chat-tab" [class.active]="activeTab === 'messages'" (click)="tabChange.emit('messages')">
+    Wiadomości
+  </button>
+  <button class="chat-tab" [class.active]="activeTab === 'rooms'" (click)="tabChange.emit('rooms')">
+    Pokoje
+  </button>
+</div>

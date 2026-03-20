@@ -1,24 +1,28 @@
-import { HttpBackend, HttpClient, HttpInterceptorFn } from '@angular/common/http';
+
+import { HttpBackend, HttpClient, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, finalize, map, Observable, shareReplay, switchMap, throwError } from 'rxjs';
+import { Router } from '@angular/router';
+import { Observable, catchError, finalize, shareReplay, switchMap, tap, throwError } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { AccessTokenService } from '../services/access-token.service';
 
-interface RefreshResponse {
+interface AuthRefreshResponse {
   access_token: string;
 }
 
-let refreshInFlight$: Observable<string> | null = null;
+let refreshInFlight$: Observable<AuthRefreshResponse> | null = null;
 
-function refreshAccessToken(apiBaseUrl: string, tokenService: AccessTokenService): Observable<string> {
+function runRefresh(): Observable<AuthRefreshResponse> {
   if (!refreshInFlight$) {
     const http = new HttpClient(inject(HttpBackend));
-
+    const accessTokenService = inject(AccessTokenService);
     refreshInFlight$ = http
-      .post<RefreshResponse>(`${apiBaseUrl}/auth/refresh`, {}, { withCredentials: true })
+      .post<AuthRefreshResponse>(`${environment.apiBaseUrl}/auth/refresh`, {}, { withCredentials: true })
       .pipe(
-        map((response) => response.access_token),
+        tap((response) => {
+          accessTokenService.setToken(response.access_token);
+        }),
         finalize(() => {
           refreshInFlight$ = null;
         }),
@@ -30,42 +34,51 @@ function refreshAccessToken(apiBaseUrl: string, tokenService: AccessTokenService
 }
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const tokenService = inject(AccessTokenService);
-  const accessToken = tokenService.getToken();
+  const router = inject(Router);
+  const accessTokenService = inject(AccessTokenService);
   const apiBaseUrl = environment.apiBaseUrl;
   const isApiRequest = req.url.startsWith(apiBaseUrl);
-  const isRefreshRequest = req.url === `${apiBaseUrl}/auth/refresh`;
+  const isAuthFlowRequest =
+    req.url === `${apiBaseUrl}/auth/refresh` ||
+    req.url === `${apiBaseUrl}/auth/logout`;
 
   if (!isApiRequest) {
     return next(req);
   }
 
-  const headers = accessToken
-    ? req.headers.set('Authorization', `Bearer ${accessToken}`)
-    : req.headers;
-
-  const authenticatedRequest = req.clone({
-    headers,
+  const accessToken = accessTokenService.getToken();
+  const requestWithAuth = req.clone({
     withCredentials: true,
+    setHeaders: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
   });
 
-  return next(authenticatedRequest).pipe(
-    catchError((error) => {
-      if (isRefreshRequest || error.status !== 401) {
+  return next(requestWithAuth).pipe(
+    catchError((error: HttpErrorResponse) => {
+      if (error.status !== 401 || isAuthFlowRequest) {
         return throwError(() => error);
       }
 
-      return refreshAccessToken(apiBaseUrl, tokenService).pipe(
-        switchMap((newAccessToken) => {
-          tokenService.setToken(newAccessToken);
-          const retriedRequest = req.clone({
+      return runRefresh().pipe(
+        switchMap(() => {
+          const newAccessToken = accessTokenService.getToken();
+          const retryRequest = req.clone({
             withCredentials: true,
-            headers: req.headers.set('Authorization', `Bearer ${newAccessToken}`),
+            setHeaders: newAccessToken ? { Authorization: `Bearer ${newAccessToken}` } : {},
           });
-          return next(retriedRequest);
+          return next(retryRequest);
         }),
         catchError((refreshError) => {
-          tokenService.clear();
+          const existingToken = accessTokenService.getToken();
+          if (existingToken) {
+            const retryRequest = req.clone({
+              withCredentials: true,
+              setHeaders: { Authorization: `Bearer ${existingToken}` },
+            });
+            return next(retryRequest);
+          }
+
+          accessTokenService.clear();
+          void router.navigateByUrl('/login');
           return throwError(() => refreshError);
         })
       );

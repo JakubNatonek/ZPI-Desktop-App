@@ -42,9 +42,7 @@ interface ApiCurrentUserResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly sessionStorageKey = 'authSessionStartedAt';
   private readonly userPreferencesStorageKey = 'userPreferencesByEmail';
-  private readonly sessionDurationMs = 5 * 60 * 1000;
   private readonly defaultAvatarUrl = 'https://ionicframework.com/docs/img/demos/avatar.svg';
   private readonly accounts: UserAccount[] = [
     {
@@ -77,14 +75,17 @@ export class AuthService {
   private _userRole = new BehaviorSubject<UserRole | null>(null);
   private _displayName = new BehaviorSubject<string>('');
   private _email = new BehaviorSubject<string>('');
+  private _userId = new BehaviorSubject<number | null>(null);
   private _mustChangePassword = new BehaviorSubject<boolean>(false);
-  private sessionTimeoutId: number | null = null;
+  private _isRestoringSession = new BehaviorSubject<boolean>(true);
+  private currentAuthMode: 'backend' | 'local' | null = null;
 
   readonly isAuthenticated$ = this._authenticated.asObservable();
   readonly userRole$ = this._userRole.asObservable();
   readonly displayName$ = this._displayName.asObservable();
   readonly email$ = this._email.asObservable();
   readonly mustChangePassword$ = this._mustChangePassword.asObservable();
+  readonly isRestoringSession$ = this._isRestoringSession.asObservable();
   private readonly loginUrl = `${environment.apiBaseUrl}/auth/`;
   private readonly meUrl = `${environment.apiBaseUrl}/auth/me`;
   private readonly logoutUrl = `${environment.apiBaseUrl}/auth/logout`;
@@ -94,31 +95,39 @@ export class AuthService {
     private http: HttpClient,
     private accessTokenService: AccessTokenService
   ) {
-    const authenticated = localStorage.getItem('authenticated') === 'true';
-    const role = localStorage.getItem('userRole') as UserRole | null;
-    const displayName = localStorage.getItem('displayName') || '';
-    const emailLocal = localStorage.getItem('userEmail') || '';
-    const mustChangePw = localStorage.getItem('mustChangePassword') === 'true';
-    const sessionStartedAtRaw = localStorage.getItem(this.sessionStorageKey);
-    const sessionStartedAt = sessionStartedAtRaw ? Number(sessionStartedAtRaw) : NaN;
-    const sessionAgeMs = Date.now() - sessionStartedAt;
-    const isSessionValid = Number.isFinite(sessionStartedAt) && sessionAgeMs < this.sessionDurationMs;
-
-    if (authenticated && role && isSessionValid) {
-      this._authenticated.next(true);
-      this._userRole.next(role);
-      this._displayName.next(displayName);
-      this._email.next(emailLocal);
-      this._mustChangePassword.next(mustChangePw);
-      this.scheduleSessionExpiry(this.sessionDurationMs - sessionAgeMs);
-      this.applyCurrentTheme();
-      return;
-    }
-
+    this.clearLegacySessionStorage();
     this.applyTheme('light');
-    this.clearSessionState(false);
+    this.clearSessionState(false, false);
+    this.restoreBackendSession();
   }
 
+  private restoreBackendSession(): void {
+    this._isRestoringSession.next(true);
+    this.http.get<ApiCurrentUserResponse>(this.meUrl, { withCredentials: true }).pipe(
+      tap((me) => {
+        const mappedRole = this.mapBackendRoleToAppRole(me.role, me.email);
+        this.activateSession(
+          mappedRole,
+          this.resolveDisplayName(me.email, me.login),
+          me.email,
+          me.user_id,
+          'backend',
+          false
+        );
+      }),
+      catchError(() => {
+        this.clearSessionState(false);
+        return of(null);
+      }),
+      tap(() => {
+        this._isRestoringSession.next(false);
+      })
+    ).subscribe();
+  }
+
+  get isRestoringSession(): boolean {
+    return this._isRestoringSession.value;
+  }
   login(email: string, password: string): Observable<{ success: boolean; mustChangePassword?: boolean }> {
     const identifier = email.trim();
 
@@ -139,7 +148,14 @@ export class AuthService {
           return this.http.get<ApiCurrentUserResponse>(this.meUrl, { withCredentials: true }).pipe(
             tap((me) => {
               const mappedRole = this.mapBackendRoleToAppRole(me.role, me.email);
-              this.activateSession(mappedRole, this.resolveDisplayName(me.email, me.login), me.email, needsPasswordChange);
+              this.activateSession(
+                mappedRole,
+                this.resolveDisplayName(me.email, me.login),
+                me.email,
+                me.user_id,
+                'backend',
+                needsPasswordChange
+              );
             }),
             map(() => ({ success: true, mustChangePassword: needsPasswordChange }))
           );
@@ -149,7 +165,6 @@ export class AuthService {
   }
 
   private loginWithLocalAccount(identifier: string, password: string): { success: boolean; mustChangePassword?: boolean } {
-    this.accessTokenService.clear();
     const account = this.accounts.find(
       (candidate) => candidate.email === identifier
     );
@@ -158,25 +173,26 @@ export class AuthService {
       return { success: false };
     }
 
-    this.activateSession(account.role, account.displayName, account.email, false);
+    this.accessTokenService.clear();
+    this.activateSession(account.role, account.displayName, account.email, null, 'local', false);
     return { success: true, mustChangePassword: false };
   }
 
-  private activateSession(role: UserRole, displayName: string, email: string, mustChangePassword: boolean = false): void {
+  private activateSession(
+    role: UserRole,
+    displayName: string,
+    email: string,
+    userId: number | null,
+    authMode: 'backend' | 'local',
+    mustChangePassword: boolean = false
+  ): void {
     this._authenticated.next(true);
     this._userRole.next(role);
     this._displayName.next(displayName);
     this._email.next(email);
+    this._userId.next(userId);
     this._mustChangePassword.next(mustChangePassword);
-
-    const sessionStartedAt = Date.now();
-    localStorage.setItem('authenticated', 'true');
-    localStorage.setItem('userRole', role);
-    localStorage.setItem('displayName', displayName);
-    localStorage.setItem('userEmail', email);
-    localStorage.setItem('mustChangePassword', mustChangePassword ? 'true' : 'false');
-    localStorage.setItem(this.sessionStorageKey, String(sessionStartedAt));
-    this.scheduleSessionExpiry(this.sessionDurationMs);
+    this.currentAuthMode = authMode;
     this.applyCurrentTheme();
   }
 
@@ -187,7 +203,6 @@ export class AuthService {
       },
     });
 
-    this.accessTokenService.clear();
     this.clearSessionState(true);
   }
 
@@ -247,6 +262,14 @@ export class AuthService {
     return this._mustChangePassword.value;
   }
 
+  get currentUserId(): number | null {
+    if (!this.ensureActiveSession()) {
+      return null;
+    }
+
+    return this._userId.value;
+  }
+
   get availableAccounts() {
     return this.accounts.map(({ email, password, role, displayName }) => ({
       email,
@@ -280,8 +303,7 @@ export class AuthService {
       return of({ success: false, message: 'Sesja wygasła. Zaloguj się ponownie.' });
     }
 
-    // Jeśli używamy backendowego auth z access_tokenem
-    if (this.accessTokenService.getToken()) {
+    if (this.isBackendSession()) {
       const url = `${environment.apiBaseUrl}/auth/change-one-time-password`;
       return this.http.post<{ message: string }>(url, {
         new_password: newPassword,
@@ -289,7 +311,6 @@ export class AuthService {
       }, { withCredentials: true }).pipe(
         tap(() => {
           this._mustChangePassword.next(false);
-          localStorage.setItem('mustChangePassword', 'false');
         }),
         map(res => ({ success: true, message: res.message })),
         catchError(err => of({ success: false, message: err.error?.detail || 'Nie udało się zmienić hasła.' }))
@@ -311,7 +332,6 @@ export class AuthService {
     });
     
     this._mustChangePassword.next(false);
-    localStorage.setItem('mustChangePassword', 'false');
 
     return of({ success: true, message: 'Hasło zostało zmienione.' });
   }
@@ -337,60 +357,40 @@ export class AuthService {
   }
 
   private ensureActiveSession(): boolean {
-    if (!this._authenticated.value) {
-      return false;
-    }
-
-    const sessionStartedAtRaw = localStorage.getItem(this.sessionStorageKey);
-    const sessionStartedAt = sessionStartedAtRaw ? Number(sessionStartedAtRaw) : NaN;
-    if (!Number.isFinite(sessionStartedAt)) {
-      this.clearSessionState(true);
-      return false;
-    }
-
-    if (Date.now() - sessionStartedAt >= this.sessionDurationMs) {
-      this.clearSessionState(true);
-      return false;
-    }
-
-    return true;
+    return this._authenticated.value;
   }
 
-  private scheduleSessionExpiry(delayMs: number) {
-    if (this.sessionTimeoutId !== null) {
-      clearTimeout(this.sessionTimeoutId);
-      this.sessionTimeoutId = null;
-    }
-
-    const safeDelay = Math.max(0, delayMs);
-    this.sessionTimeoutId = window.setTimeout(() => {
-      this.clearSessionState(true);
-    }, safeDelay);
-  }
-
-  private clearSessionState(redirectToLogin: boolean) {
-    if (this.sessionTimeoutId !== null) {
-      clearTimeout(this.sessionTimeoutId);
-      this.sessionTimeoutId = null;
-    }
-
+  private clearSessionState(redirectToLogin: boolean, clearAccessToken: boolean = true) {
     this._authenticated.next(false);
     this._userRole.next(null);
     this._displayName.next('');
     this._email.next('');
+    this._userId.next(null);
     this._mustChangePassword.next(false);
-    localStorage.removeItem('authenticated');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('displayName');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('mustChangePassword');
-    localStorage.removeItem(this.sessionStorageKey);
-    this.accessTokenService.clear();
+    this.currentAuthMode = null;
+    if (clearAccessToken) {
+      this.accessTokenService.clear();
+    }
 
     if (redirectToLogin) {
       this.applyTheme('light');
       this.router.navigateByUrl('/login');
     }
+  }
+
+  private isBackendSession(): boolean {
+    return this.currentAuthMode === 'backend';
+  }
+
+  private clearLegacySessionStorage(): void {
+    localStorage.removeItem('authenticated');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('displayName');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('authMode');
+    localStorage.removeItem('mustChangePassword');
+    localStorage.removeItem('authSessionStartedAt');
   }
 
   private getEffectivePassword(account: UserAccount): string {

@@ -1,0 +1,21 @@
+<div class="chat-panel__body">
+  <button class="chat-create-room-btn" (click)="showCreateRoom.emit()">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+    </svg>
+    Utwórz nowy pokój
+  </button>
+
+  <div class="chat-list">
+    <div class="chat-list__item" *ngFor="let room of rooms" (click)="openRoom.emit(room)">
+      <div class="chat-avatar chat-avatar--room">#</div>
+      <div class="chat-list__info">
+        <div class="chat-list__name">{{ room.name }}</div>
+        <div class="chat-list__preview">{{ getLastRoomMessage(room.id) }}</div>
+      </div>
+      <div class="chat-list__meta">
+        <div class="chat-list__members-count">{{ room.members.length }}</div>
+      </div>
+    </div>
+  </div>
+</div>

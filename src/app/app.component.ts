@@ -78,6 +78,10 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private checkRoute() {
+    if (this.auth.isRestoringSession) {
+      return;
+    }
+
     if (!this.auth.isLoggedIn && this.router.url !== '/login') {
       this.router.navigateByUrl('/login');
     } else if (this.auth.isLoggedIn && this.auth.mustChangePassword && this.router.url !== '/change-password') {
