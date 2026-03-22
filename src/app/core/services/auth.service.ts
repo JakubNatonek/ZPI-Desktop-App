@@ -4,7 +4,6 @@ import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { AccessTokenService } from './access-token.service';
 
 export type UserRole = 'admin' | 'lecturer' | 'planner';
 export type AppTheme = 'light' | 'dark';
@@ -92,8 +91,7 @@ export class AuthService {
 
   constructor(
     private router: Router,
-    private http: HttpClient,
-    private accessTokenService: AccessTokenService
+    private http: HttpClient
   ) {
     this.clearLegacySessionStorage();
     this.applyTheme('light');
@@ -142,7 +140,6 @@ export class AuthService {
       )
       .pipe(
         switchMap((loginResponse) => {
-          this.accessTokenService.setToken(loginResponse.access_token);
           const needsPasswordChange = loginResponse.must_change_password;
 
           return this.http.get<ApiCurrentUserResponse>(this.meUrl, { withCredentials: true }).pipe(
@@ -173,7 +170,6 @@ export class AuthService {
       return { success: false };
     }
 
-    this.accessTokenService.clear();
     this.activateSession(account.role, account.displayName, account.email, null, 'local', false);
     return { success: true, mustChangePassword: false };
   }
@@ -368,9 +364,6 @@ export class AuthService {
     this._userId.next(null);
     this._mustChangePassword.next(false);
     this.currentAuthMode = null;
-    if (clearAccessToken) {
-      this.accessTokenService.clear();
-    }
 
     if (redirectToLogin) {
       this.applyTheme('light');
