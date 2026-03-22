@@ -19,9 +19,9 @@
       Brak wyników
     </div>
     <div class="chat-list__item" *ngFor="let user of searchResults" (click)="openConversation.emit(user)">
-      <div class="chat-avatar">{{ getInitials(user.displayName) }}</div>
+      <div class="chat-avatar">{{ getInitials(user) }}</div>
       <div class="chat-list__info">
-        <div class="chat-list__name">{{ user.displayName }}</div>
+        <div class="chat-list__name">{{ user.first_name }} {{ user.last_name }}</div>
       </div>
     </div>
   </div>
@@ -32,11 +32,11 @@
       Brak rozmów. Wyszukaj użytkownika, aby rozpocząć czat.
     </div>
     <div class="chat-list__item" *ngFor="let user of directContacts" (click)="openConversation.emit(user)">
-      <div class="chat-avatar">{{ getInitials(user.displayName) }}</div>
+      <div class="chat-avatar">{{ getInitials(user) }}</div>
       <div class="chat-list__info">
-        <div class="chat-list__name">{{ user.displayName }}</div>
-        <div class="chat-list__preview" [class.chat-list__preview--unread]="isLastMessageUnread(user.id)">
-          {{ getLastMessage(user.id) }}
+        <div class="chat-list__name">{{ user.first_name }} {{ user.last_name }}</div>
+        <div class="chat-list__preview" [class.chat-list__preview--unread]="isLastMessageUnread(user.user_id)">
+          {{ getLastMessage(user.user_id) }}
         </div>
       </div>
     </div>

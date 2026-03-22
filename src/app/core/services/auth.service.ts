@@ -37,7 +37,7 @@ interface ApiCurrentUserResponse {
   login: string;
   email: string;
   role: string;
-  dzial: string;
+  department: string;
 }
 
 @Injectable({ providedIn: 'root' })

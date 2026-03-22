@@ -10,8 +10,8 @@
       </svg>
     </button>
     <div class="chat-panel__user-info">
-      <div class="chat-avatar chat-avatar--sm">{{ getInitials(user.displayName) }}</div>
-      <div class="chat-panel__title">{{ user.displayName }}</div>
+      <div class="chat-avatar chat-avatar--sm">{{ getInitials(user) }}</div>
+      <div class="chat-panel__title">{{ user.first_name }} {{ user.last_name }}</div>
     </div>
   </ng-container>
 

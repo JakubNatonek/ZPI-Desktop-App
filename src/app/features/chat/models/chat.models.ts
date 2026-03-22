@@ -1,7 +1,7 @@
 export interface ChatUser {
-  id: number;
-  displayName: string;
-  email: string;
+  user_id: number;
+  first_name: string;
+  last_name: string;
 }
 
 export interface ChatRoom {
@@ -23,8 +23,8 @@ export interface ChatMessage {
 
 export interface SearchUserResponse {
   user_id: number;
-  imie: string;
-  nazwisko: string;
+  first_name: string;
+  last_name: string;
 }
 
 export interface AuthMeResponse {
@@ -32,7 +32,7 @@ export interface AuthMeResponse {
   login: string;
   email: string;
   role: string;
-  dzial: string;
+  department: string;
 }
 
 export interface ConversationListResponse {

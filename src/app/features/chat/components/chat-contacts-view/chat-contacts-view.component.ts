@@ -15,7 +15,7 @@ export class ChatContactsViewComponent {
   @Input({ required: true }) searchResults: ChatUser[] = [];
   @Input({ required: true }) isSearching = false;
   @Input({ required: true }) directContacts: ChatUser[] = [];
-  @Input({ required: true }) getInitials!: (name: string) => string;
+  @Input({ required: true }) getInitials!: (user: ChatUser) => string;
   @Input({ required: true }) getLastMessage!: (userId: number) => string;
   @Input({ required: true }) isLastMessageUnread!: (userId: number) => boolean;
 

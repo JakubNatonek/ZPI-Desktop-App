@@ -13,7 +13,7 @@ export class ChatPanelHeaderComponent {
   @Input({ required: true }) view!: ChatView;
   @Input() selectedUser: ChatUser | null = null;
   @Input() selectedRoom: ChatRoom | null = null;
-  @Input({ required: true }) getInitials!: (name: string) => string;
+  @Input({ required: true }) getInitials!: (user: ChatUser) => string;
 
   @Output() back = new EventEmitter<void>();
   @Output() close = new EventEmitter<void>();

@@ -47,10 +47,10 @@
   <ng-container *ngIf="view() === 'conversation' && selectedUser() as user">
     <div class="chat-panel__body chat-panel__body--messages" #messagesContainer>
       <div class="chat-messages">
-        <ng-container *ngIf="conversations[user.id] && conversations[user.id].length > 0; else noMessages">
+        <ng-container *ngIf="conversations[user.user_id] && conversations[user.user_id].length > 0; else noMessages">
           <div
             class="chat-message"
-            *ngFor="let msg of conversations[user.id]"
+            *ngFor="let msg of conversations[user.user_id]"
             [class.chat-message--own]="msg.isOwn"
           >
             <div class="chat-message__bubble">{{ msg.content }}</div>

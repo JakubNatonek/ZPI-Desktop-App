@@ -15,7 +15,7 @@ export class ChatCreateRoomViewComponent {
   @Input({ required: true }) newRoomMembers: number[] = [];
   @Input({ required: true }) availableUsers: ChatUser[] = [];
   @Input({ required: true }) isMemberSelected!: (userId: number) => boolean;
-  @Input({ required: true }) getInitials!: (name: string) => string;
+  @Input({ required: true }) getInitials!: (user: ChatUser) => string;
 
   @Output() newRoomNameChange = new EventEmitter<string>();
   @Output() toggleRoomMember = new EventEmitter<number>();

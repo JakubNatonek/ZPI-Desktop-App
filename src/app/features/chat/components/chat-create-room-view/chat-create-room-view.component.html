@@ -15,13 +15,13 @@
       <div
         class="chat-member-item"
         *ngFor="let user of availableUsers"
-        [class.selected]="isMemberSelected(user.id)"
-        (click)="toggleRoomMember.emit(user.id)"
+        [class.selected]="isMemberSelected(user.user_id)"
+        (click)="toggleRoomMember.emit(user.user_id)"
       >
-        <div class="chat-avatar chat-avatar--sm">{{ getInitials(user.displayName) }}</div>
-        <div class="chat-member-item__name">{{ user.displayName }}</div>
+        <div class="chat-avatar chat-avatar--sm">{{ getInitials(user) }}</div>
+        <div class="chat-member-item__name">{{ user.first_name }} {{ user.last_name }}</div>
         <div class="chat-member-item__check">
-          <svg *ngIf="isMemberSelected(user.id)" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <svg *ngIf="isMemberSelected(user.user_id)" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
             <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
           </svg>
         </div>

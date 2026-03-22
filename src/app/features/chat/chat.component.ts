@@ -87,7 +87,11 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   roomMessages: Record<number, ChatMessage[]> = {};
 
   get currentUserName(): string {
-    return this.auth.displayName || 'Ja';
+    const user = this.selectedUser();
+    if (user) {
+      return `${user.first_name} ${user.last_name}`;
+    }
+    return 'Ja';
   }
 
   ngOnInit(): void {
@@ -189,15 +193,15 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.searchQuery = '';
     this.searchResults.set([]);
     this.upsertUsers([user]);
-    this.ensureUsersLoaded([user.id]);
+    this.ensureUsersLoaded([user.user_id]);
     this.selectedUser.set(user);
     this.view.set('conversation');
-    if (!this.conversations[user.id]) {
-      this.conversations[user.id] = [];
+    if (!this.conversations[user.user_id]) {
+      this.conversations[user.user_id] = [];
     }
-    this.getOrCreateDirectConversation(user.id, (conversationId) => {
+    this.getOrCreateDirectConversation(user.user_id, (conversationId) => {
       this.ensureConversationJoined(conversationId);
-      this.fetchConversationMessages(conversationId, 'direct', user.id);
+      this.fetchConversationMessages(conversationId, 'direct', user.user_id);
     });
   }
 
@@ -232,8 +236,8 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     if (this.view() === 'conversation' && this.selectedUser()) {
       const user = this.selectedUser();
       if (!user) return;
-      this.getOrCreateDirectConversation(user.id, (conversationId) => {
-        this.sendMessageToConversation(conversationId, content, 'direct', user.id);
+      this.getOrCreateDirectConversation(user.user_id, (conversationId) => {
+        this.sendMessageToConversation(conversationId, content, 'direct', user.user_id);
       });
       return;
     }
@@ -328,13 +332,9 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     return date.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
   }
 
-  getInitials(name: string): string {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
+  getInitials(user: ChatUser): string {
+    const initials = `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`;
+    return initials.toUpperCase();
   }
 
   handleKeydown(event: KeyboardEvent): void {
@@ -347,7 +347,10 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   getRoomMemberNames(room: ChatRoom): string {
     if (room.members.length === 0) return 'Brak członków';
     const names = room.members
-      .map(id => this.usersById[id]?.displayName ?? '')
+      .map(id => {
+        const u = this.usersById[id];
+        return u ? `${u.first_name} ${u.last_name}`.trim() : '';
+      })
       .filter(Boolean)
       .slice(0, 3);
     const suffix = room.members.length > 3 ? ` +${room.members.length - 3}` : '';
@@ -487,7 +490,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
         this.directConversationIdByUserId[userId] = response.conversation_id;
 
         const user = this.getOrBuildUser(userId);
-        if (!this.directContacts.some((contact) => contact.id === userId)) {
+        if (!this.directContacts.some((contact) => contact.user_id === userId)) {
           this.directContacts = [user, ...this.directContacts];
         }
         onReady(response.conversation_id);
@@ -555,10 +558,10 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       const selectedUser = this.selectedUser();
       if (!selectedUser) return;
 
-      const conversationId = this.directConversationIdByUserId[selectedUser.id];
+      const conversationId = this.directConversationIdByUserId[selectedUser.user_id];
       if (!conversationId) return;
 
-      this.fetchConversationMessages(conversationId, 'direct', selectedUser.id, {
+      this.fetchConversationMessages(conversationId, 'direct', selectedUser.user_id, {
         markAsRead: true,
         scrollToBottom: true,
       });
@@ -660,7 +663,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     const mapped: ChatMessage = {
       id: message.message_id,
       senderId: isOwn ? 'me' : message.sender_id,
-      senderName: isOwn ? this.currentUserName : sender?.displayName || `Użytkownik #${message.sender_id}`,
+      senderName: isOwn ? this.currentUserName : (sender ? `${sender.first_name} ${sender.last_name}`.trim() : `Użytkownik #${message.sender_id}`),
       content: message.content,
       timestamp: new Date(message.created_at),
       isOwn,
@@ -794,7 +797,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     return {
       id: message.id,
       senderId: isOwn ? 'me' : message.sender_id,
-      senderName: isOwn ? this.currentUserName : sender?.displayName || `Użytkownik #${message.sender_id}`,
+      senderName: isOwn ? this.currentUserName : (sender ? `${sender.first_name} ${sender.last_name}`.trim() : `Użytkownik #${message.sender_id}`),
       content: message.content,
       timestamp: new Date(message.created_at),
       isOwn,
@@ -804,22 +807,22 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   private toChatUser(user: SearchUserResponse): ChatUser {
     return {
-      id: user.user_id,
-      displayName: `${user.imie} ${user.nazwisko}`,
-      email: '',
+      user_id: user.user_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
     };
   }
 
   private upsertUsers(users: ChatUser[]): void {
     users.forEach((user) => {
-      this.usersById[user.id] = user;
+      this.usersById[user.user_id] = user;
     });
 
-    this.directContacts = this.directContacts.map((contact) => this.usersById[contact.id] || contact);
-    this.availableUsers = this.availableUsers.map((user) => this.usersById[user.id] || user);
+    this.directContacts = this.directContacts.map((contact) => this.usersById[contact.user_id] || contact);
+    this.availableUsers = this.availableUsers.map((user) => this.usersById[user.user_id] || user);
     const selected = this.selectedUser();
-    if (selected && this.usersById[selected.id]) {
-      this.selectedUser.set(this.usersById[selected.id]);
+    if (selected && this.usersById[selected.user_id]) {
+      this.selectedUser.set(this.usersById[selected.user_id]);
     }
 
     this.conversations = this.updateMessageSenderNames(this.conversations);
@@ -830,9 +833,9 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     const existing = this.usersById[userId];
     if (existing) return existing;
     const fallback: ChatUser = {
-      id: userId,
-      displayName: `Użytkownik #${userId}`,
-      email: '',
+      user_id: userId,
+      first_name: 'Użytkownik',
+      last_name: `#${userId}`,
     };
     this.usersById[userId] = fallback;
     return fallback;
@@ -872,8 +875,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     if (!user) {
       return false;
     }
-
-    return !user.displayName.startsWith('Użytkownik #');
+    return !(user.first_name === 'Użytkownik' && user.last_name.startsWith('#'));
   }
 
   private updateMessageSenderNames(
@@ -892,13 +894,14 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
           return message;
         }
 
-        if (message.senderName === sender.displayName) {
+        const senderName = `${sender.first_name} ${sender.last_name}`.trim();
+        if (message.senderName === senderName) {
           return message;
         }
 
         return {
           ...message,
-          senderName: sender.displayName,
+          senderName,
         };
       });
     });
