@@ -1,0 +1,161 @@
+:host {
+  display: block;
+}
+
+.user-create-content {
+  position: relative;
+  padding: 18px;
+}
+
+.canvas-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero {
+  position: relative;
+  z-index: 1;
+  max-width: 920px;
+  margin: 0 auto 14px;
+}
+
+.eyebrow {
+  margin: 0;
+  padding-top: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0f766e;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.hero h1 {
+  margin: 4px 0 6px;
+  font-size: clamp(1.55rem, 2.8vw, 2.2rem);
+  color: #111827;
+}
+
+.hero p {
+  margin: 0;
+  color: #334155;
+  max-width: 760px;
+}
+
+.form-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 920px;
+  margin: 0 auto 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.14);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+ion-item {
+  --border-radius: 14px;
+  --background: rgba(255, 255, 255, 0.88);
+  --padding-start: 10px;
+  border: 1px solid rgba(100, 116, 139, 0.26);
+}
+
+.password-block {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.actions {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.message {
+  display: block;
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.message.error {
+  color: #b91c1c;
+}
+
+.message.success {
+  color: #065f46;
+}
+
+.credentials {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(22, 163, 74, 0.35);
+}
+
+.credentials h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: #14532d;
+}
+
+.credentials p {
+  margin: 0;
+  color: #14532d;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+:host-context(html.ion-palette-dark) {
+
+  .eyebrow {
+    color: #22d3ee;
+  }
+
+  .hero h1,
+  .hero p {
+    color: #e2e8f0;
+  }
+
+  .form-shell {
+    background: rgba(2, 6, 23, 0.82);
+    border-color: rgba(148, 163, 184, 0.3);
+  }
+
+  ion-item {
+    --background: rgba(15, 23, 42, 0.78);
+    --color: #e2e8f0;
+    --placeholder-color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.35);
+  }
+
+  .message.error {
+    color: #fca5a5;
+  }
+
+  .message.success {
+    color: #86efac;
+  }
+
+  .credentials {
+    background: rgba(20, 83, 45, 0.35);
+    border-color: rgba(134, 239, 172, 0.5);
+  }
+
+  .credentials h2,
+  .credentials p {
+    color: #dcfce7;
+  }
+}

@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
@@ -36,6 +37,11 @@ export const routes: Routes = [
   {
     path: 'sale/:id/edit',
     loadComponent: () => import('./features/sale/sale.page').then((m) => m.SalePage),
+  },
+  {
+    path: 'admin/users/new',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/admin/pages/user-create.page').then((m) => m.UserCreatePage),
   },
   {
     path: '',
