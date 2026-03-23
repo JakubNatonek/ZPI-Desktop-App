@@ -92,4 +92,144 @@
       </section>
     </ion-card-content>
   </ion-card>
+
+  <ion-card class="form-shell users-shell">
+    <ion-card-header>
+      <ion-card-title>Panel zarządzania użytkowniami</ion-card-title>
+      <ion-card-subtitle>Zarządzaj kontami: edycja, reset hasła jednorazowego, usuwanie</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-progress-bar type="indeterminate" *ngIf="isLoadingUsers"></ion-progress-bar>
+
+      <ion-list *ngIf="!isLoadingUsers && users.length > 0">
+        <ion-item *ngFor="let user of users">
+          <ion-label>
+            <h2>{{ user.first_name }} {{ user.last_name }}</h2>
+            <p>Login: {{ user.login }} | Email: {{ user.email }}</p>
+            <p>Rola: {{ user.role }} | Wydział: {{ user.department }}</p>
+            <p *ngIf="user.must_change_password" class="must-change">Wymagana zmiana hasła</p>
+          </ion-label>
+
+          <ion-buttons slot="end" class="user-actions">
+            <ion-button fill="outline" color="primary" (click)="openEditModal(user)">Edytuj</ion-button>
+            <ion-button fill="outline" color="warning" (click)="openResetPasswordModal(user)">
+              Hasło jednorazowe
+            </ion-button>
+            <ion-button fill="clear" color="danger" (click)="confirmDeleteUser(user)">Usuń</ion-button>
+          </ion-buttons>
+        </ion-item>
+      </ion-list>
+
+      <p class="empty-state" *ngIf="!isLoadingUsers && users.length === 0">
+        Brak użytkowników do wyświetlenia.
+      </p>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-modal [isOpen]="isEditModalOpen" (didDismiss)="closeEditModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Edycja użytkownika</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeEditModal()">Zamknij</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding modal-content">
+        <form [formGroup]="editForm" (ngSubmit)="saveUserEdit()">
+          <div class="grid">
+            <ion-item>
+              <ion-label position="stacked">Imię</ion-label>
+              <ion-input formControlName="firstName"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Nazwisko</ion-label>
+              <ion-input formControlName="lastName"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Login</ion-label>
+              <ion-input formControlName="login"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Email</ion-label>
+              <ion-input formControlName="email" type="email"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Wydział</ion-label>
+              <ion-select formControlName="department" interface="popover">
+                <ion-select-option *ngFor="let department of departments" [value]="department.name">
+                  {{ department.name }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Rola</ion-label>
+              <ion-select formControlName="role" interface="popover">
+                <ion-select-option *ngFor="let role of roles" [value]="role.name">
+                  {{ role.name }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+          </div>
+
+          <div class="actions">
+            <ion-button type="submit" [disabled]="isSavingEdit">{{ isSavingEdit ? 'Zapisywanie...' : 'Zapisz' }}</ion-button>
+          </div>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <ion-modal [isOpen]="isResetPasswordModalOpen" (didDismiss)="closeResetPasswordModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Ustaw hasło jednorazowe</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeResetPasswordModal()">Zamknij</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding modal-content">
+        <p *ngIf="selectedUser" class="modal-description">
+          Konto: {{ selectedUser.first_name }} {{ selectedUser.last_name }} ({{ selectedUser.login }})
+        </p>
+
+        <div class="password-block">
+          <ion-item>
+            <ion-label position="stacked">Hasło jednorazowe</ion-label>
+            <ion-input
+              type="text"
+              [(ngModel)]="resetOneTimePassword"
+              name="resetOneTimePassword"
+              placeholder="Minimum 8 znaków">
+            </ion-input>
+          </ion-item>
+          <ion-button type="button" fill="outline" color="dark" (click)="generateOneTimePassword('reset')">
+            Wygeneruj hasło
+          </ion-button>
+        </div>
+
+        <div class="actions">
+          <ion-button type="button" color="warning" [disabled]="isResettingPassword" (click)="submitResetPassword()">
+            {{ isResettingPassword ? 'Zapisywanie...' : 'Ustaw hasło jednorazowe' }}
+          </ion-button>
+        </div>
+
+        <section class="credentials" *ngIf="resetCredentials">
+          <h2>Dane logowania do przekazania</h2>
+          <p><strong>Login:</strong> {{ resetCredentials.login }}</p>
+          <p><strong>Hasło jednorazowe:</strong> {{ resetCredentials.one_time_password }}</p>
+        </section>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 </ion-content>
