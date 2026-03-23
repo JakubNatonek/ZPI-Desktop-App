@@ -48,6 +48,11 @@ export class UserCreatePage implements OnInit {
   departments: UserDepartmentOption[] = [];
   users: AdminUserRow[] = [];
 
+  readonly pageSizeOptions = [5, 10, 25, 50];
+  searchQuery = '';
+  pageSize = 10;
+  currentPage = 1;
+
   isLoadingOptions = false;
   isLoadingUsers = false;
   isSaving = false;
@@ -63,6 +68,49 @@ export class UserCreatePage implements OnInit {
   isEditModalOpen = false;
   isResetPasswordModalOpen = false;
   resetOneTimePassword = '';
+
+  get filteredUsers(): AdminUserRow[] {
+    const query = this.searchQuery.trim().toLowerCase();
+    if (!query) {
+      return this.users;
+    }
+
+    return this.users.filter((user) => {
+      const haystack = [
+        user.first_name,
+        user.last_name,
+        user.login,
+        user.email,
+        user.role,
+        user.department,
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredUsers.length / this.pageSize));
+  }
+
+  get paginatedUsers(): AdminUserRow[] {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    return this.filteredUsers.slice(startIndex, endIndex);
+  }
+
+  get pageRangeLabel(): string {
+    const total = this.filteredUsers.length;
+    if (total === 0) {
+      return '0 z 0';
+    }
+
+    const start = (this.currentPage - 1) * this.pageSize + 1;
+    const end = Math.min(start + this.pageSize - 1, total);
+    return `${start}-${end} z ${total}`;
+  }
 
   constructor(
     private readonly fb: FormBuilder,
@@ -139,6 +187,29 @@ export class UserCreatePage implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
     this.createdCredentials = null;
+  }
+
+  onSearchChange(value: string | null | undefined): void {
+    this.searchQuery = (value ?? '').toString();
+    this.currentPage = 1;
+  }
+
+  onPageSizeChange(value: number | string | null | undefined): void {
+    const parsed = Number(value);
+    this.pageSize = this.pageSizeOptions.includes(parsed) ? parsed : 10;
+    this.currentPage = 1;
+  }
+
+  goToPreviousPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage -= 1;
+    }
+  }
+
+  goToNextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage += 1;
+    }
   }
 
   openEditModal(user: AdminUserRow): void {
@@ -295,6 +366,7 @@ export class UserCreatePage implements OnInit {
           this.roles = roles;
           this.departments = departments;
           this.users = users;
+          this.ensureValidPage();
         },
         error: () => {
           this.errorMessage = 'Nie udało się pobrać danych administratora. Odśwież stronę i spróbuj ponownie.';
@@ -310,6 +382,7 @@ export class UserCreatePage implements OnInit {
       .subscribe({
         next: (users) => {
           this.users = users;
+          this.ensureValidPage();
         },
         error: () => {
           this.errorMessage = 'Nie udało się odświeżyć listy użytkowników.';
@@ -337,5 +410,15 @@ export class UserCreatePage implements OnInit {
     }
 
     return 'Nie udało się utworzyć użytkownika. Spróbuj ponownie.';
+  }
+
+  private ensureValidPage(): void {
+    const maxPage = this.totalPages;
+    if (this.currentPage > maxPage) {
+      this.currentPage = maxPage;
+    }
+    if (this.currentPage < 1) {
+      this.currentPage = 1;
+    }
   }
 }

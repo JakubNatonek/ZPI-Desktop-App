@@ -101,8 +101,28 @@
     <ion-card-content>
       <ion-progress-bar type="indeterminate" *ngIf="isLoadingUsers"></ion-progress-bar>
 
-      <ion-list *ngIf="!isLoadingUsers && users.length > 0">
-        <ion-item *ngFor="let user of users">
+      <div class="table-toolbar" *ngIf="!isLoadingUsers">
+        <ion-item class="search-item">
+          <ion-label position="stacked">Wyszukiwanie</ion-label>
+          <ion-input
+            [value]="searchQuery"
+            (ionInput)="onSearchChange($any($event.target).value)"
+            placeholder="Szukaj po imieniu, nazwisku, loginie, email, roli lub wydziale">
+          </ion-input>
+        </ion-item>
+
+        <ion-item class="page-size-item">
+          <ion-label>Ilość</ion-label>
+          <ion-select [value]="pageSize" interface="popover" (ionChange)="onPageSizeChange($event.detail.value)">
+            <ion-select-option *ngFor="let option of pageSizeOptions" [value]="option">
+              {{ option }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <ion-list *ngIf="!isLoadingUsers && filteredUsers.length > 0">
+        <ion-item *ngFor="let user of paginatedUsers">
           <ion-label>
             <h2>{{ user.first_name }} {{ user.last_name }}</h2>
             <p>Login: {{ user.login }} | Email: {{ user.email }}</p>
@@ -120,7 +140,22 @@
         </ion-item>
       </ion-list>
 
-      <p class="empty-state" *ngIf="!isLoadingUsers && users.length === 0">
+      <div class="pagination-row" *ngIf="!isLoadingUsers && filteredUsers.length > 0">
+        <p class="pagination-summary">{{ pageRangeLabel }}</p>
+        <div class="pagination-actions">
+          <ion-button fill="outline" size="small" (click)="goToPreviousPage()" [disabled]="currentPage <= 1">
+            Poprzednia
+          </ion-button>
+          <ion-chip color="medium" outline>
+            <ion-label>Strona {{ currentPage }} / {{ totalPages }}</ion-label>
+          </ion-chip>
+          <ion-button fill="outline" size="small" (click)="goToNextPage()" [disabled]="currentPage >= totalPages">
+            Następna
+          </ion-button>
+        </div>
+      </div>
+
+      <p class="empty-state" *ngIf="!isLoadingUsers && filteredUsers.length === 0">
         Brak użytkowników do wyświetlenia.
       </p>
     </ion-card-content>
