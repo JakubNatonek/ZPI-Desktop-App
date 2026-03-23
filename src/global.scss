@@ -41,6 +41,24 @@ ion-item.logout-item {
 	--color: #000000;
 	color: #000000;
 }
+/* W razie przerabiania wyświetlania widoku profilu do usunięcia */
+ion-buttons.app-header-user-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.app-user-avatar {
+	width: 36px;
+	height: 36px;
+	cursor: pointer;
+}
+
+.app-user-avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
 
 html.ion-palette-dark .menu-nav-btn {
 	--color: #ffffff !important;

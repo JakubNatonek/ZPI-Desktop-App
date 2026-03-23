@@ -3,6 +3,7 @@ import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService, AppTheme } from '../../../core/services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-profile',
@@ -21,7 +22,14 @@ export class ProfilePage {
   passwordMessage = '';
   selectedTheme: AppTheme = 'light';
 
-  constructor(public auth: AuthService) { }
+  constructor(
+    public auth: AuthService,
+    private readonly router: Router
+  ) { }
+
+  get userRoleLabel(): string {
+    return this.auth.roleLabel;
+  }
 
   logout() {
     this.auth.logout();
@@ -34,6 +42,11 @@ export class ProfilePage {
 
   closeProfileMenu() {
     this.isProfileMenuOpen = false;
+  }
+
+  openSettings() {
+    this.closeProfileMenu();
+    this.router.navigateByUrl('/profile');
   }
 
   ionViewWillEnter() {

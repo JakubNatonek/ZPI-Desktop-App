@@ -27,6 +27,8 @@ export class SalePage implements OnInit {
   isEditMode = false;
   isLoading = false;
   isSaving = false;
+  isProfileMenuOpen = false;
+  profileMenuEvent?: Event;
 
   roomNumber = '';
   seatsCount: number | null = null;
@@ -100,6 +102,10 @@ export class SalePage implements OnInit {
     }
 
     this.resolvePageMode();
+  }
+
+  get userRoleLabel(): string {
+    return this.auth.roleLabel;
   }
 
   get activityOptions(): string[] {
@@ -181,6 +187,25 @@ export class SalePage implements OnInit {
 
   navigateToList(): void {
     this.router.navigateByUrl('/sale');
+  }
+
+  toggleProfileMenu(event: Event): void {
+    this.profileMenuEvent = event;
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+  }
+
+  closeProfileMenu(): void {
+    this.isProfileMenuOpen = false;
+  }
+
+  openSettings(): void {
+    this.closeProfileMenu();
+    this.router.navigateByUrl('/profile');
+  }
+
+  logout(): void {
+    this.closeProfileMenu();
+    this.auth.logout();
   }
 
   private resolvePageMode(): void {

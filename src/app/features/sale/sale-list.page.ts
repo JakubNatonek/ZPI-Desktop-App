@@ -19,6 +19,8 @@ export class SaleListPage implements OnInit {
   isDeleting = false;
   errorMessage = '';
   rooms: RoomDto[] = [];
+  isProfileMenuOpen = false;
+  profileMenuEvent?: Event;
 
   constructor(
     private readonly auth: AuthService,
@@ -33,6 +35,10 @@ export class SaleListPage implements OnInit {
     }
 
     this.loadRooms();
+  }
+
+  get userRoleLabel(): string {
+    return this.auth.roleLabel;
   }
 
   createRoom(): void {
@@ -69,6 +75,25 @@ export class SaleListPage implements OnInit {
 
   trackByRoomId(_: number, room: RoomDto): number {
     return room.id;
+  }
+
+  toggleProfileMenu(event: Event): void {
+    this.profileMenuEvent = event;
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+  }
+
+  closeProfileMenu(): void {
+    this.isProfileMenuOpen = false;
+  }
+
+  openSettings(): void {
+    this.closeProfileMenu();
+    this.router.navigateByUrl('/profile');
+  }
+
+  logout(): void {
+    this.closeProfileMenu();
+    this.auth.logout();
   }
 
   private loadRooms(): void {

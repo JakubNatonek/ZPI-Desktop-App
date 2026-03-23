@@ -48,6 +48,8 @@ export class HermonogramPage implements OnInit {
   private readonly importedPlansStorageKey = 'harmonogramImportedPlans';
   private readonly legacySubmissionsStorageKey = 'lecturerAvailabilitySubmissions';
   private readonly raplyImportsStorageKey = 'raplyImportedFiles';
+  isProfileMenuOpen = false;
+  profileMenuEvent?: Event;
 
   hours24 = Array.from({ length: 14 }, (_, i) => i + 7);
   selectedDate: Date = new Date();
@@ -66,6 +68,10 @@ export class HermonogramPage implements OnInit {
 
   get canAccessHarmonogram(): boolean {
     return this.auth.role === 'admin' || this.auth.role === 'planner';
+  }
+
+  get userRoleLabel(): string {
+    return this.auth.roleLabel;
   }
 
   get activePlan(): ImportedPlanEntry | null {
@@ -117,6 +123,25 @@ export class HermonogramPage implements OnInit {
   goToToday() {
     this.selectedDate = new Date();
     this.updateView();
+  }
+
+  toggleProfileMenu(event: Event): void {
+    this.profileMenuEvent = event;
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+  }
+
+  closeProfileMenu(): void {
+    this.isProfileMenuOpen = false;
+  }
+
+  openSettings(): void {
+    this.closeProfileMenu();
+    this.router.navigateByUrl('/profile');
+  }
+
+  logout(): void {
+    this.closeProfileMenu();
+    this.auth.logout();
   }
 
   updateView() {

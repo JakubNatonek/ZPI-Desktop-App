@@ -58,6 +58,8 @@ export class UserCreatePage implements OnInit {
   isSaving = false;
   isSavingEdit = false;
   isResettingPassword = false;
+  isProfileMenuOpen = false;
+  profileMenuEvent?: Event;
 
   errorMessage = '';
   successMessage = '';
@@ -110,6 +112,10 @@ export class UserCreatePage implements OnInit {
     const start = (this.currentPage - 1) * this.pageSize + 1;
     const end = Math.min(start + this.pageSize - 1, total);
     return `${start}-${end} z ${total}`;
+  }
+
+  get userRoleLabel(): string {
+    return this.auth.roleLabel;
   }
 
   constructor(
@@ -210,6 +216,25 @@ export class UserCreatePage implements OnInit {
     if (this.currentPage < this.totalPages) {
       this.currentPage += 1;
     }
+  }
+
+  toggleProfileMenu(event: Event): void {
+    this.profileMenuEvent = event;
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+  }
+
+  closeProfileMenu(): void {
+    this.isProfileMenuOpen = false;
+  }
+
+  openSettings(): void {
+    this.closeProfileMenu();
+    this.router.navigateByUrl('/profile');
+  }
+
+  logout(): void {
+    this.closeProfileMenu();
+    this.auth.logout();
   }
 
   openEditModal(user: AdminUserRow): void {
