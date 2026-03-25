@@ -68,11 +68,13 @@ export class UsersAdminApiService {
   constructor(private readonly http: HttpClient) {}
 
   getRoles(): Observable<UserRoleOption[]> {
-    return this.http.get<UserRoleOption[]>(`${this.usersBaseUrl}/roles`);
+    // Backend endpoint: /role/
+    return this.http.get<UserRoleOption[]>(`${environment.apiBaseUrl}/role/`);
   }
 
   getDepartments(): Observable<UserDepartmentOption[]> {
-    return this.http.get<UserDepartmentOption[]>(`${this.usersBaseUrl}/departments`);
+    // Backend endpoint: /department/
+    return this.http.get<UserDepartmentOption[]>(`${environment.apiBaseUrl}/department/`);
   }
 
   createUser(payload: AdminCreateUserPayload): Observable<AdminCreatedUserResponse> {
