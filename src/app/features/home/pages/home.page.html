@@ -9,11 +9,15 @@
         <!-- Tryb wykladowcy: przeplyw zaznaczania dostepnosci -->
         <ng-container *ngIf="isLecturer; else adminPlannerFolders">
           <!-- Wybór semestru -->
-          <div class="semestr-selector" *ngIf="semestry.length > 0">
+          <div class="semestr-selector">
             <ion-label>Semestr</ion-label>
-            <ion-select [value]="selectedSemestrId" (ionChange)="onSemestrChange($event)" interface="popover">
+            <ion-select [value]="selectedSemestrId" (ionChange)="onSemestrChange($event)" interface="popover"
+              [disabled]="semestry.length === 0 || isLoadingSemestry">
               <ion-select-option *ngFor="let semestr of semestry" [value]="semestr.id">
                 {{ semestr.nazwa }}
+              </ion-select-option>
+              <ion-select-option *ngIf="semestry.length === 0" [value]="null" disabled>
+                Brak dostępnych semestrów
               </ion-select-option>
             </ion-select>
           </div>
@@ -261,19 +265,19 @@
           <span>Ładowanie historii...</span>
         </div>
 
-        <div class="empty-history" *ngIf="!isLoadingDezyderaty && historyDezyderaty.length === 0">
+        <div class="empty-history" *ngIf="!isLoadingDezyderaty && historyWeeks.length === 0">
           <ion-icon name="calendar-outline" class="empty-icon"></ion-icon>
           <p>Brak zapisanych dezyderat dla tego semestru.</p>
         </div>
 
-        <div class="history-list" *ngIf="!isLoadingDezyderaty && historyDezyderaty.length > 0">
-          <div class="history-item" *ngFor="let dez of historyDezyderaty" (click)="loadHistoryDezyderata(dez)">
+        <div class="history-list" *ngIf="!isLoadingDezyderaty && historyWeeks.length > 0">
+          <div class="history-item" *ngFor="let week of historyWeeks" (click)="loadHistoryDezyderata(week)">
             <div class="history-item-header">
               <ion-icon name="calendar-outline"></ion-icon>
-              <span class="history-date">{{ formatDateRange(dez.data_od, dez.data_do) }}</span>
+              <span class="history-date">{{ formatDateRange(week.data_od, week.data_do) }}</span>
             </div>
             <div class="history-item-details">
-              <span class="history-slots">{{ countSlots(dez.godziny) }} zaznaczonych godzin</span>
+              <span class="history-slots">{{ countWeekHours(week.entries) }} zaznaczonych godzin</span>
             </div>
           </div>
         </div>

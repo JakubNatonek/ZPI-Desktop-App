@@ -19,8 +19,12 @@ export interface Dezyderata {
   user_id: number;
   data_od: string;
   data_do: string;
-  godziny: string;
   semestr_id: number;
+  day_id: number;
+  from_hour: number;
+  to_hour: number;
+  is_available: boolean;
+  day_name?: string;
   semestr_nazwa?: string;
 }
 
@@ -31,8 +35,15 @@ export interface DezyderataListResponse {
 export interface DezyderataCreate {
   data_od: string;
   data_do: string;
-  godziny: string;
   semestr_id: number;
+  entries: DezyderataCreateEntry[];
+}
+
+export interface DezyderataCreateEntry {
+  day_id: number;
+  from_hour: number;
+  to_hour: number;
+  is_available: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -77,8 +88,8 @@ export class DezyderataService {
     return this.http.get<Dezyderata>(`${this.baseUrl}/${id}`, { withCredentials: true });
   }
 
-  createOrUpdateDezyderata(payload: DezyderataCreate): Observable<Dezyderata> {
-    return this.http.post<Dezyderata>(this.baseUrl, payload, { withCredentials: true });
+  createOrUpdateDezyderata(payload: DezyderataCreate): Observable<DezyderataListResponse> {
+    return this.http.post<DezyderataListResponse>(this.baseUrl, payload, { withCredentials: true });
   }
 
   deleteDezyderata(id: number): Observable<void> {

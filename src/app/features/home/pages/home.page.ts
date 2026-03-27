@@ -11,7 +11,7 @@ import {
   timeOutline, calendarOutline
 } from 'ionicons/icons';
 import { AuthService } from '../../../core/services/auth.service';
-import { DezyderataService, Semestr, Dezyderata, DezyderataCreate } from '../../../core/services/dezyderata.service';
+import { DezyderataService, Semestr, Dezyderata, DezyderataCreate, DezyderataCreateEntry } from '../../../core/services/dezyderata.service';
 
 type AvailabilityMode = 'available' | 'unavailable';
 
@@ -40,6 +40,14 @@ interface TutorialStep {
   target: 'mode-selector' | 'calendar-cell' | 'confirm-button' | 'edit-button' | 'clear-button';
   title: string;
   description: string;
+}
+
+interface HistoryWeekItem {
+  data_od: string;
+  data_do: string;
+  semestr_id: number;
+  is_available: boolean;
+  entries: Dezyderata[];
 }
 
 @Component({
@@ -116,6 +124,7 @@ export class HomePage implements OnInit {
   currentSemestr: Semestr | null = null;
   selectedSemestrId: number | null = null;
   historyDezyderaty: Dezyderata[] = [];
+  historyWeeks: HistoryWeekItem[] = [];
   isHistoryModalOpen = false;
   isLoadingSemestry = false;
   isLoadingDezyderaty = false;
@@ -336,29 +345,32 @@ export class HomePage implements OnInit {
       return;
     }
 
-    // Szukaj dezyderaty dla bieżącego tygodnia
-    const matching = dezyderaty.find(
+    const matching = dezyderaty.filter(
       (d) => d.data_od === weekStartIso && d.data_do === weekEndIso
     );
 
-    if (!matching) {
+    if (matching.length === 0) {
       this.slotSelections.clear();
       this.selectionStrategy = null;
       this.isHoursConfirmed = false;
       return;
     }
 
-    // Przywróć zaznaczenia
-    const slots = matching.godziny.split(',').filter(s => s.trim());
+    const strategy: AvailabilityMode = matching[0].is_available ? 'available' : 'unavailable';
     this.slotSelections.clear();
 
-    // Wykryj strategię na podstawie ilości slotów
-    const isAvailable = slots.length <= this.totalWeekHours / 2;
-    this.selectionStrategy = isAvailable ? 'available' : 'unavailable';
-    this.selectionMode = this.selectionStrategy;
+    this.selectionStrategy = strategy;
+    this.selectionMode = strategy;
 
-    for (const slot of slots) {
-      this.slotSelections.set(slot.trim(), this.selectionStrategy);
+    for (const entry of matching) {
+      const dayIso = this.dayIdToIso(entry.day_id);
+      if (!dayIso) {
+        continue;
+      }
+
+      for (let hour = entry.from_hour; hour <= entry.to_hour; hour++) {
+        this.slotSelections.set(`${dayIso}-${hour}`, strategy);
+      }
     }
 
     this.isHoursConfirmed = true;
@@ -383,10 +395,12 @@ export class HomePage implements OnInit {
     this.dezyderataService.getMyDezyderaty(this.selectedSemestrId).subscribe({
       next: (response) => {
         this.historyDezyderaty = response.items;
+        this.historyWeeks = this.groupDezyderatyByWeek(response.items);
         this.isLoadingDezyderaty = false;
       },
       error: () => {
         this.historyDezyderaty = [];
+        this.historyWeeks = [];
         this.isLoadingDezyderaty = false;
       }
     });
@@ -396,26 +410,31 @@ export class HomePage implements OnInit {
     this.isHistoryModalOpen = false;
   }
 
-  loadHistoryDezyderata(dezyderata: Dezyderata) {
+  loadHistoryDezyderata(historyWeek: HistoryWeekItem) {
     // Przejdź do tygodnia z historii
-    this.selectedDate = new Date(`${dezyderata.data_od}T00:00:00`);
+    this.selectedDate = new Date(`${historyWeek.data_od}T00:00:00`);
     this.updateView();
 
     // Przywróć zaznaczenia
-    const slots = dezyderata.godziny.split(',').filter(s => s.trim());
     this.slotSelections.clear();
 
-    const isAvailable = slots.length <= this.totalWeekHours / 2;
-    this.selectionStrategy = isAvailable ? 'available' : 'unavailable';
+    this.selectionStrategy = historyWeek.is_available ? 'available' : 'unavailable';
     this.selectionMode = this.selectionStrategy;
 
-    for (const slot of slots) {
-      this.slotSelections.set(slot.trim(), this.selectionStrategy);
+    for (const entry of historyWeek.entries) {
+      const dayIso = this.dayIdToIso(entry.day_id);
+      if (!dayIso) {
+        continue;
+      }
+
+      for (let hour = entry.from_hour; hour <= entry.to_hour; hour++) {
+        this.slotSelections.set(`${dayIso}-${hour}`, this.selectionStrategy);
+      }
     }
 
     this.isHoursConfirmed = true;
     this.closeHistoryModal();
-    this.lecturerMessage = `Wczytano dezyderatę z ${dezyderata.data_od} - ${dezyderata.data_do}`;
+    this.lecturerMessage = `Wczytano dezyderatę z ${historyWeek.data_od} - ${historyWeek.data_do}`;
   }
 
   startResizing(event: MouseEvent | TouchEvent) {
@@ -628,13 +647,18 @@ export class HomePage implements OnInit {
 
     const weekStartIso = this.weekDays[0].iso;
     const weekEndIso = this.weekDays[6].iso;
-    const godziny = Array.from(this.slotSelections.keys()).join(',');
+    const entries = this.buildEntriesFromSelection();
+
+    if (entries.length === 0) {
+      this.lecturerMessage = 'Brak poprawnych zakresów godzin do zapisania.';
+      return;
+    }
 
     const payload: DezyderataCreate = {
       data_od: weekStartIso,
       data_do: weekEndIso,
-      godziny,
-      semestr_id: this.selectedSemestrId
+      semestr_id: this.selectedSemestrId,
+      entries
     };
 
     this.isSaving = true;
@@ -733,8 +757,8 @@ export class HomePage implements OnInit {
     return `${formatDate(od)} - ${formatDate(doDate)}`;
   }
 
-  countSlots(godziny: string): number {
-    return godziny.split(',').filter(s => s.trim()).length;
+  countWeekHours(entries: Dezyderata[]): number {
+    return entries.reduce((sum, entry) => sum + (entry.to_hour - entry.from_hour + 1), 0);
   }
 
   private applySelection(day: WeekDay, hour: number, isStart: boolean) {
@@ -770,6 +794,100 @@ export class HomePage implements OnInit {
 
   private getSlotKey(day: WeekDay, hour: number): string {
     return `${day.iso}-${hour}`;
+  }
+
+  private dayIdToIso(dayId: number): string | null {
+    const day = this.weekDays[dayId - 1];
+    return day?.iso ?? null;
+  }
+
+  private buildEntriesFromSelection(): DezyderataCreateEntry[] {
+    if (!this.selectionStrategy) {
+      return [];
+    }
+
+    const hoursByDayIso = new Map<string, Set<number>>();
+
+    for (const slotKey of this.slotSelections.keys()) {
+      const [iso, hourText] = slotKey.split('-').length >= 4
+        ? [slotKey.slice(0, 10), slotKey.slice(11)]
+        : ['', ''];
+      const hour = Number.parseInt(hourText, 10);
+
+      if (!iso || Number.isNaN(hour)) {
+        continue;
+      }
+
+      if (!hoursByDayIso.has(iso)) {
+        hoursByDayIso.set(iso, new Set<number>());
+      }
+
+      hoursByDayIso.get(iso)?.add(hour);
+    }
+
+    const entries: DezyderataCreateEntry[] = [];
+    const isAvailable = this.selectionStrategy === 'available';
+
+    for (const [dayIso, hourSet] of hoursByDayIso.entries()) {
+      const dayIndex = this.weekDays.findIndex((day) => day.iso === dayIso);
+      if (dayIndex < 0) {
+        continue;
+      }
+
+      const dayId = dayIndex + 1;
+      const hours = Array.from(hourSet).sort((a, b) => a - b);
+
+      let start = hours[0];
+      let end = hours[0];
+
+      for (let i = 1; i < hours.length; i++) {
+        const current = hours[i];
+        if (current === end + 1) {
+          end = current;
+          continue;
+        }
+
+        entries.push({
+          day_id: dayId,
+          from_hour: start,
+          to_hour: end,
+          is_available: isAvailable,
+        });
+
+        start = current;
+        end = current;
+      }
+
+      entries.push({
+        day_id: dayId,
+        from_hour: start,
+        to_hour: end,
+        is_available: isAvailable,
+      });
+    }
+
+    return entries;
+  }
+
+  private groupDezyderatyByWeek(entries: Dezyderata[]): HistoryWeekItem[] {
+    const groups = new Map<string, HistoryWeekItem>();
+
+    for (const entry of entries) {
+      const key = `${entry.data_od}|${entry.data_do}|${entry.semestr_id}|${entry.is_available}`;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          data_od: entry.data_od,
+          data_do: entry.data_do,
+          semestr_id: entry.semestr_id,
+          is_available: entry.is_available,
+          entries: [],
+        });
+      }
+
+      groups.get(key)?.entries.push(entry);
+    }
+
+    return Array.from(groups.values()).sort((a, b) => b.data_od.localeCompare(a.data_od));
   }
 
   private buildWeekDaysFromIso(weekStartIso: string): WeekDay[] {
