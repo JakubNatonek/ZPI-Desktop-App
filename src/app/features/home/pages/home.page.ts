@@ -1,14 +1,17 @@
-﻿import { Component, OnInit, HostListener, signal } from '@angular/core';
+import { Component, OnInit, HostListener, signal } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { addIcons } from 'ionicons';
 import {
   chevronBackOutline, chevronForwardOutline, cloudDownloadOutline,
   cloudUploadOutline, addOutline, peopleOutline, menuOutline,
-  checkmarkDoneOutline, createOutline, swapHorizontalOutline
+  checkmarkDoneOutline, createOutline, swapHorizontalOutline,
+  timeOutline, calendarOutline
 } from 'ionicons/icons';
 import { AuthService } from '../../../core/services/auth.service';
+import { DezyderataService, Semestr, Dezyderata, DezyderataCreate } from '../../../core/services/dezyderata.service';
 
 type AvailabilityMode = 'available' | 'unavailable';
 
@@ -23,19 +26,14 @@ interface LecturerSubmission {
   lecturerDisplayName: string;
   lecturerEmail: string;
   weekStartIso: string;
-  weekType: 'A' | 'B';
   strategy: AvailabilityMode;
   selectedSlots: string[];
   markedHours: number;
   plannerAvailabilityHours: number;
   requiredHours: number;
   timestamp: string;
-}
-
-interface RaplyImportedFileInfo {
-  name: string;
-  size: number;
-  importedAt: string;
+  semestrId?: number;
+  semestrNazwa?: string;
 }
 
 interface TutorialStep {
@@ -44,18 +42,14 @@ interface TutorialStep {
   description: string;
 }
 
-type Delimiter = ',' | ';' | '\t' | '|';
-
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule],
+  imports: [IonicModule, CommonModule, FormsModule],
 })
 export class HomePage implements OnInit {
-  private readonly submissionsStorageKey = 'lecturerAvailabilitySubmissions';
-  private readonly raplyImportsStorageKey = 'raplyImportedFiles';
   private readonly lecturerTutorialDisabledStorageKey = 'lecturerTutorialDisabled';
   private readonly tutorialCalendarRequiredTiles = 5;
   private readonly minSidebarWidth = 64;
@@ -76,8 +70,6 @@ export class HomePage implements OnInit {
   isHoursConfirmed = false;
   lecturerMessage = '';
   allSubmissions: LecturerSubmission[] = [];
-  importedRaplyFiles: RaplyImportedFileInfo[] = [];
-  raplyImportMessage = '';
   activePlannerSubmissionId: string | null = null;
   selectedSubmissionPreview: LecturerSubmission | null = null;
   isSubmissionModalOpen = false;
@@ -117,8 +109,17 @@ export class HomePage implements OnInit {
   selectedDate: Date = new Date();
   currentMonthName = '';
   currentYear = 0;
-  currentWeekType: 'A' | 'B' = 'A';
   weekDays: WeekDay[] = [];
+
+  // Semestry i historia
+  semestry: Semestr[] = [];
+  currentSemestr: Semestr | null = null;
+  selectedSemestrId: number | null = null;
+  historyDezyderaty: Dezyderata[] = [];
+  isHistoryModalOpen = false;
+  isLoadingSemestry = false;
+  isLoadingDezyderaty = false;
+  isSaving = false;
 
   teachers = [
     { name: 'Dr Isabella Storm', progress: 0.9 },
@@ -241,7 +242,15 @@ export class HomePage implements OnInit {
     return localStorage.getItem(this.lecturerTutorialDisabledStorageKey) === '1';
   }
 
-  constructor(private router: Router, private auth: AuthService) {
+  get currentSemestrLabel(): string {
+    return this.currentSemestr?.nazwa ?? 'Brak aktywnego semestru';
+  }
+
+  constructor(
+    private router: Router,
+    private auth: AuthService,
+    private dezyderataService: DezyderataService
+  ) {
     addIcons({
       chevronBackOutline,
       chevronForwardOutline,
@@ -253,18 +262,160 @@ export class HomePage implements OnInit {
       checkmarkDoneOutline,
       createOutline,
       swapHorizontalOutline,
+      timeOutline,
+      calendarOutline,
     });
   }
 
   ngOnInit() {
     this.updateView();
-    this.reloadSubmissionsState();
+    this.loadSemestry();
     this.maybeStartLecturerTutorial();
   }
 
   ionViewWillEnter() {
-    this.reloadSubmissionsState();
+    this.loadSemestry();
     this.maybeStartLecturerTutorial();
+  }
+
+  private loadSemestry() {
+    this.isLoadingSemestry = true;
+    this.dezyderataService.getSemestry().subscribe({
+      next: (response) => {
+        this.semestry = response.items;
+        this.isLoadingSemestry = false;
+        this.loadCurrentSemestr();
+      },
+      error: () => {
+        this.isLoadingSemestry = false;
+        this.lecturerMessage = 'Nie udało się załadować semestrów.';
+      }
+    });
+  }
+
+  private loadCurrentSemestr() {
+    this.dezyderataService.getCurrentSemestr().subscribe({
+      next: (semestr) => {
+        this.currentSemestr = semestr;
+        this.selectedSemestrId = semestr.id;
+        this.loadCurrentDezyderata();
+      },
+      error: () => {
+        // Brak aktywnego semestru - użyj pierwszego dostępnego
+        if (this.semestry.length > 0) {
+          this.currentSemestr = this.semestry[0];
+          this.selectedSemestrId = this.semestry[0].id;
+          this.loadCurrentDezyderata();
+        }
+      }
+    });
+  }
+
+  private loadCurrentDezyderata() {
+    if (!this.isLecturer || !this.selectedSemestrId) {
+      return;
+    }
+
+    this.isLoadingDezyderaty = true;
+    this.dezyderataService.getMyDezyderaty(this.selectedSemestrId).subscribe({
+      next: (response) => {
+        this.isLoadingDezyderaty = false;
+        this.restoreDezyderataFromApi(response.items);
+      },
+      error: () => {
+        this.isLoadingDezyderaty = false;
+      }
+    });
+  }
+
+  private restoreDezyderataFromApi(dezyderaty: Dezyderata[]) {
+    const weekStartIso = this.weekDays[0]?.iso;
+    const weekEndIso = this.weekDays[6]?.iso;
+
+    if (!weekStartIso || !weekEndIso) {
+      return;
+    }
+
+    // Szukaj dezyderaty dla bieżącego tygodnia
+    const matching = dezyderaty.find(
+      (d) => d.data_od === weekStartIso && d.data_do === weekEndIso
+    );
+
+    if (!matching) {
+      this.slotSelections.clear();
+      this.selectionStrategy = null;
+      this.isHoursConfirmed = false;
+      return;
+    }
+
+    // Przywróć zaznaczenia
+    const slots = matching.godziny.split(',').filter(s => s.trim());
+    this.slotSelections.clear();
+
+    // Wykryj strategię na podstawie ilości slotów
+    const isAvailable = slots.length <= this.totalWeekHours / 2;
+    this.selectionStrategy = isAvailable ? 'available' : 'unavailable';
+    this.selectionMode = this.selectionStrategy;
+
+    for (const slot of slots) {
+      this.slotSelections.set(slot.trim(), this.selectionStrategy);
+    }
+
+    this.isHoursConfirmed = true;
+    this.lecturerMessage = 'Wczytano wcześniej zatwierdzone godziny dla bieżącego tygodnia.';
+  }
+
+  onSemestrChange(event: CustomEvent) {
+    const semestrId = parseInt(event.detail.value, 10);
+    this.selectedSemestrId = semestrId;
+    this.currentSemestr = this.semestry.find(s => s.id === semestrId) ?? null;
+    this.loadCurrentDezyderata();
+  }
+
+  openHistoryModal() {
+    if (!this.selectedSemestrId) {
+      return;
+    }
+
+    this.isHistoryModalOpen = true;
+    this.isLoadingDezyderaty = true;
+
+    this.dezyderataService.getMyDezyderaty(this.selectedSemestrId).subscribe({
+      next: (response) => {
+        this.historyDezyderaty = response.items;
+        this.isLoadingDezyderaty = false;
+      },
+      error: () => {
+        this.historyDezyderaty = [];
+        this.isLoadingDezyderaty = false;
+      }
+    });
+  }
+
+  closeHistoryModal() {
+    this.isHistoryModalOpen = false;
+  }
+
+  loadHistoryDezyderata(dezyderata: Dezyderata) {
+    // Przejdź do tygodnia z historii
+    this.selectedDate = new Date(`${dezyderata.data_od}T00:00:00`);
+    this.updateView();
+
+    // Przywróć zaznaczenia
+    const slots = dezyderata.godziny.split(',').filter(s => s.trim());
+    this.slotSelections.clear();
+
+    const isAvailable = slots.length <= this.totalWeekHours / 2;
+    this.selectionStrategy = isAvailable ? 'available' : 'unavailable';
+    this.selectionMode = this.selectionStrategy;
+
+    for (const slot of slots) {
+      this.slotSelections.set(slot.trim(), this.selectionStrategy);
+    }
+
+    this.isHoursConfirmed = true;
+    this.closeHistoryModal();
+    this.lecturerMessage = `Wczytano dezyderatę z ${dezyderata.data_od} - ${dezyderata.data_do}`;
   }
 
   startResizing(event: MouseEvent | TouchEvent) {
@@ -322,7 +473,6 @@ export class HomePage implements OnInit {
 
   updateView() {
     this.generateWeek(this.selectedDate);
-    this.currentWeekType = this.resolveWeekType(this.selectedDate);
     const months = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
     this.currentMonthName = months[this.selectedDate.getMonth()];
     this.currentYear = this.selectedDate.getFullYear();
@@ -462,28 +612,44 @@ export class HomePage implements OnInit {
       }
     }
 
-    this.isHoursConfirmed = true;
-    const weekStartIso = this.weekDays[0]?.iso ?? '';
-    const submission: LecturerSubmission = {
-      id: `${this.currentLecturerEmail}-${weekStartIso}`,
-      lecturerDisplayName: this.currentLecturerName,
-      lecturerEmail: this.currentLecturerEmail,
-      weekStartIso,
-      weekType: this.currentWeekType,
-      strategy: this.selectionStrategy,
-      selectedSlots: Array.from(this.slotSelections.keys()),
-      markedHours: this.markedHours,
-      plannerAvailabilityHours: isTutorialConfirmStep ? this.requiredAvailabilityHours : this.plannerAvailabilityHours,
-      requiredHours: this.requiredAvailabilityHours,
-      timestamp: new Date().toISOString(),
-    };
-
-    this.upsertSubmission(submission);
-    this.lecturerMessage = `Godziny zatwierdzone. Planista widzi ${this.plannerAvailabilityHours} h do dyspozycji.`;
+    // Zapisz do bazy danych
+    this.saveDezyderataToApi();
 
     if (isTutorialConfirmStep) {
       this.nextTutorialStep();
     }
+  }
+
+  private saveDezyderataToApi() {
+    if (!this.selectedSemestrId || this.weekDays.length < 7) {
+      this.lecturerMessage = 'Brak wybranego semestru lub nieprawidłowy tydzień.';
+      return;
+    }
+
+    const weekStartIso = this.weekDays[0].iso;
+    const weekEndIso = this.weekDays[6].iso;
+    const godziny = Array.from(this.slotSelections.keys()).join(',');
+
+    const payload: DezyderataCreate = {
+      data_od: weekStartIso,
+      data_do: weekEndIso,
+      godziny,
+      semestr_id: this.selectedSemestrId
+    };
+
+    this.isSaving = true;
+    this.dezyderataService.createOrUpdateDezyderata(payload).subscribe({
+      next: () => {
+        this.isSaving = false;
+        this.isHoursConfirmed = true;
+        this.lecturerMessage = `Godziny zatwierdzone i zapisane. Planista widzi ${this.plannerAvailabilityHours} h do dyspozycji.`;
+      },
+      error: (err) => {
+        this.isSaving = false;
+        this.lecturerMessage = 'Nie udało się zapisać dezyderat. Spróbuj ponownie.';
+        console.error('Błąd zapisu dezyderaty:', err);
+      }
+    });
   }
 
   editHours() {
@@ -560,6 +726,17 @@ export class HomePage implements OnInit {
       : null;
   }
 
+  formatDateRange(dataOd: string, dataDo: string): string {
+    const od = new Date(dataOd);
+    const doDate = new Date(dataDo);
+    const formatDate = (d: Date) => d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return `${formatDate(od)} - ${formatDate(doDate)}`;
+  }
+
+  countSlots(godziny: string): number {
+    return godziny.split(',').filter(s => s.trim()).length;
+  }
+
   private applySelection(day: WeekDay, hour: number, isStart: boolean) {
     if (!this.isLecturer || this.isHoursConfirmed) {
       return;
@@ -591,127 +768,6 @@ export class HomePage implements OnInit {
     }
   }
 
-  private loadSubmissions(): LecturerSubmission[] {
-    const raw = localStorage.getItem(this.submissionsStorageKey);
-    if (!raw) {
-      return [];
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as LecturerSubmission[];
-      if (!Array.isArray(parsed)) {
-        return [];
-      }
-
-      // Backward compatibility: normalize older/incomplete entries.
-      return parsed
-        .map((entry) => this.normalizeSubmission(entry))
-        .filter((entry): entry is LecturerSubmission => !!entry);
-    } catch {
-      return [];
-    }
-  }
-
-  private normalizeSubmission(entry: unknown): LecturerSubmission | null {
-    if (!entry || typeof entry !== 'object') {
-      return null;
-    }
-
-    const candidate = entry as Partial<LecturerSubmission>;
-    const lecturerEmail = candidate.lecturerEmail || 'unknown@local';
-    const lecturerDisplayName = candidate.lecturerDisplayName || lecturerEmail;
-    const weekStartIso = candidate.weekStartIso || '';
-    const strategy: AvailabilityMode = candidate.strategy === 'unavailable' ? 'unavailable' : 'available';
-    const selectedSlots = Array.isArray(candidate.selectedSlots) ? candidate.selectedSlots : [];
-    const markedHours = typeof candidate.markedHours === 'number' ? candidate.markedHours : selectedSlots.length;
-    const plannerAvailabilityHours = typeof candidate.plannerAvailabilityHours === 'number'
-      ? candidate.plannerAvailabilityHours
-      : markedHours;
-    const requiredHours = typeof candidate.requiredHours === 'number' ? candidate.requiredHours : this.requiredAvailabilityHours;
-    const timestamp = candidate.timestamp || new Date().toISOString();
-
-    return {
-      id: candidate.id || `${lecturerEmail}-${weekStartIso}`,
-      lecturerDisplayName,
-      lecturerEmail,
-      weekStartIso,
-      weekType: 'A',
-      strategy,
-      selectedSlots,
-      markedHours,
-      plannerAvailabilityHours,
-      requiredHours,
-      timestamp,
-    };
-  }
-
-  private upsertSubmission(submission: LecturerSubmission) {
-    const index = this.allSubmissions.findIndex((entry) => entry.id === submission.id);
-    if (index >= 0) {
-      this.allSubmissions[index] = submission;
-    } else {
-      this.allSubmissions.push(submission);
-    }
-
-    localStorage.setItem(this.submissionsStorageKey, JSON.stringify(this.allSubmissions));
-  }
-
-  private reloadSubmissionsState() {
-    this.allSubmissions = this.loadSubmissions();
-    const importsRaw = localStorage.getItem(this.raplyImportsStorageKey);
-    this.importedRaplyFiles = importsRaw ? JSON.parse(importsRaw) as RaplyImportedFileInfo[] : [];
-
-    const hasActiveSubmission = this.activePlannerSubmissionId
-      ? this.allSubmissions.some((entry) => entry.id === this.activePlannerSubmissionId)
-      : false;
-    if (!hasActiveSubmission) {
-      const newest = [...this.allSubmissions].sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
-      this.activePlannerSubmissionId = newest?.id ?? null;
-    }
-
-    this.restoreLecturerSelectionForCurrentWeek();
-  }
-
-  private restoreLecturerSelectionForCurrentWeek() {
-    if (!this.isLecturer) {
-      return;
-    }
-
-    const weekStartIso = this.weekDays[0]?.iso;
-    if (!weekStartIso) {
-      return;
-    }
-
-    const submission = this.allSubmissions.find(
-      (entry) => entry.lecturerEmail === this.currentLecturerEmail && entry.weekStartIso === weekStartIso
-    );
-
-    if (!submission) {
-      this.slotSelections.clear();
-      this.selectionStrategy = null;
-      this.isHoursConfirmed = false;
-      return;
-    }
-
-    this.selectionStrategy = submission.strategy;
-    this.selectionMode = submission.strategy;
-    this.isHoursConfirmed = true;
-    this.slotSelections = new Map(submission.selectedSlots.map((key) => [key, submission.strategy]));
-    this.lecturerMessage = 'Wczytano wcześniej zatwierdzone godziny dla bieżącego tygodnia.';
-  }
-
-  private resolveWeekType(baseDate: Date): 'A' | 'B' {
-    return 'A';
-  }
-
-  private getIsoWeekNumber(date: Date): number {
-    const normalized = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = normalized.getUTCDay() || 7;
-    normalized.setUTCDate(normalized.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(normalized.getUTCFullYear(), 0, 1));
-    return Math.ceil((((normalized.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-  }
-
   private getSlotKey(day: WeekDay, hour: number): string {
     return `${day.iso}-${hour}`;
   }
@@ -731,254 +787,6 @@ export class HomePage implements OnInit {
     }
 
     return days;
-  }
-
-  exportRaply() { console.log('Export...'); }
-
-  importRaply(fileInput: HTMLInputElement) {
-    fileInput.click();
-  }
-
-  async onRaplyFileSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const files = input.files;
-
-    if (!files || files.length === 0) {
-      return;
-    }
-
-    const importedInfos: RaplyImportedFileInfo[] = [];
-    let importedEntriesCount = 0;
-
-    for (const file of Array.from(files)) {
-      const extension = file.name.split('.').pop()?.toLowerCase();
-      const canRead = extension === 'json' || extension === 'csv' || extension === 'raply';
-
-      if (!canRead) {
-        continue;
-      }
-
-      const text = await this.readFileText(file);
-      const entries = this.tryParseImportedEntries(text, extension ?? '');
-
-      for (const entry of entries) {
-        this.upsertSubmission(entry);
-        importedEntriesCount += 1;
-      }
-
-      importedInfos.push({
-        name: file.name,
-        size: file.size,
-        importedAt: new Date().toISOString(),
-      });
-    }
-
-    if (importedInfos.length === 0) {
-      this.raplyImportMessage = 'Nie udało się zaimportować plików. Użyj .json, .csv lub .raply.';
-      input.value = '';
-      return;
-    }
-
-    this.importedRaplyFiles = [...importedInfos, ...this.importedRaplyFiles].slice(0, 10);
-    localStorage.setItem(this.raplyImportsStorageKey, JSON.stringify(this.importedRaplyFiles));
-    this.reloadSubmissionsState();
-
-    if (importedEntriesCount > 0) {
-      const newest = [...this.allSubmissions].sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
-      if (newest) {
-        this.selectPlannerSubmission(newest);
-      }
-    }
-
-    this.raplyImportMessage = importedEntriesCount > 0
-      ? `Zaimportowano ${importedInfos.length} plik(ów), dodano/odświeżono ${importedEntriesCount} wpisów. Plan jest widoczny w siatce.`
-      : `Zaimportowano ${importedInfos.length} plik(ów). Brak rozpoznanych wpisów harmonogramu w JSON.`;
-    input.value = '';
-  }
-
-  private tryParseImportedEntries(text: string, extension: string): LecturerSubmission[] {
-    const jsonEntries = this.tryParseImportedJson(text);
-    if (jsonEntries.length > 0) {
-      return jsonEntries;
-    }
-
-    if (extension === 'csv' || extension === 'raply') {
-      return this.tryParseDelimitedImport(text);
-    }
-
-    return [];
-  }
-
-  private tryParseImportedJson(text: string): LecturerSubmission[] {
-    try {
-      const data = JSON.parse(text) as unknown;
-      const rawEntries = Array.isArray(data)
-        ? data
-        : (data && typeof data === 'object' && Array.isArray((data as { submissions?: unknown[] }).submissions)
-          ? (data as { submissions: unknown[] }).submissions
-          : []);
-
-      return rawEntries
-        .map((entry) => this.normalizeSubmission(entry))
-        .filter((entry): entry is LecturerSubmission => !!entry);
-    } catch {
-      return [];
-    }
-  }
-
-  private tryParseDelimitedImport(text: string): LecturerSubmission[] {
-    const lines = text
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-
-    if (lines.length < 2) {
-      return [];
-    }
-
-    const delimiter = this.detectDelimiter(lines[0]);
-    const headers = lines[0].split(delimiter).map((header) => this.normalizeHeader(header));
-    const grouped = new Map<string, Partial<LecturerSubmission> & { selectedSlots: string[] }>();
-
-    for (const line of lines.slice(1)) {
-      const cols = line.split(delimiter).map((value) => value.trim());
-      const row: Record<string, string> = {};
-
-      headers.forEach((header, index) => {
-        row[header] = cols[index] ?? '';
-      });
-
-      const lecturerEmail = row['lectureremail'] || row['email'] || row['mail'] || 'unknown@local';
-      const lecturerDisplayName = row['lecturerdisplayname'] || row['lecturer'] || row['name'] || lecturerEmail;
-      const weekStartIso = row['weekstartiso'] || row['weekstart'] || row['week'] || row['weekstartdate'] || '';
-      const strategy = this.parseStrategy(row['strategy'] || row['mode'] || row['typ'] || row['type']);
-      const weekType: 'A' | 'B' = (row['weektype'] || row['tydzien'] || 'A').toUpperCase() === 'B' ? 'B' : 'A';
-      const requiredHours = Number(row['requiredhours'] || row['required'] || this.requiredAvailabilityHours);
-      const timestamp = row['timestamp'] || row['importedat'] || new Date().toISOString();
-      const rowSlots = this.extractSlotsFromRow(row);
-      const groupKey = `${lecturerEmail}|${weekStartIso}|${strategy}`;
-
-      const current = grouped.get(groupKey) ?? {
-        id: `${lecturerEmail}-${weekStartIso}`,
-        lecturerDisplayName,
-        lecturerEmail,
-        weekStartIso,
-        weekType,
-        strategy,
-        requiredHours,
-        timestamp,
-        selectedSlots: [],
-      };
-
-      current.lecturerDisplayName = lecturerDisplayName;
-      current.lecturerEmail = lecturerEmail;
-      current.weekStartIso = weekStartIso;
-      current.weekType = weekType;
-      current.strategy = strategy;
-      current.requiredHours = Number.isFinite(requiredHours) ? requiredHours : this.requiredAvailabilityHours;
-      current.timestamp = timestamp;
-
-      for (const slot of rowSlots) {
-        if (!current.selectedSlots.includes(slot)) {
-          current.selectedSlots.push(slot);
-        }
-      }
-
-      grouped.set(groupKey, current);
-    }
-
-    return Array.from(grouped.values())
-      .map((entry) => {
-        const selectedSlots = entry.selectedSlots ?? [];
-        const markedHours = selectedSlots.length;
-        const plannerAvailabilityHours = entry.strategy === 'unavailable'
-          ? this.totalWeekHours - markedHours
-          : markedHours;
-
-        return this.normalizeSubmission({
-          ...entry,
-          selectedSlots,
-          markedHours,
-          plannerAvailabilityHours,
-        });
-      })
-      .filter((entry): entry is LecturerSubmission => !!entry);
-  }
-
-  private detectDelimiter(headerLine: string): Delimiter {
-    const candidates: Delimiter[] = [';', ',', '\t', '|'];
-    let best: Delimiter = ';';
-    let bestScore = -1;
-
-    for (const delimiter of candidates) {
-      const score = headerLine.split(delimiter).length;
-      if (score > bestScore) {
-        best = delimiter;
-        bestScore = score;
-      }
-    }
-
-    return best;
-  }
-
-  private normalizeHeader(header: string): string {
-    return header
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '')
-      .replace(/[^a-z0-9]/g, '');
-  }
-
-  private parseStrategy(rawValue: string): AvailabilityMode {
-    const value = String(rawValue || '').toLowerCase();
-    return value.includes('niedost') || value.includes('unavailable') || value === '0'
-      ? 'unavailable'
-      : 'available';
-  }
-
-  private extractSlotsFromRow(row: Record<string, string>): string[] {
-    const slotsRaw = row['selectedslots'] || row['slots'] || row['hours'] || row['godziny'];
-    if (slotsRaw) {
-      return slotsRaw
-        .split(/[;|,\s]+/)
-        .map((slot) => slot.trim())
-        .filter((slot) => /\d{4}-\d{2}-\d{2}-\d{1,2}/.test(slot));
-    }
-
-    const isoDate = row['dayiso'] || row['date'] || row['day'] || row['data'];
-    const hourValue = row['hour'] || row['godzina'];
-
-    if (isoDate && hourValue) {
-      const hour = Number(hourValue);
-      if (Number.isFinite(hour)) {
-        return [`${isoDate}-${hour}`];
-      }
-    }
-
-    const startHourValue = row['starthour'] || row['start'];
-    const endHourValue = row['endhour'] || row['end'];
-    if (isoDate && startHourValue && endHourValue) {
-      const startHour = Number(startHourValue);
-      const endHour = Number(endHourValue);
-      if (Number.isFinite(startHour) && Number.isFinite(endHour) && endHour >= startHour) {
-        const generated: string[] = [];
-        for (let hour = startHour; hour <= endHour; hour++) {
-          generated.push(`${isoDate}-${hour}`);
-        }
-        return generated;
-      }
-    }
-
-    return [];
-  }
-
-  private readFileText(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result ?? ''));
-      reader.onerror = () => reject(new Error('Nie udało się odczytać pliku.'));
-      reader.readAsText(file);
-    });
   }
 
   private maybeStartLecturerTutorial() {

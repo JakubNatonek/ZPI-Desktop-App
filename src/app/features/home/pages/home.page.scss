@@ -511,6 +511,144 @@
   cursor: pointer;
 }
 
+/* Selector semestru */
+.semestr-selector {
+  margin-bottom: 14px;
+
+  ion-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #374151;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  ion-select {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    background: #f9fafb;
+    color: #1f2937;
+  }
+}
+
+:host-context(.ion-palette-dark) {
+  .semestr-selector {
+    ion-label {
+      color: #e5e7eb;
+    }
+
+    ion-select {
+      border-color: #4b5563;
+      background: #1f2937;
+      color: #f9fafb;
+      --color: #f9fafb;
+      --placeholder-color: #9ca3af;
+    }
+  }
+}
+
+/* Przycisk historii */
+.history-btn {
+  margin-top: 10px;
+}
+
+/* Loading indicator */
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  background: #f0f9ff;
+  border-radius: 8px;
+
+  ion-spinner {
+    width: 20px;
+    height: 20px;
+    color: #0ea5e9;
+  }
+
+  span {
+    font-size: 0.85rem;
+    color: #0369a1;
+  }
+}
+
+/* Modal historii */
+.history-modal {
+  width: min(600px, 100%);
+}
+
+.history-content {
+  padding: 8px;
+}
+
+.empty-history {
+  text-align: center;
+  padding: 40px 20px;
+
+  .empty-icon {
+    font-size: 48px;
+    color: #9ca3af;
+    margin-bottom: 12px;
+  }
+
+  p {
+    color: #6b7280;
+    font-size: 0.9rem;
+  }
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #fff;
+
+  &:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+  }
+}
+
+.history-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+
+  ion-icon {
+    color: #3b82f6;
+    font-size: 18px;
+  }
+
+  .history-date {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.95rem;
+  }
+}
+
+.history-item-details {
+  padding-left: 26px;
+
+  .history-slots {
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+}
+
 /* Warstwy tutoriala i reguly podswietlenia */
 .tutorial-target-active {
   position: relative;
@@ -647,5 +785,107 @@
 
   .google-calendar-grid .hour-row .day-cell {
     border-right-color: #334155;
+  }
+
+  /* Loading indicator dark mode */
+  .loading-indicator {
+    background: #1e3a5f;
+
+    ion-spinner {
+      color: #60a5fa;
+    }
+
+    span {
+      color: #93c5fd;
+    }
+  }
+
+  /* Preview modal dark mode */
+  .preview-modal {
+    background: #1f2937;
+    border-color: #475569;
+
+    .preview-modal-header h3 {
+      color: #f9fafb;
+    }
+
+    .close-modal-btn {
+      background: #374151;
+      border-color: #4b5563;
+      color: #f9fafb;
+    }
+  }
+
+  .submission-preview-grid {
+    .preview-header-row {
+      border-bottom-color: #475569;
+
+      .day-col {
+        color: #e5e7eb;
+      }
+    }
+
+    .preview-row {
+      border-bottom-color: #374151;
+    }
+
+    .time-col {
+      color: #9ca3af;
+    }
+
+    .preview-cell {
+      border-right-color: #374151;
+    }
+
+    p {
+      color: #e5e7eb;
+    }
+  }
+
+  /* History modal dark mode */
+  .history-content {
+    .empty-history {
+      .empty-icon {
+        color: #6b7280;
+      }
+
+      p {
+        color: #9ca3af;
+      }
+    }
+  }
+
+  .history-item {
+    background: #1f2937;
+    border-color: #475569;
+
+    &:hover {
+      background: #374151;
+      border-color: #60a5fa;
+    }
+  }
+
+  .history-item-header {
+    .history-date {
+      color: #f9fafb;
+    }
+  }
+
+  .history-item-details .history-slots {
+    color: #9ca3af;
+  }
+
+  /* Tutorial panel dark mode */
+  .tutorial-panel {
+    background: #1f2937;
+    border-color: #475569;
+
+    h3 {
+      color: #f9fafb;
+    }
+
+    p {
+      color: #cbd5e1;
+    }
   }
 }

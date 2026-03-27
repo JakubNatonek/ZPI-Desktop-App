@@ -1,4 +1,4 @@
-﻿<div class="app-shell" [class.lecturer-layout]="isLecturer">
+<div class="app-shell" [class.lecturer-layout]="isLecturer">
   <!-- Panel boczny: sterowanie zalezne od roli i dane wykladowcow -->
   <div class="sidebar" [style.width.px]="sidebarWidth()">
     <ion-content class="ion-padding no-scroll">
@@ -8,6 +8,16 @@
 
         <!-- Tryb wykladowcy: przeplyw zaznaczania dostepnosci -->
         <ng-container *ngIf="isLecturer; else adminPlannerFolders">
+          <!-- Wybór semestru -->
+          <div class="semestr-selector" *ngIf="semestry.length > 0">
+            <ion-label>Semestr</ion-label>
+            <ion-select [value]="selectedSemestrId" (ionChange)="onSemestrChange($event)" interface="popover">
+              <ion-select-option *ngFor="let semestr of semestry" [value]="semestr.id">
+                {{ semestr.nazwa }}
+              </ion-select-option>
+            </ion-select>
+          </div>
+
           <ion-segment [value]="selectionMode" (ionChange)="onModeChange($event)" data-tour-step="mode-selector"
             [class.tutorial-target-active]="isTutorialStepTarget('mode-selector')">
             <ion-segment-button value="available">
@@ -19,7 +29,7 @@
           </ion-segment>
 
           <div class="hours-box">
-            <p>Tydzień {{ currentWeekType }}</p>
+            <p>Semestr: <strong>{{ currentSemestrLabel }}</strong></p>
             <p>Minimum dostępności: <strong>{{ requiredAvailabilityHours }} h</strong></p>
             <p *ngIf="selectionStrategy">Tryb: <strong>{{ strategyLabel(selectionStrategy) }}</strong></p>
             <p>Zaznaczone: <strong>{{ markedHours }} h</strong></p>
@@ -33,15 +43,20 @@
             Wyczyść zaznaczenia
           </ion-button>
 
+          <!-- Przycisk historii dezyderat -->
+          <ion-button expand="block" fill="outline" color="tertiary" (click)="openHistoryModal()"
+            [disabled]="!selectedSemestrId" class="history-btn">
+            <ion-icon slot="start" name="time-outline"></ion-icon>
+            Historia dezyderat
+          </ion-button>
+
           <p class="lecturer-message" *ngIf="lecturerMessage">{{ lecturerMessage }}</p>
 
-          <div class="sent-data" *ngIf="lecturerSubmissions.length > 0">
-            <h4>Wysłane dane</h4>
-            <div class="submission-card" *ngFor="let entry of lecturerSubmissions">
-              <p><strong>Tydzień:</strong> {{ entry.weekType }} ({{ entry.weekStartIso }})</p>
-              <p><strong>Typ:</strong> {{ strategyLabel(entry.strategy) }}</p>
-              <p><strong>Dla planisty:</strong> {{ entry.plannerAvailabilityHours }} h</p>
-            </div>
+          <div class="loading-indicator" *ngIf="isLoadingSemestry || isLoadingDezyderaty || isSaving">
+            <ion-spinner name="crescent"></ion-spinner>
+            <span *ngIf="isSaving">Zapisywanie...</span>
+            <span *ngIf="isLoadingSemestry">Ładowanie semestrów...</span>
+            <span *ngIf="isLoadingDezyderaty && !isSaving && !isLoadingSemestry">Ładowanie dezyderat...</span>
           </div>
         </ng-container>
 
@@ -58,7 +73,7 @@
               </div>
               <div class="submission-row">
                 <span class="submission-label">Tydzień</span>
-                <span class="submission-value">{{ entry.weekType }} ({{ entry.weekStartIso || 'brak daty' }})</span>
+                <span class="submission-value">{{ entry.weekStartIso || 'brak daty' }}</span>
               </div>
               <div class="submission-row">
                 <span class="submission-label">Typ</span>
@@ -72,8 +87,7 @@
 
             <div class="preview-box" *ngIf="selectedSubmissionPreview">
               <p><strong>Podgląd:</strong> {{ selectedSubmissionPreview.lecturerDisplayName }}</p>
-              <p><strong>Tydzień:</strong> {{ selectedSubmissionPreview.weekType }} ({{
-                selectedSubmissionPreview.weekStartIso }})</p>
+              <p><strong>Tydzień:</strong> {{ selectedSubmissionPreview.weekStartIso }}</p>
               <p><strong>Tryb zaznaczeń:</strong> {{ strategyLabel(selectedSubmissionPreview.strategy) }}</p>
               <p><strong>Zaznaczone:</strong> {{ selectedSubmissionPreview.markedHours }} h</p>
               <p><strong>Dostępne dla planisty:</strong> {{ selectedSubmissionPreview.plannerAvailabilityHours }} h</p>
@@ -81,9 +95,7 @@
 
             <div class="preview-box" *ngIf="activePlannerSubmission">
               <p><strong>Aktualny plan w siatce:</strong> {{ activePlannerSubmission.lecturerDisplayName }}</p>
-              <p><strong>Tydzień:</strong> {{ activePlannerSubmission.weekType }} ({{
-                activePlannerSubmission.weekStartIso
-                }})</p>
+              <p><strong>Tydzień:</strong> {{ activePlannerSubmission.weekStartIso }}</p>
               <p><strong>Tryb zaznaczeń:</strong> {{ strategyLabel(activePlannerSubmission.strategy) }}</p>
               <ion-button size="small" fill="outline" (click)="previewSubmission(activePlannerSubmission)">
                 Szczegóły wpisu
@@ -114,8 +126,8 @@
         </ion-buttons>
 
         <ion-buttons slot="end">
-          <ion-chip color="primary" outline *ngIf="isLecturer">
-            <ion-label>Tydzień {{ currentWeekType }}</ion-label>
+          <ion-chip color="primary" outline *ngIf="isLecturer && currentSemestr">
+            <ion-label>{{ currentSemestr.nazwa }}</ion-label>
           </ion-chip>
           <ion-chip color="medium" outline>
             <ion-label>{{ userRoleLabel }}</ion-label>
@@ -130,10 +142,10 @@
               Włącz tutorial
             </ion-button>
 
-            <ion-button fill="solid" color="success" (click)="confirmHours()" [disabled]="isHoursConfirmed"
+            <ion-button fill="solid" color="success" (click)="confirmHours()" [disabled]="isHoursConfirmed || isSaving"
               data-tour-step="confirm-button" [class.tutorial-target-active]="isTutorialStepTarget('confirm-button')">
               <ion-icon slot="start" name="checkmark-done-outline"></ion-icon>
-              Zatwierdź godziny
+              {{ isSaving ? 'Zapisywanie...' : 'Zatwierdź godziny' }}
             </ion-button>
             <ion-button fill="outline" color="warning" (click)="editHours()" [disabled]="!isHoursConfirmed"
               data-tour-step="edit-button" [class.tutorial-target-active]="isTutorialStepTarget('edit-button')">
@@ -205,6 +217,7 @@
     </div>
   </div>
 
+  <!-- Modal podglądu wpisu -->
   <div class="preview-modal-backdrop" *ngIf="isSubmissionModalOpen" (click)="closeSubmissionPreview()">
     <div class="preview-modal" (click)="$event.stopPropagation()" *ngIf="selectedSubmissionPreview">
       <div class="preview-modal-header">
@@ -213,8 +226,7 @@
       </div>
 
       <div class="submission-preview-grid">
-        <p><strong>Tydzień:</strong> {{ selectedSubmissionPreview.weekType }} ({{ selectedSubmissionPreview.weekStartIso
-          }})</p>
+        <p><strong>Tydzień:</strong> {{ selectedSubmissionPreview.weekStartIso }}</p>
         <p><strong>Tryb:</strong> {{ strategyLabel(selectedSubmissionPreview.strategy) }}</p>
 
         <div class="preview-header-row">
@@ -228,6 +240,40 @@
             <div class="preview-cell" *ngFor="let day of submissionPreviewWeekDays"
               [class.available]="getSubmissionSlotState(day, hour) === 'available'"
               [class.unavailable]="getSubmissionSlotState(day, hour) === 'unavailable'">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal historii dezyderat -->
+  <div class="preview-modal-backdrop" *ngIf="isHistoryModalOpen" (click)="closeHistoryModal()">
+    <div class="preview-modal history-modal" (click)="$event.stopPropagation()">
+      <div class="preview-modal-header">
+        <h3>Historia dezyderat - {{ currentSemestrLabel }}</h3>
+        <button type="button" class="close-modal-btn" (click)="closeHistoryModal()">Zamknij</button>
+      </div>
+
+      <div class="history-content">
+        <div class="loading-indicator" *ngIf="isLoadingDezyderaty">
+          <ion-spinner name="crescent"></ion-spinner>
+          <span>Ładowanie historii...</span>
+        </div>
+
+        <div class="empty-history" *ngIf="!isLoadingDezyderaty && historyDezyderaty.length === 0">
+          <ion-icon name="calendar-outline" class="empty-icon"></ion-icon>
+          <p>Brak zapisanych dezyderat dla tego semestru.</p>
+        </div>
+
+        <div class="history-list" *ngIf="!isLoadingDezyderaty && historyDezyderaty.length > 0">
+          <div class="history-item" *ngFor="let dez of historyDezyderaty" (click)="loadHistoryDezyderata(dez)">
+            <div class="history-item-header">
+              <ion-icon name="calendar-outline"></ion-icon>
+              <span class="history-date">{{ formatDateRange(dez.data_od, dez.data_do) }}</span>
+            </div>
+            <div class="history-item-details">
+              <span class="history-slots">{{ countSlots(dez.godziny) }} zaznaczonych godzin</span>
             </div>
           </div>
         </div>
