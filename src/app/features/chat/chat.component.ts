@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription, debounceTime, distinctUntilChanged, switchMap, catchError, of, lastValueFrom } from 'rxjs';
+import { Subject, Subscription, debounceTime, distinctUntilChanged, switchMap, catchError, of, lastValueFrom, finalize } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { WebSocketService } from '../../core/services/websocket.service';
 import { CryptoService } from '../../core/services/crypto.service';
@@ -82,6 +82,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   searchQuery = '';
   searchResults = signal<ChatUser[]>([]);
   isSearching = signal(false);
+  isEncrypting = signal(false);
   hasUnreadMessages = signal(false);
   showUnreadToast = signal(false);
   private searchSubject = new Subject<string>();
@@ -904,6 +905,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     target: 'direct' | 'room',
     targetId: number,
   ): Promise<void> {
+    this.isEncrypting.set(true);
     // Default: plaintext payload
     let payloadStr = content;
 
@@ -1001,18 +1003,36 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
         catchError((err) => {
           console.error('Nie udało się wysłać wiadomości:', err);
           return of(null);
-        })
+        }),
+        finalize(() => this.isEncrypting.set(false)),
       )
       .subscribe((message) => {
         if (!message) return;
 
-        const mapped = this.mapMessage(message);
+        let mapped = this.mapMessage(message);
+        // If this is our own message, prefer showing the original plaintext
+        if (mapped.isOwn && content) {
+          mapped = { ...mapped, content };
+        }
+
         if (target === 'direct') {
           if (!this.conversations[targetId]) this.conversations[targetId] = [];
-          this.conversations[targetId] = [...this.conversations[targetId], mapped];
+          const idx = this.conversations[targetId].findIndex((m) => m.id === mapped.id);
+          if (idx !== -1) {
+            const current = this.conversations[targetId];
+            this.conversations[targetId] = [...current.slice(0, idx), mapped, ...current.slice(idx + 1)];
+          } else {
+            this.conversations[targetId] = [...this.conversations[targetId], mapped];
+          }
         } else {
           if (!this.roomMessages[targetId]) this.roomMessages[targetId] = [];
-          this.roomMessages[targetId] = [...this.roomMessages[targetId], mapped];
+          const idx = this.roomMessages[targetId].findIndex((m) => m.id === mapped.id);
+          if (idx !== -1) {
+            const current = this.roomMessages[targetId];
+            this.roomMessages[targetId] = [...current.slice(0, idx), mapped, ...current.slice(idx + 1)];
+          } else {
+            this.roomMessages[targetId] = [...this.roomMessages[targetId], mapped];
+          }
         }
         this.updateUnreadIndicators();
 

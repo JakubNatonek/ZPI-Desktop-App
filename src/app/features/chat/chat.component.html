@@ -70,10 +70,15 @@
         placeholder="Napisz wiadomość…"
         rows="1"
       ></textarea>
-      <button class="chat-send-btn" (click)="sendMessage()" [disabled]="!messageInput.trim()">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-        </svg>
+      <button class="chat-send-btn" (click)="sendMessage()" [disabled]="!messageInput.trim() || isEncrypting()">
+        <ng-container *ngIf="!isEncrypting(); else sending">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </ng-container>
+        <ng-template #sending>
+          <div class="chat-search__spinner" aria-hidden="true"></div>
+        </ng-template>
       </button>
     </div>
   </ng-container>
@@ -115,10 +120,15 @@
         placeholder="Napisz wiadomość…"
         rows="1"
       ></textarea>
-      <button class="chat-send-btn" (click)="sendMessage()" [disabled]="!messageInput.trim()">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-        </svg>
+      <button class="chat-send-btn" (click)="sendMessage()" [disabled]="!messageInput.trim() || isEncrypting()">
+        <ng-container *ngIf="!isEncrypting(); else sendingRoom">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </ng-container>
+        <ng-template #sendingRoom>
+          <div class="chat-search__spinner" aria-hidden="true"></div>
+        </ng-template>
       </button>
     </div>
   </ng-container>
