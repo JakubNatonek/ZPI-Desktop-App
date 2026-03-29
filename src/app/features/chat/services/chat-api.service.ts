@@ -9,6 +9,7 @@ import {
   MessageApiResponse,
   MessageStatusApiResponse,
   SearchUserResponse,
+  PublicKeyResponse,
   StartConversationResponse,
 } from '../models/chat.models';
 
@@ -53,6 +54,12 @@ export class ChatApiService {
     return this.http.get<MessageApiResponse[]>(`${environment.apiBaseUrl}/api/chat/${conversationId}/messages`);
   }
 
+  getMessagesForUser(userId: number) {
+    return this.http.get<MessageApiResponse[]>(`${environment.apiBaseUrl}/messages`, {
+      params: { user_id: String(userId) },
+    });
+  }
+
   sendMessage(conversationId: number, content: string) {
     return this.http.post<MessageApiResponse>(`${environment.apiBaseUrl}/api/chat/${conversationId}/send-message`, { content });
   }
@@ -67,5 +74,9 @@ export class ChatApiService {
 
   getUserNameById(userId: number) {
     return this.http.get<SearchUserResponse>(`${environment.apiBaseUrl}/users/${userId}/name`);
+  }
+
+  getUserPublicKeyById(userId: number) {
+    return this.http.get<PublicKeyResponse>(`${environment.apiBaseUrl}/users/${userId}/public-key`);
   }
 }

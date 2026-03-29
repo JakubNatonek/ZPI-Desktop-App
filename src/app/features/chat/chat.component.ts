@@ -11,9 +11,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription, debounceTime, distinctUntilChanged, switchMap, catchError, of } from 'rxjs';
+import { Subject, Subscription, debounceTime, distinctUntilChanged, switchMap, catchError, of, lastValueFrom } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { WebSocketService } from '../../core/services/websocket.service';
+import { CryptoService } from '../../core/services/crypto.service';
 import {
   ActiveTab,
   ChatMessage,
@@ -52,6 +53,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   private auth = inject(AuthService);
   private chatApi = inject(ChatApiService);
   private websocket = inject(WebSocketService);
+  private cryptoSvc = inject(CryptoService);
 
   isOpen = signal(false);
   activeTab = signal<ActiveTab>('messages');
@@ -66,6 +68,10 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   private currentUserId: number | null = null;
   private refreshTimerId: ReturnType<typeof setInterval> | null = null;
   private unreadToastTimerId: ReturnType<typeof setTimeout> | null = null;
+  private messagesPollIntervalId: ReturnType<typeof setInterval> | null = null;
+  private messagesPollIntervalMs = 5000;
+  private aesKey: CryptoKey | null = null;
+  private exportedAesKeyBase64: string | null = null;
   private usersById: Record<number, ChatUser> = {};
   private directConversationIdByUserId: Record<number, number> = {};
   private resolvingUserIds = new Set<number>();
@@ -126,6 +132,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     this.websocket.connect();
     this.setupWebSocketListeners();
+    void this.initCryptoKey();
   }
 
   ngOnDestroy(): void {
@@ -141,6 +148,11 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.unreadToastTimerId = null;
     }
 
+    if (this.messagesPollIntervalId) {
+      clearInterval(this.messagesPollIntervalId);
+      this.messagesPollIntervalId = null;
+    }
+
     this.wsSubscriptions.forEach((sub) => sub.unsubscribe());
     this.wsSubscriptions = [];
 
@@ -149,6 +161,16 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     });
     this.joinedConversationIds.clear();
     this.websocket.disconnect();
+  }
+
+  private async initCryptoKey(): Promise<void> {
+    try {
+      this.aesKey = await this.cryptoSvc.generateAesKey();
+      this.exportedAesKeyBase64 = await this.cryptoSvc.exportKeyToBase64(this.aesKey);
+      console.log('AES key generated (base64):', this.exportedAesKeyBase64);
+    } catch (err) {
+      console.error('Błąd podczas generowania klucza AES:', err);
+    }
   }
 
   ngAfterViewChecked(): void {
@@ -370,6 +392,10 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
         this.currentUserId = me?.user_id ?? null;
         this.loadAvailableUsers();
         this.loadConversations();
+        // start polling messages for the current user
+        if (this.currentUserId) {
+          this.startMessagePolling();
+        }
       });
   }
 
@@ -473,6 +499,27 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   private getOrCreateDirectConversation(userId: number, onReady: (conversationId: number) => void): void {
     const existingConversationId = this.directConversationIdByUserId[userId];
     if (existingConversationId) {
+      // ensure we have recipient's public key cached even when conversation already exists
+      const user = this.getOrBuildUser(userId);
+      if (!user.public_key) {
+        this.chatApi
+          .getUserPublicKeyById(userId)
+          .pipe(
+            catchError((err) => {
+              console.error(`Nie udało się pobrać klucza publicznego użytkownika ${userId}:`, err);
+              return of(null);
+            })
+          )
+          .subscribe((res) => {
+            if (!res) return;
+            if (res.public_key) {
+              user.public_key = res.public_key;
+              console.log(`Public key for user ${userId}:`, res.public_key);
+            } else {
+              console.log(`No public key available for user ${userId}`);
+            }
+          });
+      }
       onReady(existingConversationId);
       return;
     }
@@ -490,6 +537,12 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
         this.directConversationIdByUserId[userId] = response.conversation_id;
 
         const user = this.getOrBuildUser(userId);
+        // cache public key returned from startConversation
+        if (response.public_key) {
+          user.public_key = response.public_key;
+          console.log(`Public key for user ${userId}:`, response.public_key);
+        }
+
         if (!this.directContacts.some((contact) => contact.user_id === userId)) {
           this.directContacts = [user, ...this.directContacts];
         }
@@ -512,15 +565,26 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
         })
       )
       .subscribe((messages) => {
-        const mapped = messages.map((message) => this.mapMessage(message));
-        if (target === 'direct') {
-          this.conversations[targetId] = mapped;
-        } else {
-          this.roomMessages[targetId] = mapped;
-        }
-        this.updateUnreadIndicators();
+        console.log('Raw messages from backend (conversation):', messages);
 
-        this.refreshLastMessageStatus(target, targetId);
+        // Asynchronously decrypt any encrypted messages, then map
+        (async () => {
+          const mappedPromises = messages.map(async (message) => {
+            const decrypted = await this.decryptApiMessageContent(message);
+            const msgCopy = { ...message, content: decrypted } as MessageApiResponse;
+            return this.mapMessage(msgCopy);
+          });
+
+          const mapped = await Promise.all(mappedPromises);
+          if (target === 'direct') {
+            this.conversations[targetId] = mapped;
+          } else {
+            this.roomMessages[targetId] = mapped;
+          }
+
+          this.updateUnreadIndicators();
+          this.refreshLastMessageStatus(target, targetId);
+        })();
 
         this.ensureUsersLoaded(
           messages
@@ -547,6 +611,261 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       }
       this.syncConversationState();
     }, 5000);
+  }
+
+  private async decryptApiMessageContent(message: MessageApiResponse): Promise<string> {
+    // Try multiple field names from backend / payload formats
+    try {
+      let encryptedB64: string | undefined | null = (message as any).encrypted_message ?? (message as any).ciphertext ?? null;
+      let wrappedB64: string | undefined | null = (message as any).encrypted_aes_key ?? (message as any).wrapped_key ?? null;
+      let ivB64: string | undefined | null = (message as any).iv ?? null;
+
+      // If not present on top-level fields, try parsing content as JSON
+      if ((!encryptedB64 || !wrappedB64 || !ivB64) && message.content) {
+        try {
+          const parsed = JSON.parse(message.content as string);
+          if (parsed && typeof parsed === 'object') {
+            encryptedB64 = encryptedB64 ?? parsed.encrypted_message ?? parsed.ciphertext ?? parsed.ciphertext;
+            wrappedB64 = wrappedB64 ?? parsed.encrypted_aes_key ?? parsed.wrapped_key ?? parsed.wrappedKey ?? null;
+            ivB64 = ivB64 ?? parsed.iv ?? null;
+          }
+        } catch (e) {
+          // not JSON — ignore
+        }
+      }
+
+      if (encryptedB64 && wrappedB64 && ivB64) {
+        try {
+          // Build list of wrapped-key candidates. wrappedB64 may be:
+          // - a base64 string
+          // - a JSON string containing a map { userId: wrappedB64, ... }
+          // - already an object map
+          const candidates: string[] = [];
+
+          const tryParseWrapped = (w: any) => {
+            if (!w) return;
+            if (typeof w === 'string') {
+              const s = w.trim();
+              if ((s.startsWith('{') || s.startsWith('['))) {
+                try {
+                  const parsed = JSON.parse(s);
+                  if (parsed && typeof parsed === 'object') return parsed;
+                } catch (e) {
+                  // not JSON
+                }
+              }
+              return null;
+            }
+            if (typeof w === 'object') return w;
+            return null;
+          };
+
+          const parsedWrapped = tryParseWrapped(wrappedB64) as any | null;
+          if (parsedWrapped && typeof parsedWrapped === 'object') {
+            // Prefer wrapped key for current user if present
+            if (this.currentUserId != null) {
+              const v = parsedWrapped[String(this.currentUserId)] ?? parsedWrapped[this.currentUserId];
+              if (typeof v === 'string') candidates.push(v);
+            }
+            // push any string values as fallback
+            for (const v of Object.values(parsedWrapped)) {
+              if (typeof v === 'string') candidates.push(v);
+            }
+          } else if (typeof wrappedB64 === 'string') {
+            candidates.push(wrappedB64 as string);
+          }
+
+          // Deduplicate candidates
+          const uniq = [...new Set(candidates)];
+
+          for (const cand of uniq) {
+            try {
+              const aesKey = await this.cryptoSvc.unwrapAESKey(cand);
+              const plain = await this.cryptoSvc.decryptText(aesKey, ivB64 as string, encryptedB64 as string);
+              return plain;
+            } catch (e) {
+              // try next candidate
+              console.warn('Candidate unwrap/decrypt failed, trying next:', e);
+              continue;
+            }
+          }
+
+          console.warn('Failed to decrypt with any wrapped_key candidate');
+        } catch (e) {
+          console.warn('Failed to decrypt message payload:', e);
+        }
+      }
+    } catch (e) {
+      console.warn('Error while attempting to decrypt message:', e);
+    }
+
+    // Fallback to raw content (may be string or null)
+    return message.content ?? '';
+  }
+
+  private startMessagePolling(): void {
+    if (this.messagesPollIntervalId) {
+      clearInterval(this.messagesPollIntervalId);
+    }
+    if (!this.currentUserId) return;
+    // initial fetch
+    this.fetchAllMessages();
+    this.messagesPollIntervalId = setInterval(() => {
+      this.fetchAllMessages();
+    }, this.messagesPollIntervalMs);
+  }
+
+  private stopMessagePolling(): void {
+    if (this.messagesPollIntervalId) {
+      clearInterval(this.messagesPollIntervalId);
+      this.messagesPollIntervalId = null;
+    }
+  }
+
+  private fetchAllMessages(): void {
+    if (!this.currentUserId) return;
+    this.chatApi
+      .getMessagesForUser(this.currentUserId)
+      .pipe(
+        catchError((err) => {
+          console.error('Nie udało się pobrać zbiorczo wiadomości:', err);
+          return of([]);
+        })
+      )
+      .subscribe((messages) => {
+        console.log('Raw messages from backend (all):', messages);
+
+        // Temporary auto-test: unwrap/decrypt first message and log outputs
+        if (Array.isArray(messages) && messages.length > 0) {
+          (async () => {
+            try {
+              const m0 = messages[0] as MessageApiResponse;
+              console.log('=== AUTO DECRYPT TEST START ===');
+              console.log('message.iv (base64):', m0.iv);
+              // log wrapped key length and stored key presence to avoid regenerating keys
+              const wrappedB64 = m0.encrypted_aes_key ?? m0.wrapped_key ?? '';
+              const wrappedLen = await this.cryptoSvc.getWrappedKeyByteLength(wrappedB64);
+              console.log('wrapped bytes:', wrappedLen);
+              const hasJwk = await this.cryptoSvc.hasPrivateJwk();
+              const hasEnc = await this.cryptoSvc.hasEncryptedPrivate();
+              console.log('private JWK present in IndexedDB?', hasJwk, 'encrypted private present?', hasEnc);
+              console.log('stored public JWK (localStorage)?', this.cryptoSvc.getStoredPublicJwk());
+              try {
+                const cbytes = new Uint8Array(this.cryptoSvc.base64ToArrayBuffer(m0.encrypted_message ?? (m0.ciphertext as any) ?? ''));
+                console.log('ciphertext bytes:', cbytes.byteLength);
+              } catch (e) {
+                console.log('ciphertext bytes: <invalid base64>');
+              }
+              try {
+                const ivbytes = new Uint8Array(this.cryptoSvc.base64ToArrayBuffer(m0.iv ?? ''));
+                console.log('iv bytes:', ivbytes.byteLength);
+              } catch (e) {
+                console.log('iv bytes: <invalid base64>');
+              }
+
+              // If private JWK is present, use it; if only encrypted private exists we cannot decrypt here.
+              let priv: CryptoKey | null = null;
+              if (hasJwk) {
+                const kp = await this.cryptoSvc.ensureRSAKeyPair();
+                priv = kp.privateKey;
+              } else if (hasEnc) {
+                console.warn('Private key is stored encrypted (rsa_private_encrypted); cannot unwrap without local AES key. Skipping unwrap.');
+              } else {
+                console.warn('No stored private key found; ensure client has the correct private key before attempting unwrap. Skipping unwrap.');
+              }
+
+              if (priv) {
+                // RSA unwrap test (logs separator, TEST and raw AES length)
+                const wrappedTop = m0.encrypted_aes_key ?? m0.wrapped_key ?? '';
+                const candidates: string[] = [];
+                try {
+                  if (typeof wrappedTop === 'string') {
+                    const s = wrappedTop.trim();
+                    if (s.startsWith('{') || s.startsWith('[')) {
+                      try {
+                        const parsed = JSON.parse(s);
+                        if (parsed && typeof parsed === 'object') {
+                          if (this.currentUserId != null) {
+                            const v = parsed[String(this.currentUserId)] ?? parsed[this.currentUserId];
+                            if (typeof v === 'string') candidates.push(v);
+                          }
+                          for (const v of Object.values(parsed)) if (typeof v === 'string') candidates.push(v);
+                        }
+                      } catch (e) {
+                        // not JSON
+                      }
+                    } else {
+                      candidates.push(wrappedTop);
+                    }
+                  } else if (typeof wrappedTop === 'object' && wrappedTop !== null) {
+                    const obj = wrappedTop as any;
+                    if (this.currentUserId != null) {
+                      const v = obj[String(this.currentUserId)] ?? obj[this.currentUserId];
+                      if (typeof v === 'string') candidates.push(v);
+                    }
+                    for (const v of Object.values(obj)) if (typeof v === 'string') candidates.push(v);
+                  }
+                } catch (e) {
+                  console.warn('Error while parsing wrapped key candidates:', e);
+                }
+
+                let rawAes: ArrayBuffer | null = null;
+                for (const cand of [...new Set(candidates)]) {
+                  try {
+                    rawAes = await this.cryptoSvc.rsaDecryptWrappedAesKeyForTest(cand, priv);
+                    break;
+                  } catch (e) {
+                    console.warn('rsa unwrap candidate failed, trying next:', e);
+                    continue;
+                  }
+                }
+
+                if (rawAes) {
+                  const aesKey = await window.crypto.subtle.importKey('raw', rawAes, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+                  await this.cryptoSvc.aesDecryptForTest(m0.encrypted_message ?? (m0.ciphertext as any) ?? '', m0.iv ?? '', aesKey);
+                } else {
+                  console.warn('Auto unwrap test: no wrapped_key candidate decrypted successfully');
+                }
+              }
+
+              console.log('=== AUTO DECRYPT TEST END ===');
+            } catch (e) {
+              console.error('Auto decrypt test failed:', e);
+            }
+          })();
+        }
+        // Group by conversation_id
+        const byConv: Record<number, MessageApiResponse[]> = {};
+        messages.forEach((m) => {
+          const convId = (m as any).conversation_id;
+          if (convId == null) return;
+          if (!byConv[convId]) byConv[convId] = [];
+          byConv[convId].push(m);
+        });
+
+        (async () => {
+          for (const [convIdStr, msgs] of Object.entries(byConv)) {
+            const convId = Number(convIdStr);
+            const mapped = await Promise.all(
+              msgs.map(async (msg) => {
+                const dec = await this.decryptApiMessageContent(msg);
+                return this.mapMessage({ ...msg, content: dec } as MessageApiResponse);
+              }),
+            );
+            mapped.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+            const directEntry = Object.entries(this.directConversationIdByUserId).find(([, id]) => id === convId);
+            if (directEntry) {
+              const targetId = Number(directEntry[0]);
+              this.conversations[targetId] = mapped;
+            } else {
+              this.roomMessages[convId] = mapped;
+            }
+          }
+
+          this.updateUnreadIndicators();
+        })();
+      });
   }
 
   private syncConversationState(): void {
@@ -579,14 +898,105 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     }
   }
 
-  private sendMessageToConversation(
+  private async sendMessageToConversation(
     conversationId: number,
     content: string,
     target: 'direct' | 'room',
     targetId: number,
-  ): void {
+  ): Promise<void> {
+    // Default: plaintext payload
+    let payloadStr = content;
+
+    if (this.aesKey && target === 'direct') {
+      const recipientId = targetId;
+      try {
+        // 1) Encrypt message with AES
+        const { iv, ciphertext } = await this.cryptoSvc.encryptText(this.aesKey, content);
+        console.log('Zaszyfrowana wiadomość (base64):', ciphertext);
+        console.log('IV (base64):', iv);
+
+        // 2) Ensure we have recipient public key (cached or fetch)
+        let recipientPubPem: string | null = this.usersById[recipientId]?.public_key ?? null;
+        if (!recipientPubPem) {
+          console.log('No recipient public key cached; fetching from API.');
+          const res = await lastValueFrom(
+            this.chatApi.getUserPublicKeyById(recipientId).pipe(
+              catchError((err) => {
+                console.error('Błąd pobierania publicznego klucza odbiorcy:', err);
+                return of(null as any);
+              }),
+            ),
+          );
+          if (res && res.public_key) {
+            recipientPubPem = res.public_key;
+            if (!this.usersById[recipientId]) {
+              this.usersById[recipientId] = { user_id: recipientId, first_name: 'Użytkownik', last_name: `#${recipientId}` };
+            }
+            this.usersById[recipientId].public_key = recipientPubPem;
+            console.log('Fetched recipient public key; attempting to wrap AES key.');
+          }
+        } else {
+          console.log('Recipient public key found in cache, wrapping AES key.');
+        }
+
+        if (!recipientPubPem) {
+          console.warn('No recipient public key available; sending plaintext instead.');
+        } else {
+          // 3) Export raw AES key and wrap it with recipient RSA key
+          const raw = await this.cryptoSvc.exportRawKey(this.aesKey as CryptoKey);
+          try {
+            const rawB64 = this.cryptoSvc.arrayBufferToBase64(raw);
+            console.log('Exported AES raw key (base64):', rawB64);
+          } catch (e) {
+            console.log('Exported AES raw (ArrayBuffer) length:', raw.byteLength);
+          }
+
+          const wrappedB64 = await this.cryptoSvc.wrapAESKeyForRecipient(raw, recipientPubPem);
+          console.log('Wrapped AES key for recipient (base64):', wrappedB64);
+
+          // Also wrap AES key for sender (so sender can decrypt their own message)
+          let wrappedForSender: string | null = null;
+          try {
+            if (this.currentUserId != null) {
+              const myPubPem = await this.cryptoSvc.getPublicPem();
+              if (myPubPem) {
+                wrappedForSender = await this.cryptoSvc.wrapAESKeyForRecipient(raw, myPubPem);
+                console.log('Wrapped AES key for sender (base64):', wrappedForSender);
+              }
+            }
+          } catch (e) {
+            console.warn('Failed to wrap AES key for sender:', e);
+            wrappedForSender = null;
+          }
+
+          // 4) Build encrypted payload and send as JSON string in `content` field
+          // Store wrapped keys as a JSON string mapping userId -> wrappedKey (base64)
+          const wrappedMap: Record<string, string> = {};
+          wrappedMap[String(recipientId)] = wrappedB64;
+          if (wrappedForSender) wrappedMap[String(this.currentUserId)] = wrappedForSender;
+
+          const payloadObj = {
+            encrypted: true,
+            algo: 'AES-GCM',
+            iv,
+            ciphertext,
+            // store JSON string so backend saves it as string in wrapped_key column
+            wrapped_key: JSON.stringify(wrappedMap),
+            wrap_algo: 'RSA-OAEP',
+          } as const;
+
+          payloadStr = JSON.stringify(payloadObj);
+          console.log('Sending encrypted payload to backend (object):', payloadObj);
+          console.log('Sending encrypted payload to backend (string):', payloadStr);
+        }
+      } catch (err) {
+        console.error('Błąd podczas szyfrowania/owijania klucza; wyślę plaintext:', err);
+        payloadStr = content;
+      }
+    }
+
     this.chatApi
-      .sendMessage(conversationId, content)
+      .sendMessage(conversationId, payloadStr)
       .pipe(
         catchError((err) => {
           console.error('Nie udało się wysłać wiadomości:', err);
@@ -612,7 +1022,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
           conversationId,
           message.id,
           message.sender_id,
-          message.content,
+          message.content ?? '',
           message.created_at,
         );
 
@@ -660,11 +1070,27 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       .find(([, id]) => id === conversationId)?.[0];
 
     const sender = this.usersById[message.sender_id];
+    // If the incoming `content` looks like an encrypted payload (JSON with ciphertext/wrapped_key)
+    // show a placeholder instead of an empty raw JSON string.
+    let displayContent = message.content ?? '';
+    try {
+      if (!displayContent) {
+        // keep empty if truly empty
+      } else if (displayContent.trim().startsWith('{')) {
+        const lower = displayContent.toLowerCase();
+        if (lower.includes('"ciphertext"') || lower.includes('"encrypted"') || lower.includes('"wrapped_key"') || lower.includes('"wrappedkey"') || lower.includes('"encrypted_aes_key"')) {
+          displayContent = '[zaszyfrowana wiadomość]';
+        }
+      }
+    } catch (e) {
+      void e;
+    }
+
     const mapped: ChatMessage = {
       id: message.message_id,
       senderId: isOwn ? 'me' : message.sender_id,
       senderName: isOwn ? this.currentUserName : (sender ? `${sender.first_name} ${sender.last_name}`.trim() : `Użytkownik #${message.sender_id}`),
-      content: message.content,
+      content: displayContent,
       timestamp: new Date(message.created_at),
       isOwn,
       isRead: false,
@@ -794,11 +1220,32 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   private mapMessage(message: MessageApiResponse): ChatMessage {
     const isOwn = this.currentUserId !== null && message.sender_id === this.currentUserId;
     const sender = this.usersById[message.sender_id];
+    // If content is empty but encrypted fields are present, show a placeholder.
+    let displayContent = message.content ?? '';
+    try {
+      if (!displayContent) {
+        const hasEncrypted = !!(
+          (message as any).encrypted_message ||
+          (message as any).ciphertext ||
+          (message as any).wrapped_key ||
+          (message as any).encrypted_aes_key
+        );
+        if (hasEncrypted) displayContent = '[zaszyfrowana wiadomość]';
+      } else if (typeof displayContent === 'string' && displayContent.trim().startsWith('{')) {
+        const lc = displayContent.toLowerCase();
+        if (lc.includes('"ciphertext"') || lc.includes('"encrypted"') || lc.includes('"wrapped_key"') || lc.includes('"encrypted_aes_key"')) {
+          displayContent = '[zaszyfrowana wiadomość]';
+        }
+      }
+    } catch (e) {
+      void e;
+    }
+
     return {
       id: message.id,
       senderId: isOwn ? 'me' : message.sender_id,
       senderName: isOwn ? this.currentUserName : (sender ? `${sender.first_name} ${sender.last_name}`.trim() : `Użytkownik #${message.sender_id}`),
-      content: message.content,
+      content: displayContent,
       timestamp: new Date(message.created_at),
       isOwn,
       isRead: message.is_read,

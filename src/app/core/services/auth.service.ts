@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, catchError, map, of, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, map, of, switchMap, tap, lastValueFrom } from 'rxjs';
+import { CryptoService } from './crypto.service';
 
 import { environment } from '../../../environments/environment';
 
@@ -91,12 +92,33 @@ export class AuthService {
 
   constructor(
     private router: Router,
-    private http: HttpClient
+    private http: HttpClient,
+    private cryptoSvc: CryptoService
   ) {
     this.clearLegacySessionStorage();
     this.applyTheme('light');
     this.clearSessionState(false, false);
     this.restoreBackendSession();
+  }
+
+  private async ensureAndUploadPublicKey(userId: number): Promise<void> {
+    try {
+      const hasPrivate = await this.cryptoSvc.hasPrivateJwk();
+      if (!hasPrivate) {
+        // generate and store keypair locally
+        await this.cryptoSvc.ensureRSAKeyPair();
+        const pubPem = await this.cryptoSvc.getPublicPem();
+        // upload to backend
+        try {
+          await lastValueFrom(this.http.put(`${environment.apiBaseUrl}/users/${userId}/public-key`, { public_key: pubPem }, { withCredentials: true }));
+          console.log('Uploaded public key to backend');
+        } catch (e) {
+          console.error('Failed to upload public key to backend', e);
+        }
+      }
+    } catch (e) {
+      console.error('Error ensuring/uploading RSA keypair', e);
+    }
   }
 
   private restoreBackendSession(): void {
@@ -190,6 +212,9 @@ export class AuthService {
     this._mustChangePassword.next(mustChangePassword);
     this.currentAuthMode = authMode;
     this.applyCurrentTheme();
+    if (authMode === 'backend' && userId != null) {
+      void this.ensureAndUploadPublicKey(userId);
+    }
   }
 
   logout() {
