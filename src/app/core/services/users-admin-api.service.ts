@@ -17,7 +17,6 @@ export interface UserDepartmentOption {
 export interface AdminCreateUserPayload {
   first_name: string;
   last_name: string;
-  login: string;
   email: string;
   one_time_password: string;
   role: string;
