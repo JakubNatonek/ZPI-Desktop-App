@@ -39,7 +39,7 @@ export interface MessageStatus {
 })
 export class WebSocketService {
   private socket: Socket | null = null;
-  private isConnected$ = new BehaviorSubject<boolean>(false);
+  public isConnected$ = new BehaviorSubject<boolean>(false);
   
   // Observable streams for chat events
   public messageReceived$ = new Subject<ChatMessage>();

@@ -66,10 +66,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   newRoomName = '';
   private shouldScrollToBottom = false;
   private currentUserId: number | null = null;
-  private refreshTimerId: ReturnType<typeof setInterval> | null = null;
   private unreadToastTimerId: ReturnType<typeof setTimeout> | null = null;
-  private messagesPollIntervalId: ReturnType<typeof setInterval> | null = null;
-  private messagesPollIntervalMs = 5000;
   private aesKey: CryptoKey | null = null;
   private exportedAesKeyBase64: string | null = null;
   private usersById: Record<number, ChatUser> = {};
@@ -130,7 +127,6 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       });
 
     this.loadCurrentUserAndData();
-    this.startAutoRefresh();
 
     this.websocket.connect();
     this.setupWebSocketListeners();
@@ -141,19 +137,12 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     if (this.searchSubscription) {
       this.searchSubscription.unsubscribe();
     }
-    if (this.refreshTimerId) {
-      clearInterval(this.refreshTimerId);
-      this.refreshTimerId = null;
-    }
     if (this.unreadToastTimerId) {
       clearTimeout(this.unreadToastTimerId);
       this.unreadToastTimerId = null;
     }
 
-    if (this.messagesPollIntervalId) {
-      clearInterval(this.messagesPollIntervalId);
-      this.messagesPollIntervalId = null;
-    }
+
 
     this.wsSubscriptions.forEach((sub) => sub.unsubscribe());
     this.wsSubscriptions = [];
@@ -394,9 +383,9 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
         this.currentUserId = me?.user_id ?? null;
         this.loadAvailableUsers();
         this.loadConversations();
-        // start polling messages for the current user
+        // Fetch all messages initially or after load
         if (this.currentUserId) {
-          this.startMessagePolling();
+          this.fetchAllMessages();
         }
       });
   }
@@ -676,18 +665,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     });
   }
 
-  private startAutoRefresh(): void {
-    if (this.refreshTimerId) {
-      clearInterval(this.refreshTimerId);
-    }
 
-    this.refreshTimerId = setInterval(() => {
-      if (!this.isOpen()) {
-        return;
-      }
-      this.syncConversationState();
-    }, 5000);
-  }
 
   private async decryptApiMessageContent(message: MessageApiResponse): Promise<string> {
     // Try multiple field names from backend / payload formats
@@ -779,24 +757,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     return message.content ?? '';
   }
 
-  private startMessagePolling(): void {
-    if (this.messagesPollIntervalId) {
-      clearInterval(this.messagesPollIntervalId);
-    }
-    if (!this.currentUserId) return;
-    // initial fetch
-    this.fetchAllMessages();
-    this.messagesPollIntervalId = setInterval(() => {
-      this.fetchAllMessages();
-    }, this.messagesPollIntervalMs);
-  }
 
-  private stopMessagePolling(): void {
-    if (this.messagesPollIntervalId) {
-      clearInterval(this.messagesPollIntervalId);
-      this.messagesPollIntervalId = null;
-    }
-  }
 
   private fetchAllMessages(): void {
     if (!this.currentUserId) return;
@@ -1127,6 +1088,18 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   private setupWebSocketListeners(): void {
+    this.wsSubscriptions.push(
+      this.websocket.isConnected$.subscribe((connected) => {
+        if (connected) {
+          console.log('[Chat] WebSocket connected/reconnected, fetching fallback data...');
+          this.syncConversationState();
+          if (this.currentUserId) {
+            this.fetchAllMessages();
+          }
+        }
+      })
+    );
+
     this.wsSubscriptions.push(
       this.websocket.messageReceived$.subscribe((event) => {
         const ownMessage = this.currentUserId !== null && event.sender_id === this.currentUserId;
