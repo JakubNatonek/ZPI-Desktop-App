@@ -61,7 +61,7 @@
           <ion-item>
             <ion-label position="stacked">Wydział (department)</ion-label>
             <ion-select formControlName="department" interface="popover" placeholder="Wybierz wydział">
-              <ion-select-option *ngFor="let department of departments" [value]="department.name">
+              <ion-select-option *ngFor="let department of departments" [value]="department.id">
                 {{ department.name }}
               </ion-select-option>
             </ion-select>
@@ -70,7 +70,7 @@
           <ion-item>
             <ion-label position="stacked">Rola</ion-label>
             <ion-select formControlName="role" interface="popover" placeholder="Wybierz rolę">
-              <ion-select-option *ngFor="let role of roles" [value]="role.name">
+              <ion-select-option *ngFor="let role of roles" [value]="role.id">
                 {{ role.name }}
               </ion-select-option>
             </ion-select>
@@ -215,7 +215,7 @@
             <ion-item>
               <ion-label position="stacked">Wydział</ion-label>
               <ion-select formControlName="department" interface="popover">
-                <ion-select-option *ngFor="let department of departments" [value]="department.name">
+                <ion-select-option *ngFor="let department of departments" [value]="department.id">
                   {{ department.name }}
                 </ion-select-option>
               </ion-select>
@@ -224,7 +224,7 @@
             <ion-item>
               <ion-label position="stacked">Rola</ion-label>
               <ion-select formControlName="role" interface="popover">
-                <ion-select-option *ngFor="let role of roles" [value]="role.name">
+                <ion-select-option *ngFor="let role of roles" [value]="role.id">
                   {{ role.name }}
                 </ion-select-option>
               </ion-select>

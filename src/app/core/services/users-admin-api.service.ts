@@ -19,8 +19,8 @@ export interface AdminCreateUserPayload {
   last_name: string;
   email: string;
   one_time_password: string;
-  role: string;
-  department: string;
+  role_id: number;
+  department_id: number;
 }
 
 export interface AdminCreatedUserResponse {
@@ -50,8 +50,8 @@ export interface AdminUpdateUserPayload {
   last_name: string;
   login: string;
   email: string;
-  role: string;
-  department: string;
+  role_id: number;
+  department_id: number;
 }
 
 export interface UserCredentialsResponse {
@@ -67,13 +67,11 @@ export class UsersAdminApiService {
   constructor(private readonly http: HttpClient) {}
 
   getRoles(): Observable<UserRoleOption[]> {
-    // Backend endpoint: /role/
-    return this.http.get<UserRoleOption[]>(`${environment.apiBaseUrl}/role/`);
+    return this.http.get<UserRoleOption[]>(`${environment.apiBaseUrl}/roles`);
   }
 
   getDepartments(): Observable<UserDepartmentOption[]> {
-    // Backend endpoint: /department/
-    return this.http.get<UserDepartmentOption[]>(`${environment.apiBaseUrl}/department/`);
+    return this.http.get<UserDepartmentOption[]>(`${environment.apiBaseUrl}/departments`);
   }
 
   createUser(payload: AdminCreateUserPayload): Observable<AdminCreatedUserResponse> {

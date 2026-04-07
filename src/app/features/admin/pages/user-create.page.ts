@@ -166,8 +166,8 @@ export class UserCreatePage implements OnInit {
       last_name: value.lastName!.trim(),
       email: value.email!.trim().toLowerCase(),
       one_time_password: value.oneTimePassword!,
-      role: value.role!,
-      department: value.department!,
+      role_id: Number(value.role!),
+      department_id: Number(value.department!),
     };
 
     this.isSaving = true;
@@ -272,8 +272,8 @@ export class UserCreatePage implements OnInit {
       last_name: value.lastName!.trim(),
       login: value.login!.trim().toLowerCase(),
       email: value.email!.trim().toLowerCase(),
-      role: value.role!,
-      department: value.department!,
+      role_id: Number(value.role!),
+      department_id: Number(value.department!),
     };
 
     this.isSavingEdit = true;
