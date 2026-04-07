@@ -71,9 +71,7 @@ export class WebSocketService {
     }
 
     this.socket = io(backendUrl, {
-      auth: {
-        user_id: userId,
-      },
+      withCredentials: true,
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
