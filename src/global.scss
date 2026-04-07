@@ -96,3 +96,80 @@ html.ion-palette-dark ion-item.logout-item {
 	--color: #f9fafb;
 	color: #f9fafb;
 }
+
+/* Dark mode for ion-select popover */
+html.ion-palette-dark ion-select-popover {
+	--background: #1f2937;
+
+	ion-list {
+		--background: #1f2937;
+		background: #1f2937;
+	}
+
+	ion-item {
+		--background: #1f2937;
+		--color: #f9fafb;
+		color: #f9fafb;
+
+		ion-label {
+			color: #f9fafb !important;
+		}
+
+		ion-radio {
+			--color: #9ca3af;
+			--color-checked: #3b82f6;
+		}
+	}
+
+	ion-item:hover {
+		--background: #374151;
+	}
+}
+
+html.ion-palette-dark ion-popover {
+	--background: #1f2937;
+
+	ion-content {
+		--background: #1f2937;
+	}
+
+	ion-list {
+		--background: #1f2937;
+		background: #1f2937;
+	}
+
+	ion-item {
+		--background: #1f2937;
+		--color: #f9fafb;
+		color: #f9fafb;
+	}
+
+	ion-item:hover {
+		--background: #374151;
+	}
+}
+
+/* Dark mode for ion-select */
+html.ion-palette-dark ion-select {
+	--placeholder-color: #9ca3af;
+	color: #f9fafb;
+}
+
+/* Dark mode for ion-segment */
+html.ion-palette-dark ion-segment {
+	--background: #1f2937;
+
+	ion-segment-button {
+		--background: transparent;
+		--background-checked: #3b82f6;
+		--color: #9ca3af;
+		--color-checked: #ffffff;
+		--indicator-color: #3b82f6;
+	}
+}
+
+/* Dark mode for ion-chip */
+html.ion-palette-dark ion-chip {
+	--background: #374151;
+	--color: #f9fafb;
+}

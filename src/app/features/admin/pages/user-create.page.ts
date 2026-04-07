@@ -28,7 +28,6 @@ export class UserCreatePage implements OnInit {
   readonly form = this.fb.group({
     firstName: ['', [Validators.required, Validators.minLength(2)]],
     lastName: ['', [Validators.required, Validators.minLength(2)]],
-    login: ['', [Validators.required, Validators.minLength(3), Validators.pattern('^[a-z0-9._-]+$')]],
     email: ['', [Validators.required, Validators.email]],
     oneTimePassword: ['', [Validators.required, Validators.minLength(8)]],
     role: ['', [Validators.required]],
@@ -165,7 +164,6 @@ export class UserCreatePage implements OnInit {
     const payload = {
       first_name: value.firstName!.trim(),
       last_name: value.lastName!.trim(),
-      login: value.login!.trim().toLowerCase(),
       email: value.email!.trim().toLowerCase(),
       one_time_password: value.oneTimePassword!,
       role: value.role!,

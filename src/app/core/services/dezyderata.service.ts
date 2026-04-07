@@ -1,0 +1,98 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable} from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+export interface Semestr {
+  id: number;
+  data_rozpoczecia: string;
+  data_zakonczenia: string;
+  nazwa: string;
+}
+
+export interface SemestrListResponse {
+  items: Semestr[];
+}
+
+export interface Dezyderata {
+  id: number;
+  user_id: number;
+  data_od: string;
+  data_do: string;
+  semestr_id: number;
+  day_id: number;
+  from_hour: number;
+  to_hour: number;
+  is_available: boolean;
+  day_name?: string;
+  semestr_nazwa?: string;
+}
+
+export interface DezyderataListResponse {
+  items: Dezyderata[];
+}
+
+export interface DezyderataCreate {
+  data_od: string;
+  data_do: string;
+  semestr_id: number;
+  entries: DezyderataCreateEntry[];
+}
+
+export interface DezyderataCreateEntry {
+  day_id: number;
+  from_hour: number;
+  to_hour: number;
+  is_available: boolean;
+}
+
+@Injectable({ providedIn: 'root' })
+export class DezyderataService {
+  private readonly baseUrl = `${environment.apiBaseUrl}/dezyderaty`;
+
+  constructor(private http: HttpClient) {}
+
+  // ----- Semestry -----
+
+  getSemestry(): Observable<SemestrListResponse> {
+    return this.http.get<SemestrListResponse>(`${this.baseUrl}/semestry`, { withCredentials: true });
+  }
+
+  getCurrentSemestr(): Observable<Semestr> {
+    return this.http.get<Semestr>(`${this.baseUrl}/semestry/current`, { withCredentials: true });
+  }
+
+  getSemestrById(id: number): Observable<Semestr> {
+    return this.http.get<Semestr>(`${this.baseUrl}/semestry/${id}`, { withCredentials: true });
+  }
+
+  // ----- Dezyderaty -----
+
+  getDezyderaty(semestrId?: number): Observable<DezyderataListResponse> {
+    const params: Record<string, string> = {};
+    if (semestrId !== undefined) {
+      params['semestr_id'] = semestrId.toString();
+    }
+    return this.http.get<DezyderataListResponse>(this.baseUrl, { params, withCredentials: true });
+  }
+
+  getMyDezyderaty(semestrId?: number): Observable<DezyderataListResponse> {
+    const params: Record<string, string> = {};
+    if (semestrId !== undefined) {
+      params['semestr_id'] = semestrId.toString();
+    }
+    return this.http.get<DezyderataListResponse>(`${this.baseUrl}/my`, { params, withCredentials: true });
+  }
+
+  getDezyderataById(id: number): Observable<Dezyderata> {
+    return this.http.get<Dezyderata>(`${this.baseUrl}/${id}`, { withCredentials: true });
+  }
+
+  createOrUpdateDezyderata(payload: DezyderataCreate): Observable<DezyderataListResponse> {
+    return this.http.post<DezyderataListResponse>(this.baseUrl, payload, { withCredentials: true });
+  }
+
+  deleteDezyderata(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, { withCredentials: true });
+  }
+}
