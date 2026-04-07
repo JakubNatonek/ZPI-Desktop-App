@@ -92,6 +92,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   rooms: ChatRoom[] = [];
   conversations: Record<number, ChatMessage[]> = {};
   roomMessages: Record<number, ChatMessage[]> = {};
+  isLoadingMore = false;
 
   get currentUserName(): string {
     const user = this.selectedUser();
@@ -555,18 +556,27 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     conversationId: number,
     target: 'direct' | 'room',
     targetId: number,
-    options?: { markAsRead?: boolean; scrollToBottom?: boolean },
+    options?: { markAsRead?: boolean; scrollToBottom?: boolean; beforeId?: number },
   ): void {
     this.chatApi
-      .getConversationMessages(conversationId)
+      .getConversationMessages(conversationId, options?.beforeId)
       .pipe(
         catchError((err) => {
           console.error('Nie udało się pobrać wiadomości:', err);
           return of([]);
+        }),
+        finalize(() => {
+          if (options?.beforeId) {
+            this.isLoadingMore = false;
+          }
         })
       )
       .subscribe((messages) => {
         console.log('Raw messages from backend (conversation):', messages);
+
+        const container = this.messagesContainer?.nativeElement;
+        const previousScrollHeight = container ? container.scrollHeight : 0;
+        const previousScrollTop = container ? container.scrollTop : 0;
 
         // Asynchronously decrypt any encrypted messages, then map
         (async () => {
@@ -578,9 +588,31 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
 
           const mapped = await Promise.all(mappedPromises);
           if (target === 'direct') {
-            this.conversations[targetId] = mapped;
+            if (options?.beforeId) {
+              this.conversations[targetId] = [...mapped, ...(this.conversations[targetId] || [])];
+              // Restore scroll position
+              setTimeout(() => {
+                if (this.messagesContainer?.nativeElement) {
+                  const el = this.messagesContainer.nativeElement;
+                  el.scrollTop = el.scrollHeight - previousScrollHeight + previousScrollTop;
+                }
+              }, 0);
+            } else {
+              this.conversations[targetId] = mapped;
+            }
           } else {
-            this.roomMessages[targetId] = mapped;
+            if (options?.beforeId) {
+              this.roomMessages[targetId] = [...mapped, ...(this.roomMessages[targetId] || [])];
+              // Restore scroll position
+              setTimeout(() => {
+                if (this.messagesContainer?.nativeElement) {
+                  const el = this.messagesContainer.nativeElement;
+                  el.scrollTop = el.scrollHeight - previousScrollHeight + previousScrollTop;
+                }
+              }, 0);
+            } else {
+              this.roomMessages[targetId] = mapped;
+            }
           }
 
           this.updateUnreadIndicators();
@@ -599,6 +631,49 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
           this.shouldScrollToBottom = true;
         }
       });
+  }
+
+  onScroll(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (target.scrollTop <= 50) {
+      this.loadMoreMessages();
+    }
+  }
+
+  private loadMoreMessages(): void {
+    if (this.isLoadingMore) return;
+    
+    let conversationId: number | null = null;
+    let targetId: number | null = null;
+    let target: 'direct' | 'room' | null = null;
+
+    if (this.view() === 'conversation') {
+      const selectedUser = this.selectedUser();
+      if (!selectedUser) return;
+      conversationId = this.directConversationIdByUserId[selectedUser.user_id];
+      targetId = selectedUser.user_id;
+      target = 'direct';
+    } else if (this.view() === 'room-chat') {
+      const selectedRoom = this.selectedRoom();
+      if (!selectedRoom) return;
+      conversationId = selectedRoom.id;
+      targetId = selectedRoom.id;
+      target = 'room';
+    }
+
+    if (!conversationId || !targetId || !target) return;
+
+    const messages = target === 'direct' ? this.conversations[targetId] : this.roomMessages[targetId];
+    if (!messages || messages.length === 0) return;
+
+    const oldestMessageId = messages[0].id;
+    this.isLoadingMore = true;
+
+    this.fetchConversationMessages(conversationId, target, targetId, {
+      markAsRead: false,
+      scrollToBottom: false,
+      beforeId: oldestMessageId
+    });
   }
 
   private startAutoRefresh(): void {

@@ -50,8 +50,12 @@ export class ChatApiService {
     });
   }
 
-  getConversationMessages(conversationId: number) {
-    return this.http.get<MessageApiResponse[]>(`${environment.apiBaseUrl}/api/chat/${conversationId}/messages`);
+  getConversationMessages(conversationId: number, beforeId?: number, limit: number = 25) {
+    const params: Record<string, string> = { limit: String(limit) };
+    if (beforeId != null) {
+      params['before_id'] = String(beforeId);
+    }
+    return this.http.get<MessageApiResponse[]>(`${environment.apiBaseUrl}/api/chat/${conversationId}/messages`, { params });
   }
 
   getMessagesForUser(userId: number) {

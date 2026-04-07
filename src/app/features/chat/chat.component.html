@@ -45,7 +45,7 @@
 
   <!-- ─── CONVERSATION VIEW ─────────────────────────── -->
   <ng-container *ngIf="view() === 'conversation' && selectedUser() as user">
-    <div class="chat-panel__body chat-panel__body--messages" #messagesContainer>
+    <div class="chat-panel__body chat-panel__body--messages" #messagesContainer (scroll)="onScroll($event)">
       <div class="chat-messages">
         <ng-container *ngIf="conversations[user.user_id] && conversations[user.user_id].length > 0; else noMessages">
           <div
@@ -94,7 +94,7 @@
 
   <!-- ─── ROOM CHAT VIEW ───────────────────────────── -->
   <ng-container *ngIf="view() === 'room-chat' && selectedRoom() as room">
-    <div class="chat-panel__body chat-panel__body--messages" #messagesContainer>
+    <div class="chat-panel__body chat-panel__body--messages" #messagesContainer (scroll)="onScroll($event)">
       <div class="chat-messages">
         <ng-container *ngIf="roomMessages[room.id] && roomMessages[room.id].length > 0; else noRoomMessages">
           <div
