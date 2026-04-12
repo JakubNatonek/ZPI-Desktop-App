@@ -103,18 +103,14 @@ export class AuthService {
 
   private async ensureAndUploadPublicKey(userId: number): Promise<void> {
     try {
-      const hasPrivate = await this.cryptoSvc.hasPrivateJwk();
-      if (!hasPrivate) {
-        // generate and store keypair locally
-        await this.cryptoSvc.ensureRSAKeyPair();
-        const pubPem = await this.cryptoSvc.getPublicPem();
-        // upload to backend
-        try {
-          await lastValueFrom(this.http.put(`${environment.apiBaseUrl}/users/${userId}/public-key`, { public_key: pubPem }, { withCredentials: true }));
-          console.log('Uploaded public key to backend');
-        } catch (e) {
-          console.error('Failed to upload public key to backend', e);
-        }
+      // Ensure a local RSA key pair exists and always sync the public key to the backend.
+      await this.cryptoSvc.ensureRSAKeyPair();
+      const pubPem = await this.cryptoSvc.getPublicPem();
+      try {
+        await lastValueFrom(this.http.put(`${environment.apiBaseUrl}/users/${userId}/public-key`, { public_key: pubPem }, { withCredentials: true }));
+        console.log('Uploaded public key to backend');
+      } catch (e) {
+        console.error('Failed to upload public key to backend', e);
       }
     } catch (e) {
       console.error('Error ensuring/uploading RSA keypair', e);
