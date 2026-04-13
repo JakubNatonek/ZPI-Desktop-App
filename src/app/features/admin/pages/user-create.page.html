@@ -61,7 +61,7 @@
           <ion-item>
             <ion-label position="stacked">Wydział (department)</ion-label>
             <ion-select formControlName="department" interface="popover" placeholder="Wybierz wydział">
-              <ion-select-option *ngFor="let department of departments" [value]="department.id">
+              <ion-select-option *ngFor="let department of departments" [value]="department.id.toString()">
                 {{ department.name }}
               </ion-select-option>
             </ion-select>
@@ -70,7 +70,7 @@
           <ion-item>
             <ion-label position="stacked">Rola</ion-label>
             <ion-select formControlName="role" interface="popover" placeholder="Wybierz rolę">
-              <ion-select-option *ngFor="let role of roles" [value]="role.id">
+              <ion-select-option *ngFor="let role of roles" [value]="role.id.toString()">
                 {{ role.name }}
               </ion-select-option>
             </ion-select>
@@ -143,7 +143,7 @@
           <ion-label>
             <h2>{{ user.first_name }} {{ user.last_name }}</h2>
             <p>Login: {{ user.login }} | Email: {{ user.email }}</p>
-            <p>Rola: {{ user.role }} | Wydział: {{ user.department }}</p>
+            <p>Rola: {{ user.roles.join(', ') }} | Wydział: {{ user.departments.join(', ') }}</p>
             <p *ngIf="user.must_change_password" class="must-change">Wymagana zmiana hasła</p>
           </ion-label>
 
@@ -215,7 +215,7 @@
             <ion-item>
               <ion-label position="stacked">Wydział</ion-label>
               <ion-select formControlName="department" interface="popover">
-                <ion-select-option *ngFor="let department of departments" [value]="department.id">
+                <ion-select-option *ngFor="let department of departments" [value]="department.id.toString()">
                   {{ department.name }}
                 </ion-select-option>
               </ion-select>
@@ -224,7 +224,7 @@
             <ion-item>
               <ion-label position="stacked">Rola</ion-label>
               <ion-select formControlName="role" interface="popover">
-                <ion-select-option *ngFor="let role of roles" [value]="role.id">
+                <ion-select-option *ngFor="let role of roles" [value]="role.id.toString()">
                   {{ role.name }}
                 </ion-select-option>
               </ion-select>

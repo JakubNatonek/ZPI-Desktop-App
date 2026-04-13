@@ -18,30 +18,31 @@ export interface AdminCreateUserPayload {
   first_name: string;
   last_name: string;
   email: string;
-  one_time_password: string;
-  role_id: number;
-  department_id: number;
+  password: string;
+  role_ids: number[];
+  department_ids: number[];
 }
 
 export interface AdminCreatedUserResponse {
   user_id: number;
+  album_number: string;
   login: string;
   email: string;
   first_name: string;
   last_name: string;
-  role: string;
-  department: string;
-  one_time_password: string;
+  roles: string[];
+  departments: string[];
 }
 
 export interface AdminUserRow {
   user_id: number;
+  album_number: string;
   first_name: string;
   last_name: string;
   login: string;
   email: string;
-  role: string;
-  department: string;
+  roles: string[];
+  departments: string[];
   must_change_password: boolean;
 }
 
@@ -50,14 +51,12 @@ export interface AdminUpdateUserPayload {
   last_name: string;
   login: string;
   email: string;
-  role_id: number;
-  department_id: number;
+  role_ids: number[];
+  department_ids: number[];
 }
 
-export interface UserCredentialsResponse {
-  user_id: number;
-  login: string;
-  one_time_password: string;
+export interface ChangePasswordResponse {
+  message: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -75,7 +74,7 @@ export class UsersAdminApiService {
   }
 
   createUser(payload: AdminCreateUserPayload): Observable<AdminCreatedUserResponse> {
-    return this.http.post<AdminCreatedUserResponse>(`${this.usersBaseUrl}/admin-create`, payload);
+    return this.http.post<AdminCreatedUserResponse>(`${this.usersBaseUrl}/create`, payload);
   }
 
   getUsersForAdmin(): Observable<AdminUserRow[]> {
@@ -90,9 +89,9 @@ export class UsersAdminApiService {
     return this.http.delete<void>(`${this.usersBaseUrl}/${userId}`);
   }
 
-  resetOneTimePassword(userId: number, oneTimePassword: string): Observable<UserCredentialsResponse> {
-    return this.http.post<UserCredentialsResponse>(`${this.usersBaseUrl}/${userId}/reset-one-time-password`, {
-      one_time_password: oneTimePassword,
+  resetPassword(userId: number, password: string): Observable<ChangePasswordResponse> {
+    return this.http.post<ChangePasswordResponse>(`${this.usersBaseUrl}/${userId}/reset-password`, {
+      password,
     });
   }
 }

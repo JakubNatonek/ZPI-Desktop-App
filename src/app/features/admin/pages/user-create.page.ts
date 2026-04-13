@@ -8,14 +8,18 @@ import { finalize, forkJoin } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
 import {
+  AdminCreateUserPayload,
   AdminUpdateUserPayload,
-  AdminCreatedUserResponse,
   AdminUserRow,
-  UserCredentialsResponse,
   UsersAdminApiService,
   UserDepartmentOption,
   UserRoleOption,
 } from '../../../core/services/users-admin-api.service';
+
+interface SharedCredentials {
+  login: string;
+  one_time_password: string;
+}
 
 @Component({
   selector: 'app-admin-user-create',
@@ -62,8 +66,8 @@ export class UserCreatePage implements OnInit {
 
   errorMessage = '';
   successMessage = '';
-  createdCredentials: AdminCreatedUserResponse | null = null;
-  resetCredentials: UserCredentialsResponse | null = null;
+  createdCredentials: SharedCredentials | null = null;
+  resetCredentials: SharedCredentials | null = null;
 
   selectedUser: AdminUserRow | null = null;
   isEditModalOpen = false;
@@ -82,8 +86,8 @@ export class UserCreatePage implements OnInit {
         user.last_name,
         user.login,
         user.email,
-        user.role,
-        user.department,
+        user.roles.join(' '),
+        user.departments.join(' '),
       ]
         .join(' ')
         .toLowerCase();
@@ -161,13 +165,21 @@ export class UserCreatePage implements OnInit {
     }
 
     const value = this.form.getRawValue();
-    const payload = {
+    const roleId = Number(value.role);
+    const departmentId = Number(value.department);
+    if (!Number.isInteger(roleId) || !Number.isInteger(departmentId)) {
+      this.errorMessage = 'Wybierz poprawnie rolę i wydział.';
+      return;
+    }
+
+    const oneTimePassword = value.oneTimePassword!;
+    const payload: AdminCreateUserPayload = {
       first_name: value.firstName!.trim(),
       last_name: value.lastName!.trim(),
       email: value.email!.trim().toLowerCase(),
-      one_time_password: value.oneTimePassword!,
-      role_id: Number(value.role!),
-      department_id: Number(value.department!),
+      password: oneTimePassword,
+      role_ids: [roleId],
+      department_ids: [departmentId],
     };
 
     this.isSaving = true;
@@ -176,7 +188,10 @@ export class UserCreatePage implements OnInit {
       .pipe(finalize(() => (this.isSaving = false)))
       .subscribe({
         next: (created) => {
-          this.createdCredentials = created;
+          this.createdCredentials = {
+            login: created.login,
+            one_time_password: oneTimePassword,
+          };
           this.successMessage = 'Użytkownik został utworzony. Przekaż login i hasło jednorazowe użytkownikowi.';
           this.reloadUsers();
         },
@@ -237,13 +252,16 @@ export class UserCreatePage implements OnInit {
 
   openEditModal(user: AdminUserRow): void {
     this.selectedUser = user;
+    const selectedRole = this.findRoleIdByName(user.roles[0]);
+    const selectedDepartment = this.findDepartmentIdByName(user.departments[0]);
+
     this.editForm.setValue({
       firstName: user.first_name,
       lastName: user.last_name,
       login: user.login,
       email: user.email,
-      role: user.role,
-      department: user.department,
+      role: selectedRole,
+      department: selectedDepartment,
     });
     this.errorMessage = '';
     this.successMessage = '';
@@ -267,13 +285,20 @@ export class UserCreatePage implements OnInit {
     }
 
     const value = this.editForm.getRawValue();
+    const roleId = Number(value.role);
+    const departmentId = Number(value.department);
+    if (!Number.isInteger(roleId) || !Number.isInteger(departmentId)) {
+      this.errorMessage = 'Wybierz poprawnie rolę i wydział przed zapisem.';
+      return;
+    }
+
     const payload: AdminUpdateUserPayload = {
       first_name: value.firstName!.trim(),
       last_name: value.lastName!.trim(),
       login: value.login!.trim().toLowerCase(),
       email: value.email!.trim().toLowerCase(),
-      role_id: Number(value.role!),
-      department_id: Number(value.department!),
+      role_ids: [roleId],
+      department_ids: [departmentId],
     };
 
     this.isSavingEdit = true;
@@ -330,7 +355,8 @@ export class UserCreatePage implements OnInit {
   }
 
   submitResetPassword(): void {
-    if (!this.selectedUser) {
+    const selectedUser = this.selectedUser;
+    if (!selectedUser) {
       return;
     }
 
@@ -342,11 +368,14 @@ export class UserCreatePage implements OnInit {
 
     this.isResettingPassword = true;
     this.usersAdminApi
-      .resetOneTimePassword(this.selectedUser.user_id, normalizedPassword)
+      .resetPassword(selectedUser.user_id, normalizedPassword)
       .pipe(finalize(() => (this.isResettingPassword = false)))
       .subscribe({
-        next: (credentials) => {
-          this.resetCredentials = credentials;
+        next: () => {
+          this.resetCredentials = {
+            login: selectedUser.login,
+            one_time_password: normalizedPassword,
+          };
           this.successMessage = 'Hasło użytkownika zostało ustawione jako jednorazowe.';
           this.reloadUsers();
         },
@@ -430,6 +459,10 @@ export class UserCreatePage implements OnInit {
       if (error.status === 403) {
         return 'Nie masz uprawnień do tworzenia kont użytkowników.';
       }
+
+      if (error.status === 405) {
+        return 'Nieprawidłowa metoda HTTP dla tego endpointu.';
+      }
     }
 
     return 'Nie udało się utworzyć użytkownika. Spróbuj ponownie.';
@@ -443,5 +476,25 @@ export class UserCreatePage implements OnInit {
     if (this.currentPage < 1) {
       this.currentPage = 1;
     }
+  }
+
+  private findRoleIdByName(roleName?: string): string {
+    if (!roleName) {
+      return '';
+    }
+
+    const normalized = roleName.trim().toLowerCase();
+    const role = this.roles.find((item) => item.name.trim().toLowerCase() === normalized);
+    return role ? String(role.id) : '';
+  }
+
+  private findDepartmentIdByName(departmentName?: string): string {
+    if (!departmentName) {
+      return '';
+    }
+
+    const normalized = departmentName.trim().toLowerCase();
+    const department = this.departments.find((item) => item.name.trim().toLowerCase() === normalized);
+    return department ? String(department.id) : '';
   }
 }
