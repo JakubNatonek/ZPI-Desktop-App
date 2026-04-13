@@ -45,8 +45,9 @@
           <ion-label>
             <h2>{{ room.room_number }} ({{ room.room_type }})</h2>
             <p>Miejsca: {{ room.seats_count }}</p>
-            <p *ngIf="room.activities.length > 0">Zajecia: {{ room.activities.join(', ') }}</p>
-            <p *ngIf="room.special_equipment">Wyposazenie: {{ room.special_equipment }}</p>
+            <p *ngIf="room.activities.length > 0">Zajecia: {{ getActivitiesLabel(room) }}</p>
+            <p *ngIf="room.special_equipment.length > 0">Wyposazenie: {{ getEquipmentLabel(room) }}</p>
+            <p *ngIf="room.departments.length > 0">Wydzialy: {{ getDepartmentsLabel(room) }}</p>
           </ion-label>
 
           <ion-buttons slot="end">

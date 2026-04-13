@@ -77,6 +77,30 @@ export class SaleListPage implements OnInit {
     return room.id;
   }
 
+  getActivitiesLabel(room: RoomDto): string {
+    if (room.activity_names.length > 0) {
+      return room.activity_names.join(', ');
+    }
+
+    return room.activities.map((id) => String(id)).join(', ');
+  }
+
+  getEquipmentLabel(room: RoomDto): string {
+    if (room.special_equipment_names.length > 0) {
+      return room.special_equipment_names.join(', ');
+    }
+
+    return room.special_equipment.map((id) => String(id)).join(', ');
+  }
+
+  getDepartmentsLabel(room: RoomDto): string {
+    if (room.department_names.length > 0) {
+      return room.department_names.join(', ');
+    }
+
+    return room.departments.map((id) => String(id)).join(', ');
+  }
+
   toggleProfileMenu(event: Event): void {
     this.profileMenuEvent = event;
     this.isProfileMenuOpen = !this.isProfileMenuOpen;
