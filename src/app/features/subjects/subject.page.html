@@ -6,6 +6,7 @@
     <ion-title>{{ isEditMode ? 'Edycja przedmiotu' : 'Tworzenie przedmiotu' }}</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
       <ion-button fill="clear" (click)="navigateToList()">Lista przedmiotow</ion-button>
+      <ion-button fill="clear" (click)="navigateToDictionaries()">Slownik typow zajec</ion-button>
       <ion-chip color="medium" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
@@ -94,31 +95,6 @@
             <ion-label>Przedmiot zablokowany</ion-label>
           </ion-item>
         </ion-list>
-
-        <ion-note color="danger" *ngIf="dictionaryErrorMessage" class="submit-message">
-          {{ dictionaryErrorMessage }}
-        </ion-note>
-
-        <div class="section-block">
-          <h3>Zarzadzanie slownikiem typow zajec</h3>
-          <p>Dodawaj, edytuj i usuwaj typy zajec bez wychodzenia z formularza.</p>
-
-          <ion-list>
-            <ion-item lines="none">
-              <ion-label>Typy zajec</ion-label>
-              <ion-button slot="end" size="small" fill="outline" [disabled]="isUpdatingDictionary" (click)="createActivity()">
-                Dodaj
-              </ion-button>
-            </ion-item>
-            <ion-item *ngFor="let activity of activityOptions">
-              <ion-label>{{ activity.name }}</ion-label>
-              <ion-buttons slot="end">
-                <ion-button size="small" fill="clear" [disabled]="isUpdatingDictionary" (click)="editActivity(activity)">Edytuj</ion-button>
-                <ion-button size="small" fill="clear" color="danger" [disabled]="isUpdatingDictionary" (click)="deleteActivity(activity)">Usun</ion-button>
-              </ion-buttons>
-            </ion-item>
-          </ion-list>
-        </div>
 
         <div class="form-actions">
           <ion-button type="submit" color="primary" [disabled]="isSaving">

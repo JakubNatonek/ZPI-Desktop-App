@@ -45,6 +45,10 @@ export class SubjectListPage implements OnInit {
     this.router.navigateByUrl('/subjects/new');
   }
 
+  openSubjectDictionary(): void {
+    this.router.navigateByUrl('/subjects/dictionaries');
+  }
+
   editSubject(subjectId: number): void {
     this.router.navigateByUrl(`/subjects/${subjectId}/edit`);
   }

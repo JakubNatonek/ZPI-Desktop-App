@@ -1,0 +1,75 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Panel administratora</ion-title>
+    <ion-buttons slot="end" class="app-header-user-actions">
+      <ion-button fill="clear" (click)="navigateToList()">Lista przedmiotow</ion-button>
+      <ion-button fill="clear" (click)="navigateToCreateSubject()">Dodawanie przedmiotu</ion-button>
+      <ion-chip color="medium" outline>
+        <ion-label>{{ userRoleLabel }}</ion-label>
+      </ion-chip>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
+        <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+      </ion-avatar>
+
+      <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
+        alignment="end" (didDismiss)="closeProfileMenu()">
+        <ng-template>
+          <ion-list lines="none">
+            <ion-item button detail="false" (click)="openSettings()">Ustawienia</ion-item>
+            <ion-item button detail="false" class="logout-item" (click)="logout()">Wyloguj</ion-item>
+          </ion-list>
+        </ng-template>
+      </ion-popover>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="dictionaries-content">
+  <div class="canvas-bg" aria-hidden="true"></div>
+
+  <section class="hero">
+    <p class="eyebrow">Administracja przedmiotami</p>
+    <h1>Slownik typow zajec</h1>
+    <p>
+      Zarzadzaj slownikiem typow zajec niezaleznie od formularza dodawania przedmiotu.
+      Zmiany sa natychmiast dostepne przy tworzeniu i edycji przedmiotow.
+    </p>
+  </section>
+
+  <ion-card class="form-shell">
+    <ion-card-content>
+      <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
+
+      <ion-note class="message error" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
+      <ion-note class="message error" *ngIf="dictionaryErrorMessage">{{ dictionaryErrorMessage }}</ion-note>
+
+      <section class="dictionary-group" *ngIf="!isLoading">
+        <div class="group-header">
+          <h2>Typy zajec</h2>
+          <ion-button size="small" fill="outline" [disabled]="isUpdatingDictionary" (click)="createActivity()">
+            Dodaj
+          </ion-button>
+        </div>
+
+        <ion-list lines="none" class="dictionary-list" *ngIf="activityOptions.length > 0">
+          <ion-item *ngFor="let activity of activityOptions">
+            <ion-label>{{ activity.name }}</ion-label>
+            <ion-buttons slot="end" class="item-actions">
+              <ion-button size="small" fill="clear" [disabled]="isUpdatingDictionary" (click)="editActivity(activity)">
+                Edytuj
+              </ion-button>
+              <ion-button size="small" fill="clear" color="danger" [disabled]="isUpdatingDictionary" (click)="deleteActivity(activity)">
+                Usun
+              </ion-button>
+            </ion-buttons>
+          </ion-item>
+        </ion-list>
+
+        <p class="empty" *ngIf="activityOptions.length === 0">Brak wpisow.</p>
+      </section>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

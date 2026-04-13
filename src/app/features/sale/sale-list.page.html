@@ -3,9 +3,8 @@
     <ion-buttons slot="start">
       <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
-    <ion-title>Sale</ion-title>
+    <ion-title>Panel administratora</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
-      <ion-button color="primary" (click)="createRoom()">Utwórz</ion-button>
       <ion-chip color="medium" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
@@ -26,21 +25,34 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding rooms-list-content">
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Lista sal</ion-card-title>
-      <ion-card-subtitle>Zarzadzaj salami i ich parametrami.</ion-card-subtitle>
-    </ion-card-header>
+<ion-content class="rooms-list-content">
+  <div class="canvas-bg" aria-hidden="true"></div>
 
+  <section class="hero">
+    <p class="eyebrow">Administracja salami</p>
+    <h1>Zarzadzanie salami</h1>
+    <p>
+      Zarzadzaj lista sal i ich parametrami. Uklad strony zostal dopasowany do ekranu
+      dodawania uzytkownikow, a dostep do slownikow jest dostepny jako dodatkowa akcja.
+    </p>
+  </section>
+
+  <ion-card class="form-shell list-shell">
     <ion-card-content>
+      <div class="actions-row">
+        <ion-button color="primary" (click)="createRoom()">Utworz sale</ion-button>
+        <ion-button fill="outline" color="dark" (click)="openRoomDictionaries()">
+          Zarzadzaj slownikami sal
+        </ion-button>
+      </div>
+
       <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
 
       <ion-note color="danger" *ngIf="errorMessage" class="list-message">
         {{ errorMessage }}
       </ion-note>
 
-      <ion-list *ngIf="!isLoading && rooms.length > 0" lines="full">
+      <ion-list *ngIf="!isLoading && rooms.length > 0" lines="none" class="room-list">
         <ion-item *ngFor="let room of rooms; trackBy: trackByRoomId" class="room-item">
           <ion-label>
             <h2>{{ room.room_number }} ({{ room.room_type }})</h2>
@@ -50,9 +62,9 @@
             <p *ngIf="room.departments.length > 0">Wydzialy: {{ getDepartmentsLabel(room) }}</p>
           </ion-label>
 
-          <ion-buttons slot="end">
-            <ion-button fill="outline" color="medium" (click)="editRoom(room.id)">Edytuj</ion-button>
-            <ion-button fill="solid" color="danger" [disabled]="isDeleting" (click)="deleteRoom(room.id)">
+          <ion-buttons slot="end" class="room-actions">
+            <ion-button fill="outline" color="primary" (click)="editRoom(room.id)">Edytuj</ion-button>
+            <ion-button fill="clear" color="danger" [disabled]="isDeleting" (click)="deleteRoom(room.id)">
               Usun
             </ion-button>
           </ion-buttons>

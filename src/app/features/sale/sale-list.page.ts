@@ -45,6 +45,10 @@ export class SaleListPage implements OnInit {
     this.router.navigateByUrl('/sale/new');
   }
 
+  openRoomDictionaries(): void {
+    this.router.navigateByUrl('/sale/dictionaries');
+  }
+
   editRoom(roomId: number): void {
     this.router.navigateByUrl(`/sale/${roomId}/edit`);
   }

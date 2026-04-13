@@ -3,9 +3,8 @@
     <ion-buttons slot="start">
       <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
-    <ion-title>Przedmioty</ion-title>
+    <ion-title>Panel administratora</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
-      <ion-button color="primary" (click)="createSubject()">Utworz</ion-button>
       <ion-chip color="medium" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
@@ -26,21 +25,34 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding subjects-list-content">
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Lista przedmiotow</ion-card-title>
-      <ion-card-subtitle>Zarzadzaj przedmiotami i typem zajec.</ion-card-subtitle>
-    </ion-card-header>
+<ion-content class="subjects-list-content">
+  <div class="canvas-bg" aria-hidden="true"></div>
 
+  <section class="hero">
+    <p class="eyebrow">Administracja przedmiotami</p>
+    <h1>Zarzadzanie przedmiotami</h1>
+    <p>
+      Zarzadzaj lista przedmiotow i ich parametrami. Wyglad strony odpowiada panelowi
+      dodawania uzytkownikow, a dostep do slownika jest dostepny jako dodatkowa akcja.
+    </p>
+  </section>
+
+  <ion-card class="form-shell list-shell">
     <ion-card-content>
+      <div class="actions-row">
+        <ion-button color="primary" (click)="createSubject()">Utworz przedmiot</ion-button>
+        <ion-button fill="outline" color="dark" (click)="openSubjectDictionary()">
+          Zarzadzaj slownikiem typow zajec
+        </ion-button>
+      </div>
+
       <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
 
       <ion-note color="danger" *ngIf="errorMessage" class="list-message">
         {{ errorMessage }}
       </ion-note>
 
-      <ion-list *ngIf="!isLoading && subjects.length > 0" lines="full">
+      <ion-list *ngIf="!isLoading && subjects.length > 0" lines="none" class="subject-list">
         <ion-item *ngFor="let subject of subjects; trackBy: trackBySubjectId" class="subject-item">
           <ion-label>
             <h2>{{ subject.name }}</h2>
@@ -51,9 +63,9 @@
             <p>Status: {{ subject.blocked ? 'Zablokowany' : 'Aktywny' }}</p>
           </ion-label>
 
-          <ion-buttons slot="end">
-            <ion-button fill="outline" color="medium" (click)="editSubject(subject.id)">Edytuj</ion-button>
-            <ion-button fill="solid" color="danger" [disabled]="isDeleting" (click)="deleteSubject(subject.id)">
+          <ion-buttons slot="end" class="subject-actions">
+            <ion-button fill="outline" color="primary" (click)="editSubject(subject.id)">Edytuj</ion-button>
+            <ion-button fill="clear" color="danger" [disabled]="isDeleting" (click)="deleteSubject(subject.id)">
               Usun
             </ion-button>
           </ion-buttons>

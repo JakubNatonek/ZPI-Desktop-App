@@ -35,6 +35,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/sale/sale.page').then((m) => m.SalePage),
   },
   {
+    path: 'sale/dictionaries',
+    loadComponent: () => import('./features/sale/sale-dictionaries').then((m) => m.SaleDictionariesPage),
+  },
+  {
     path: 'sale/:id/edit',
     loadComponent: () => import('./features/sale/sale.page').then((m) => m.SalePage),
   },
@@ -45,6 +49,10 @@ export const routes: Routes = [
   {
     path: 'subjects/new',
     loadComponent: () => import('./features/subjects/subject.page').then((m) => m.SubjectPage),
+  },
+  {
+    path: 'subjects/dictionaries',
+    loadComponent: () => import('./features/subjects/subject-dictionaries.page').then((m) => m.SubjectDictionariesPage),
   },
   {
     path: 'subjects/:id/edit',

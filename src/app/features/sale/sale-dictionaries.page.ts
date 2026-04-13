@@ -1,46 +1,32 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, NgForm } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { AlertController, IonicModule } from '@ionic/angular';
-import { HttpErrorResponse } from '@angular/common/http';
 import { finalize, forkJoin } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
 import {
   RoomActivityOption,
   RoomDepartmentOption,
-  RoomDto,
-  RoomPayload,
   RoomsApiService,
   RoomSpecialEquipmentOption,
   RoomTypeOption,
 } from '../../core/services/rooms-api.service';
 
 @Component({
-  selector: 'app-sale',
-  templateUrl: './sale.page.html',
-  styleUrls: ['./sale.page.scss'],
+  selector: 'app-sale-dictionaries',
+  templateUrl: './sale-dictionaries.page.html',
+  styleUrls: ['./sale-dictionaries.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule],
+  imports: [IonicModule, CommonModule],
 })
-export class SalePage implements OnInit {
-  roomId: number | null = null;
-  isEditMode = false;
+export class SaleDictionariesPage implements OnInit {
   isLoading = false;
-  isSaving = false;
   isUpdatingDictionary = false;
   isProfileMenuOpen = false;
   profileMenuEvent?: Event;
 
-  roomNumber = '';
-  seatsCount: number | null = null;
-  roomTypeId: number | null = null;
-  selectedActivityIds: number[] = [];
-  selectedSpecialEquipmentIds: number[] = [];
-  selectedDepartmentIds: number[] = [];
-
-  submitMessage = '';
   errorMessage = '';
   dictionaryErrorMessage = '';
 
@@ -50,11 +36,10 @@ export class SalePage implements OnInit {
   departmentOptions: RoomDepartmentOption[] = [];
 
   constructor(
-    private auth: AuthService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private roomsApi: RoomsApiService,
-    private alertController: AlertController,
+    private readonly auth: AuthService,
+    private readonly router: Router,
+    private readonly roomsApi: RoomsApiService,
+    private readonly alertController: AlertController,
   ) {}
 
   ngOnInit(): void {
@@ -63,66 +48,19 @@ export class SalePage implements OnInit {
       return;
     }
 
-    this.loadInitialData();
+    this.loadDictionaryData();
   }
 
   get userRoleLabel(): string {
     return this.auth.roleLabel;
   }
 
-  onSubmit(form: NgForm): void {
-    this.submitMessage = '';
-    this.errorMessage = '';
+  navigateToList(): void {
+    this.router.navigateByUrl('/sale');
+  }
 
-    if (!form.valid) {
-      this.errorMessage = 'Uzupelnij wszystkie wymagane pola formularza.';
-      return;
-    }
-
-    const roomTypeId = Number(this.roomTypeId);
-    if (!Number.isInteger(roomTypeId) || roomTypeId <= 0) {
-      this.errorMessage = 'Wybierz typ sali.';
-      return;
-    }
-
-    const selectedActivityIds = this.parseIdArray(this.selectedActivityIds);
-    if (selectedActivityIds.length === 0) {
-      this.errorMessage = 'Wybierz przynajmniej jeden rodzaj zajec dla sali.';
-      return;
-    }
-
-    const selectedDepartmentIds = this.parseIdArray(this.selectedDepartmentIds);
-    if (selectedDepartmentIds.length === 0) {
-      this.errorMessage = 'Wybierz przynajmniej jeden wydzial dla sali.';
-      return;
-    }
-
-    const payload: RoomPayload = {
-      room_number: this.roomNumber.trim(),
-      seats_count: Number(this.seatsCount),
-      room_type_id: roomTypeId,
-      special_equipment: this.parseIdArray(this.selectedSpecialEquipmentIds),
-      activities: selectedActivityIds,
-      departments: selectedDepartmentIds,
-    };
-
-    this.isSaving = true;
-    const request$ = this.isEditMode && this.roomId !== null
-      ? this.roomsApi.updateRoom(this.roomId, payload)
-      : this.roomsApi.createRoom(payload);
-
-    request$
-      .pipe(finalize(() => (this.isSaving = false)))
-      .subscribe({
-        next: () => {
-          this.submitMessage = this.isEditMode
-            ? 'Sala zostala zaktualizowana.'
-            : 'Sala zostala utworzona.';
-
-          this.router.navigateByUrl('/sale');
-        },
-        error: (error) => this.handleSaveError(error),
-      });
+  navigateToCreateRoom(): void {
+    this.router.navigateByUrl('/sale/new');
   }
 
   async createRoomType(): Promise<void> {
@@ -144,7 +82,6 @@ export class SalePage implements OnInit {
       .subscribe({
         next: (created) => {
           this.roomTypeOptions = [...this.roomTypeOptions, created].sort((a, b) => a.name.localeCompare(b.name));
-          this.roomTypeId = created.id;
         },
         error: (error) => {
           this.dictionaryErrorMessage = this.mapDictionaryError(error);
@@ -192,9 +129,6 @@ export class SalePage implements OnInit {
       .subscribe({
         next: () => {
           this.roomTypeOptions = this.roomTypeOptions.filter((item) => item.id !== roomType.id);
-          if (this.roomTypeId === roomType.id) {
-            this.roomTypeId = this.getDefaultRoomTypeId();
-          }
         },
         error: (error) => {
           this.dictionaryErrorMessage = this.mapDictionaryError(error);
@@ -216,7 +150,6 @@ export class SalePage implements OnInit {
       .subscribe({
         next: (created) => {
           this.activityOptions = [...this.activityOptions, created].sort((a, b) => a.name.localeCompare(b.name));
-          this.selectedActivityIds = Array.from(new Set([...this.selectedActivityIds, created.id]));
         },
         error: (error) => {
           this.dictionaryErrorMessage = this.mapDictionaryError(error);
@@ -259,7 +192,6 @@ export class SalePage implements OnInit {
       .subscribe({
         next: () => {
           this.activityOptions = this.activityOptions.filter((item) => item.id !== activity.id);
-          this.selectedActivityIds = this.selectedActivityIds.filter((id) => id !== activity.id);
         },
         error: (error) => {
           this.dictionaryErrorMessage = this.mapDictionaryError(error);
@@ -281,7 +213,6 @@ export class SalePage implements OnInit {
       .subscribe({
         next: (created) => {
           this.specialEquipmentOptions = [...this.specialEquipmentOptions, created].sort((a, b) => a.name.localeCompare(b.name));
-          this.selectedSpecialEquipmentIds = Array.from(new Set([...this.selectedSpecialEquipmentIds, created.id]));
         },
         error: (error) => {
           this.dictionaryErrorMessage = this.mapDictionaryError(error);
@@ -324,7 +255,6 @@ export class SalePage implements OnInit {
       .subscribe({
         next: () => {
           this.specialEquipmentOptions = this.specialEquipmentOptions.filter((item) => item.id !== equipment.id);
-          this.selectedSpecialEquipmentIds = this.selectedSpecialEquipmentIds.filter((id) => id !== equipment.id);
         },
         error: (error) => {
           this.dictionaryErrorMessage = this.mapDictionaryError(error);
@@ -351,7 +281,6 @@ export class SalePage implements OnInit {
       .subscribe({
         next: (created) => {
           this.departmentOptions = [...this.departmentOptions, created].sort((a, b) => a.name.localeCompare(b.name));
-          this.selectedDepartmentIds = Array.from(new Set([...this.selectedDepartmentIds, created.id]));
         },
         error: (error) => {
           this.dictionaryErrorMessage = this.mapDictionaryError(error);
@@ -399,37 +328,11 @@ export class SalePage implements OnInit {
       .subscribe({
         next: () => {
           this.departmentOptions = this.departmentOptions.filter((item) => item.id !== department.id);
-          this.selectedDepartmentIds = this.selectedDepartmentIds.filter((id) => id !== department.id);
         },
         error: (error) => {
           this.dictionaryErrorMessage = this.mapDictionaryError(error);
         },
       });
-  }
-
-  resetForm(form: NgForm): void {
-    this.submitMessage = '';
-    this.errorMessage = '';
-
-    form.resetForm({
-      roomNumber: '',
-      seatsCount: null,
-      roomTypeId: this.getDefaultRoomTypeId(),
-    });
-
-    this.roomTypeId = this.getDefaultRoomTypeId();
-    this.selectedActivityIds = [];
-    this.selectedSpecialEquipmentIds = [];
-    this.selectedDepartmentIds = [];
-    this.submitMessage = '';
-  }
-
-  navigateToList(): void {
-    this.router.navigateByUrl('/sale');
-  }
-
-  navigateToDictionaries(): void {
-    this.router.navigateByUrl('/sale/dictionaries');
   }
 
   toggleProfileMenu(event: Event): void {
@@ -451,113 +354,29 @@ export class SalePage implements OnInit {
     this.auth.logout();
   }
 
-  private resolvePageMode(): void {
-    const roomIdParam = this.route.snapshot.paramMap.get('id');
-
-    if (!roomIdParam) {
-      this.isEditMode = false;
-      this.roomId = null;
-      this.roomTypeId = this.getDefaultRoomTypeId();
-      this.isLoading = false;
-      return;
-    }
-
-    const parsedId = Number(roomIdParam);
-    if (!Number.isInteger(parsedId) || parsedId <= 0) {
-      this.router.navigateByUrl('/sale');
-      return;
-    }
-
-    this.isEditMode = true;
-    this.roomId = parsedId;
-    this.loadRoom(parsedId);
-  }
-
-  private loadInitialData(): void {
+  private loadDictionaryData(): void {
     this.isLoading = true;
     this.errorMessage = '';
+    this.dictionaryErrorMessage = '';
 
     forkJoin({
       roomTypes: this.roomsApi.getRoomTypes(),
       activities: this.roomsApi.getActivities(),
       specialEquipment: this.roomsApi.getSpecialEquipment(),
       departments: this.roomsApi.getDepartments(),
-    }).subscribe({
-      next: ({ roomTypes, activities, specialEquipment, departments }) => {
-        this.roomTypeOptions = roomTypes;
-        this.activityOptions = activities;
-        this.specialEquipmentOptions = specialEquipment;
-        this.departmentOptions = departments;
-        this.resolvePageMode();
-      },
-      error: () => {
-        this.isLoading = false;
-        this.errorMessage = 'Nie udalo sie pobrac slownikow sal. Sprobuj ponownie.';
-      },
-    });
-  }
-
-  private loadRoom(roomId: number): void {
-    this.errorMessage = '';
-
-    this.roomsApi
-      .getRoomById(roomId)
+    })
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
-        next: (room) => this.patchFormFromRoom(room),
+        next: ({ roomTypes, activities, specialEquipment, departments }) => {
+          this.roomTypeOptions = roomTypes;
+          this.activityOptions = activities;
+          this.specialEquipmentOptions = specialEquipment;
+          this.departmentOptions = departments;
+        },
         error: () => {
-          this.errorMessage = 'Nie udalo sie pobrac danych sali.';
+          this.errorMessage = 'Nie udalo sie pobrac slownikow sal. Sprobuj ponownie.';
         },
       });
-  }
-
-  private patchFormFromRoom(room: RoomDto): void {
-    this.roomNumber = room.room_number;
-    this.seatsCount = room.seats_count;
-    this.roomTypeId = this.resolveRoomTypeId(room);
-    this.selectedActivityIds = [...(room.activities ?? [])];
-    this.selectedSpecialEquipmentIds = [...(room.special_equipment ?? [])];
-    this.selectedDepartmentIds = [...(room.departments ?? [])];
-  }
-
-  private resolveRoomTypeId(room: RoomDto): number | null {
-    if (typeof room.room_type_id === 'number' && room.room_type_id > 0) {
-      return room.room_type_id;
-    }
-
-    const normalizedRoomType = room.room_type.trim().toLowerCase();
-    const option = this.roomTypeOptions.find((candidate) => candidate.name.trim().toLowerCase() === normalizedRoomType);
-    return option?.id ?? this.getDefaultRoomTypeId();
-  }
-
-  private getDefaultRoomTypeId(): number | null {
-    return this.roomTypeOptions.length > 0 ? this.roomTypeOptions[0].id : null;
-  }
-
-  private parseIdArray(values: unknown): number[] {
-    if (!Array.isArray(values)) {
-      return [];
-    }
-
-    const ids = values
-      .map((value) => Number(value))
-      .filter((id) => Number.isInteger(id) && id > 0);
-
-    return Array.from(new Set(ids));
-  }
-
-  private handleSaveError(error: unknown): void {
-    if (error instanceof HttpErrorResponse && error.status === 409) {
-      this.errorMessage = 'Sala o tym numerze juz istnieje.';
-      return;
-    }
-
-    if (error instanceof HttpErrorResponse && (error.status === 400 || error.status === 422)) {
-      this.errorMessage = error.error?.detail || 'Dane sali sa niepoprawne.';
-      return;
-    }
-
-    this.errorMessage = 'Nie udalo sie zapisac sali. Sprobuj ponownie.';
   }
 
   private mapDictionaryError(error: unknown): string {

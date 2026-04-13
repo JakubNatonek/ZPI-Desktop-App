@@ -7,6 +7,7 @@
     <ion-title>{{ isEditMode ? 'Edycja sali' : 'Tworzenie sali' }}</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
       <ion-button fill="clear" (click)="navigateToList()">Lista sal</ion-button>
+      <ion-button fill="clear" (click)="navigateToDictionaries()">Slowniki sal</ion-button>
       <ion-chip color="medium" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
@@ -124,79 +125,6 @@
             </ion-select-option>
           </ion-select>
         </ion-item>
-
-        <ion-note color="danger" *ngIf="dictionaryErrorMessage" class="submit-message">
-          {{ dictionaryErrorMessage }}
-        </ion-note>
-
-        <div class="section-block">
-          <h3>Zarzadzanie slownikami sal</h3>
-          <p>Dodawaj, edytuj i usuwaj elementy slownikowe bez wychodzenia z formularza.</p>
-
-          <ion-list>
-            <ion-item lines="none">
-              <ion-label>Typy sal</ion-label>
-              <ion-button slot="end" size="small" fill="outline" [disabled]="isUpdatingDictionary" (click)="createRoomType()">
-                Dodaj
-              </ion-button>
-            </ion-item>
-            <ion-item *ngFor="let roomType of roomTypeOptions">
-              <ion-label>{{ roomType.name }} ({{ roomType.abbreviation }})</ion-label>
-              <ion-buttons slot="end">
-                <ion-button size="small" fill="clear" [disabled]="isUpdatingDictionary" (click)="editRoomType(roomType)">Edytuj</ion-button>
-                <ion-button size="small" fill="clear" color="danger" [disabled]="isUpdatingDictionary" (click)="deleteRoomType(roomType)">Usun</ion-button>
-              </ion-buttons>
-            </ion-item>
-          </ion-list>
-
-          <ion-list>
-            <ion-item lines="none">
-              <ion-label>Aktywnosci</ion-label>
-              <ion-button slot="end" size="small" fill="outline" [disabled]="isUpdatingDictionary" (click)="createActivity()">
-                Dodaj
-              </ion-button>
-            </ion-item>
-            <ion-item *ngFor="let activity of activityOptions">
-              <ion-label>{{ activity.name }}</ion-label>
-              <ion-buttons slot="end">
-                <ion-button size="small" fill="clear" [disabled]="isUpdatingDictionary" (click)="editActivity(activity)">Edytuj</ion-button>
-                <ion-button size="small" fill="clear" color="danger" [disabled]="isUpdatingDictionary" (click)="deleteActivity(activity)">Usun</ion-button>
-              </ion-buttons>
-            </ion-item>
-          </ion-list>
-
-          <ion-list>
-            <ion-item lines="none">
-              <ion-label>Wyposazenie specjalne</ion-label>
-              <ion-button slot="end" size="small" fill="outline" [disabled]="isUpdatingDictionary" (click)="createSpecialEquipment()">
-                Dodaj
-              </ion-button>
-            </ion-item>
-            <ion-item *ngFor="let equipment of specialEquipmentOptions">
-              <ion-label>{{ equipment.name }}</ion-label>
-              <ion-buttons slot="end">
-                <ion-button size="small" fill="clear" [disabled]="isUpdatingDictionary" (click)="editSpecialEquipment(equipment)">Edytuj</ion-button>
-                <ion-button size="small" fill="clear" color="danger" [disabled]="isUpdatingDictionary" (click)="deleteSpecialEquipment(equipment)">Usun</ion-button>
-              </ion-buttons>
-            </ion-item>
-          </ion-list>
-
-          <ion-list>
-            <ion-item lines="none">
-              <ion-label>Wydzialy</ion-label>
-              <ion-button slot="end" size="small" fill="outline" [disabled]="isUpdatingDictionary" (click)="createDepartment()">
-                Dodaj
-              </ion-button>
-            </ion-item>
-            <ion-item *ngFor="let department of departmentOptions">
-              <ion-label>{{ department.name }} ({{ department.abbreviation }})</ion-label>
-              <ion-buttons slot="end">
-                <ion-button size="small" fill="clear" [disabled]="isUpdatingDictionary" (click)="editDepartment(department)">Edytuj</ion-button>
-                <ion-button size="small" fill="clear" color="danger" [disabled]="isUpdatingDictionary" (click)="deleteDepartment(department)">Usun</ion-button>
-              </ion-buttons>
-            </ion-item>
-          </ion-list>
-        </div>
 
         <!-- Akcje: wyslanie i reset formularza -->
         <div class="form-actions">
