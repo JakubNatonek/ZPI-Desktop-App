@@ -36,7 +36,7 @@ interface RoomsListResponse {
 
 @Injectable({ providedIn: 'root' })
 export class RoomsApiService {
-  private readonly roomsUrl = `${environment.apiBaseUrl}/rooms`;
+  private readonly roomsUrl = `${environment.apiBaseUrl}/rooms/list`;
 
   constructor(private readonly http: HttpClient) {}
 
