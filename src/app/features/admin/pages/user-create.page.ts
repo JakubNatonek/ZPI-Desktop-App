@@ -14,6 +14,7 @@ import {
   UsersAdminApiService,
   UserDepartmentOption,
   UserRoleOption,
+  UserTitleOption,
 } from '../../../core/services/users-admin-api.service';
 
 interface SharedCredentials {
@@ -36,6 +37,7 @@ export class UserCreatePage implements OnInit {
     oneTimePassword: ['', [Validators.required, Validators.minLength(8)]],
     roleIds: this.fb.control<number[]>([], { nonNullable: true, validators: [Validators.required] }),
     departmentIds: this.fb.control<number[]>([], { nonNullable: true, validators: [Validators.required] }),
+    titleId: this.fb.control<number | null>(null),
   });
 
   readonly editForm = this.fb.group({
@@ -49,6 +51,7 @@ export class UserCreatePage implements OnInit {
 
   roles: UserRoleOption[] = [];
   departments: UserDepartmentOption[] = [];
+  titles: UserTitleOption[] = [];
   users: AdminUserRow[] = [];
 
   readonly pageSizeOptions = [5, 10, 25, 50];
@@ -82,6 +85,7 @@ export class UserCreatePage implements OnInit {
 
     return this.users.filter((user) => {
       const haystack = [
+        user.titles.join(' '),
         user.first_name,
         user.last_name,
         user.login,
@@ -119,6 +123,11 @@ export class UserCreatePage implements OnInit {
 
   get userRoleLabel(): string {
     return this.auth.roleLabel;
+  }
+
+  getUserDisplayName(user: AdminUserRow): string {
+    const titlePrefix = Array.isArray(user.titles) && user.titles.length > 0 ? `${user.titles.join(' ')} ` : '';
+    return `${titlePrefix}${user.first_name} ${user.last_name}`.trim();
   }
 
   constructor(
@@ -167,6 +176,7 @@ export class UserCreatePage implements OnInit {
     const value = this.form.getRawValue();
     const roleIds = this.parseIdArray(value.roleIds);
     const departmentIds = this.parseIdArray(value.departmentIds);
+    const titleIds = this.parseOptionalSingleIdArray(value.titleId);
     if (roleIds.length === 0 || departmentIds.length === 0) {
       this.errorMessage = 'Wybierz poprawnie role i wydziały.';
       return;
@@ -180,6 +190,7 @@ export class UserCreatePage implements OnInit {
       password: oneTimePassword,
       role_ids: roleIds,
       department_ids: departmentIds,
+      title_ids: titleIds,
     };
 
     this.isSaving = true;
@@ -209,6 +220,7 @@ export class UserCreatePage implements OnInit {
       oneTimePassword: '',
       roleIds: [],
       departmentIds: [],
+      titleId: null,
     });
     this.errorMessage = '';
     this.successMessage = '';
@@ -412,6 +424,7 @@ export class UserCreatePage implements OnInit {
     forkJoin({
       roles: this.usersAdminApi.getRoles(),
       departments: this.usersAdminApi.getDepartments(),
+      titles: this.usersAdminApi.getTitles(),
       users: this.usersAdminApi.getUsersForAdmin(),
     })
       .pipe(
@@ -421,9 +434,10 @@ export class UserCreatePage implements OnInit {
         })
       )
       .subscribe({
-        next: ({ roles, departments, users }) => {
+        next: ({ roles, departments, titles, users }) => {
           this.roles = roles;
           this.departments = departments;
+          this.titles = titles;
           this.users = users;
           this.ensureValidPage();
         },
@@ -521,5 +535,14 @@ export class UserCreatePage implements OnInit {
       .filter((id) => Number.isInteger(id) && id > 0);
 
     return Array.from(new Set(ids));
+  }
+
+  private parseOptionalSingleIdArray(rawValue: unknown): number[] {
+    const id = Number(rawValue);
+    if (!Number.isInteger(id) || id <= 0) {
+      return [];
+    }
+
+    return [id];
   }
 }

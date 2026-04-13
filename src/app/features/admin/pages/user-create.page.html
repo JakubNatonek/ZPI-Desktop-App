@@ -83,6 +83,19 @@
               </ion-select-option>
             </ion-select>
           </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Tytuły naukowe (opcjonalnie)</ion-label>
+            <ion-select
+              formControlName="titleId"
+              interface="popover"
+              placeholder="Wybierz tytuł naukowy">
+              <ion-select-option [value]="null">Brak</ion-select-option>
+              <ion-select-option *ngFor="let title of titles" [value]="title.id">
+                {{ title.name }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
         </div>
 
         <ion-note class="message" color="medium">
@@ -149,7 +162,7 @@
       <ion-list *ngIf="!isLoadingUsers && filteredUsers.length > 0">
         <ion-item *ngFor="let user of paginatedUsers">
           <ion-label>
-            <h2>{{ user.first_name }} {{ user.last_name }}</h2>
+            <h2>{{ getUserDisplayName(user) }}</h2>
             <p>Login: {{ user.login }} | Email: {{ user.email }}</p>
             <p>Rola: {{ user.roles.join(', ') }} | Wydział: {{ user.departments.join(', ') }}</p>
             <p *ngIf="user.must_change_password" class="must-change">Wymagana zmiana hasła</p>

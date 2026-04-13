@@ -14,6 +14,11 @@ export interface UserDepartmentOption {
   name: string;
 }
 
+export interface UserTitleOption {
+  id: number;
+  name: string;
+}
+
 export interface AdminCreateUserPayload {
   first_name: string;
   last_name: string;
@@ -21,6 +26,7 @@ export interface AdminCreateUserPayload {
   password: string;
   role_ids: number[];
   department_ids: number[];
+  title_ids: number[];
 }
 
 export interface AdminCreatedUserResponse {
@@ -41,6 +47,7 @@ export interface AdminUserRow {
   last_name: string;
   login: string;
   email: string;
+  titles: string[];
   roles: string[];
   departments: string[];
   must_change_password: boolean;
@@ -71,6 +78,10 @@ export class UsersAdminApiService {
 
   getDepartments(): Observable<UserDepartmentOption[]> {
     return this.http.get<UserDepartmentOption[]>(`${environment.apiBaseUrl}/departments/list`);
+  }
+
+  getTitles(): Observable<UserTitleOption[]> {
+    return this.http.get<UserTitleOption[]>(`${this.usersBaseUrl}/titles/list`);
   }
 
   createUser(payload: AdminCreateUserPayload): Observable<AdminCreatedUserResponse> {
