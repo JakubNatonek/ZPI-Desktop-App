@@ -1,0 +1,70 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Przedmioty</ion-title>
+    <ion-buttons slot="end" class="app-header-user-actions">
+      <ion-button color="primary" (click)="createSubject()">Utworz</ion-button>
+      <ion-chip color="medium" outline>
+        <ion-label>{{ userRoleLabel }}</ion-label>
+      </ion-chip>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
+        <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+      </ion-avatar>
+
+      <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
+        alignment="end" (didDismiss)="closeProfileMenu()">
+        <ng-template>
+          <ion-list lines="none">
+            <ion-item button detail="false" (click)="openSettings()">Ustawienia</ion-item>
+            <ion-item button detail="false" class="logout-item" (click)="logout()">Wyloguj</ion-item>
+          </ion-list>
+        </ng-template>
+      </ion-popover>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding subjects-list-content">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Lista przedmiotow</ion-card-title>
+      <ion-card-subtitle>Zarzadzaj przedmiotami i typem zajec.</ion-card-subtitle>
+    </ion-card-header>
+
+    <ion-card-content>
+      <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
+
+      <ion-note color="danger" *ngIf="errorMessage" class="list-message">
+        {{ errorMessage }}
+      </ion-note>
+
+      <ion-list *ngIf="!isLoading && subjects.length > 0" lines="full">
+        <ion-item *ngFor="let subject of subjects; trackBy: trackBySubjectId" class="subject-item">
+          <ion-label>
+            <h2>{{ subject.name }}</h2>
+            <p *ngIf="subject.activity_name">Typ zajec: {{ subject.activity_name }}</p>
+            <p *ngIf="subject.type_display">Skrot typu: {{ subject.type_display }}</p>
+            <p *ngIf="subject.room_properties">Wlasciwosci sali: {{ subject.room_properties }}</p>
+            <p>Cykl: {{ subject.periodic ? 'Cykliczny' : 'Jednorazowy' }}</p>
+            <p>Status: {{ subject.blocked ? 'Zablokowany' : 'Aktywny' }}</p>
+          </ion-label>
+
+          <ion-buttons slot="end">
+            <ion-button fill="outline" color="medium" (click)="editSubject(subject.id)">Edytuj</ion-button>
+            <ion-button fill="solid" color="danger" [disabled]="isDeleting" (click)="deleteSubject(subject.id)">
+              Usun
+            </ion-button>
+          </ion-buttons>
+        </ion-item>
+      </ion-list>
+
+      <div class="empty-state" *ngIf="!isLoading && subjects.length === 0">
+        <h3>Brak przedmiotow</h3>
+        <p>Dodaj pierwszy przedmiot, aby zaczac zarzadzanie siatka zajec.</p>
+        <ion-button color="primary" (click)="createSubject()">Utworz przedmiot</ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

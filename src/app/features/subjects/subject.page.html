@@ -1,0 +1,142 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>{{ isEditMode ? 'Edycja przedmiotu' : 'Tworzenie przedmiotu' }}</ion-title>
+    <ion-buttons slot="end" class="app-header-user-actions">
+      <ion-button fill="clear" (click)="navigateToList()">Lista przedmiotow</ion-button>
+      <ion-chip color="medium" outline>
+        <ion-label>{{ userRoleLabel }}</ion-label>
+      </ion-chip>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
+        <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+      </ion-avatar>
+
+      <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
+        alignment="end" (didDismiss)="closeProfileMenu()">
+        <ng-template>
+          <ion-list lines="none">
+            <ion-item button detail="false" (click)="openSettings()">Ustawienia</ion-item>
+            <ion-item button detail="false" class="logout-item" (click)="logout()">Wyloguj</ion-item>
+          </ion-list>
+        </ng-template>
+      </ion-popover>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding subject-form-content">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>{{ isEditMode ? 'Edycja przedmiotu' : 'Nowy przedmiot' }}</ion-card-title>
+      <ion-card-subtitle>
+        {{ isEditMode ? 'Zmien dane i zapisz aktualizacje.' : 'Uzupelnij formularz, aby dodac przedmiot.' }}
+      </ion-card-subtitle>
+    </ion-card-header>
+
+    <ion-card-content>
+      <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
+
+      <form #subjectForm="ngForm" (ngSubmit)="onSubmit(subjectForm)" *ngIf="!isLoading">
+        <ion-list lines="none">
+          <ion-item>
+            <ion-label position="stacked">Nazwa przedmiotu</ion-label>
+            <ion-input
+              name="name"
+              [(ngModel)]="name"
+              required
+              placeholder="Np. Programowanie obiektowe"
+              clearInput="true">
+            </ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Typ zajec</ion-label>
+            <ion-select
+              name="activityId"
+              interface="popover"
+              [(ngModel)]="activityId"
+              required>
+              <ion-select-option *ngFor="let activity of activityOptions" [value]="activity.id">
+                {{ activity.name }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Skrot typu (opcjonalnie)</ion-label>
+            <ion-input
+              name="typeDisplay"
+              [(ngModel)]="typeDisplay"
+              placeholder="Np. W, C, L"
+              clearInput="true">
+            </ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Wlasciwosci sali (opcjonalnie)</ion-label>
+            <ion-input
+              name="roomProperties"
+              [(ngModel)]="roomProperties"
+              placeholder="Np. laboratorium"
+              clearInput="true">
+            </ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-checkbox name="periodic" [(ngModel)]="periodic" slot="start"></ion-checkbox>
+            <ion-label>Zajecia cykliczne</ion-label>
+          </ion-item>
+
+          <ion-item>
+            <ion-checkbox name="blocked" [(ngModel)]="blocked" slot="start"></ion-checkbox>
+            <ion-label>Przedmiot zablokowany</ion-label>
+          </ion-item>
+        </ion-list>
+
+        <ion-note color="danger" *ngIf="dictionaryErrorMessage" class="submit-message">
+          {{ dictionaryErrorMessage }}
+        </ion-note>
+
+        <div class="section-block">
+          <h3>Zarzadzanie slownikiem typow zajec</h3>
+          <p>Dodawaj, edytuj i usuwaj typy zajec bez wychodzenia z formularza.</p>
+
+          <ion-list>
+            <ion-item lines="none">
+              <ion-label>Typy zajec</ion-label>
+              <ion-button slot="end" size="small" fill="outline" [disabled]="isUpdatingDictionary" (click)="createActivity()">
+                Dodaj
+              </ion-button>
+            </ion-item>
+            <ion-item *ngFor="let activity of activityOptions">
+              <ion-label>{{ activity.name }}</ion-label>
+              <ion-buttons slot="end">
+                <ion-button size="small" fill="clear" [disabled]="isUpdatingDictionary" (click)="editActivity(activity)">Edytuj</ion-button>
+                <ion-button size="small" fill="clear" color="danger" [disabled]="isUpdatingDictionary" (click)="deleteActivity(activity)">Usun</ion-button>
+              </ion-buttons>
+            </ion-item>
+          </ion-list>
+        </div>
+
+        <div class="form-actions">
+          <ion-button type="submit" color="primary" [disabled]="isSaving">
+            {{ isEditMode ? 'Zapisz zmiany' : 'Dodaj przedmiot' }}
+          </ion-button>
+          <ion-button type="button" fill="outline" color="medium" (click)="resetForm(subjectForm)">
+            Wyczysc formularz
+          </ion-button>
+        </div>
+      </form>
+
+      <ion-note color="danger" *ngIf="errorMessage" class="submit-message">
+        {{ errorMessage }}
+      </ion-note>
+
+      <ion-note color="success" *ngIf="submitMessage" class="submit-message">
+        {{ submitMessage }}
+      </ion-note>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

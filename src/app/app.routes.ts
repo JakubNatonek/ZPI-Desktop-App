@@ -39,6 +39,18 @@ export const routes: Routes = [
     loadComponent: () => import('./features/sale/sale.page').then((m) => m.SalePage),
   },
   {
+    path: 'subjects',
+    loadComponent: () => import('./features/subjects/subject-list.page').then((m) => m.SubjectListPage),
+  },
+  {
+    path: 'subjects/new',
+    loadComponent: () => import('./features/subjects/subject.page').then((m) => m.SubjectPage),
+  },
+  {
+    path: 'subjects/:id/edit',
+    loadComponent: () => import('./features/subjects/subject.page').then((m) => m.SubjectPage),
+  },
+  {
     path: 'admin/users/new',
     canActivate: [authGuard],
     loadComponent: () => import('./features/admin/pages/user-create.page').then((m) => m.UserCreatePage),

@@ -20,6 +20,7 @@
         <ion-item button *ngIf="auth.role !== 'lecturer'" (click)="navigate('/hermonogram')">Harmonogram</ion-item>
         <ion-item button *ngIf="auth.role !== 'lecturer'" (click)="navigate('/konflikty')">Konflikty</ion-item>
         <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/sale')">Sale</ion-item>
+        <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/subjects')">Przedmioty</ion-item>
         <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/admin/users/new')">Dodaj użytkownika</ion-item>
         <ion-item button (click)="navigate('/profile')">Profil</ion-item>
       </ion-list>
