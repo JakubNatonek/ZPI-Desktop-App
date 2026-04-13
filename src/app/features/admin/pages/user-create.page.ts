@@ -34,8 +34,8 @@ export class UserCreatePage implements OnInit {
     lastName: ['', [Validators.required, Validators.minLength(2)]],
     email: ['', [Validators.required, Validators.email]],
     oneTimePassword: ['', [Validators.required, Validators.minLength(8)]],
-    role: ['', [Validators.required]],
-    department: ['', [Validators.required]],
+    roleIds: this.fb.control<number[]>([], { nonNullable: true, validators: [Validators.required] }),
+    departmentIds: this.fb.control<number[]>([], { nonNullable: true, validators: [Validators.required] }),
   });
 
   readonly editForm = this.fb.group({
@@ -43,8 +43,8 @@ export class UserCreatePage implements OnInit {
     lastName: ['', [Validators.required, Validators.minLength(2)]],
     login: ['', [Validators.required, Validators.minLength(3), Validators.pattern('^[a-z0-9._-]+$')]],
     email: ['', [Validators.required, Validators.email]],
-    role: ['', [Validators.required]],
-    department: ['', [Validators.required]],
+    roleIds: this.fb.control<number[]>([], { nonNullable: true, validators: [Validators.required] }),
+    departmentIds: this.fb.control<number[]>([], { nonNullable: true, validators: [Validators.required] }),
   });
 
   roles: UserRoleOption[] = [];
@@ -165,10 +165,10 @@ export class UserCreatePage implements OnInit {
     }
 
     const value = this.form.getRawValue();
-    const roleId = Number(value.role);
-    const departmentId = Number(value.department);
-    if (!Number.isInteger(roleId) || !Number.isInteger(departmentId)) {
-      this.errorMessage = 'Wybierz poprawnie rolę i wydział.';
+    const roleIds = this.parseIdArray(value.roleIds);
+    const departmentIds = this.parseIdArray(value.departmentIds);
+    if (roleIds.length === 0 || departmentIds.length === 0) {
+      this.errorMessage = 'Wybierz poprawnie role i wydziały.';
       return;
     }
 
@@ -178,8 +178,8 @@ export class UserCreatePage implements OnInit {
       last_name: value.lastName!.trim(),
       email: value.email!.trim().toLowerCase(),
       password: oneTimePassword,
-      role_ids: [roleId],
-      department_ids: [departmentId],
+      role_ids: roleIds,
+      department_ids: departmentIds,
     };
 
     this.isSaving = true;
@@ -202,7 +202,14 @@ export class UserCreatePage implements OnInit {
   }
 
   resetForm(): void {
-    this.form.reset();
+    this.form.reset({
+      firstName: '',
+      lastName: '',
+      email: '',
+      oneTimePassword: '',
+      roleIds: [],
+      departmentIds: [],
+    });
     this.errorMessage = '';
     this.successMessage = '';
     this.createdCredentials = null;
@@ -252,16 +259,16 @@ export class UserCreatePage implements OnInit {
 
   openEditModal(user: AdminUserRow): void {
     this.selectedUser = user;
-    const selectedRole = this.findRoleIdByName(user.roles[0]);
-    const selectedDepartment = this.findDepartmentIdByName(user.departments[0]);
+    const selectedRoles = this.findRoleIdsByNames(user.roles);
+    const selectedDepartments = this.findDepartmentIdsByNames(user.departments);
 
     this.editForm.setValue({
       firstName: user.first_name,
       lastName: user.last_name,
       login: user.login,
       email: user.email,
-      role: selectedRole,
-      department: selectedDepartment,
+      roleIds: selectedRoles,
+      departmentIds: selectedDepartments,
     });
     this.errorMessage = '';
     this.successMessage = '';
@@ -285,10 +292,10 @@ export class UserCreatePage implements OnInit {
     }
 
     const value = this.editForm.getRawValue();
-    const roleId = Number(value.role);
-    const departmentId = Number(value.department);
-    if (!Number.isInteger(roleId) || !Number.isInteger(departmentId)) {
-      this.errorMessage = 'Wybierz poprawnie rolę i wydział przed zapisem.';
+    const roleIds = this.parseIdArray(value.roleIds);
+    const departmentIds = this.parseIdArray(value.departmentIds);
+    if (roleIds.length === 0 || departmentIds.length === 0) {
+      this.errorMessage = 'Wybierz poprawnie role i wydziały przed zapisem.';
       return;
     }
 
@@ -297,8 +304,8 @@ export class UserCreatePage implements OnInit {
       last_name: value.lastName!.trim(),
       login: value.login!.trim().toLowerCase(),
       email: value.email!.trim().toLowerCase(),
-      role_ids: [roleId],
-      department_ids: [departmentId],
+      role_ids: roleIds,
+      department_ids: departmentIds,
     };
 
     this.isSavingEdit = true;
@@ -478,23 +485,41 @@ export class UserCreatePage implements OnInit {
     }
   }
 
-  private findRoleIdByName(roleName?: string): string {
-    if (!roleName) {
-      return '';
+  private findRoleIdsByNames(roleNames: string[]): number[] {
+    if (!Array.isArray(roleNames) || roleNames.length === 0) {
+      return [];
     }
 
-    const normalized = roleName.trim().toLowerCase();
-    const role = this.roles.find((item) => item.name.trim().toLowerCase() === normalized);
-    return role ? String(role.id) : '';
+    const roleIndex = new Map(this.roles.map((role) => [role.name.trim().toLowerCase(), role.id]));
+    const ids = roleNames
+      .map((roleName) => roleIndex.get(roleName.trim().toLowerCase()))
+      .filter((roleId): roleId is number => typeof roleId === 'number');
+
+    return Array.from(new Set(ids));
   }
 
-  private findDepartmentIdByName(departmentName?: string): string {
-    if (!departmentName) {
-      return '';
+  private findDepartmentIdsByNames(departmentNames: string[]): number[] {
+    if (!Array.isArray(departmentNames) || departmentNames.length === 0) {
+      return [];
     }
 
-    const normalized = departmentName.trim().toLowerCase();
-    const department = this.departments.find((item) => item.name.trim().toLowerCase() === normalized);
-    return department ? String(department.id) : '';
+    const departmentIndex = new Map(this.departments.map((department) => [department.name.trim().toLowerCase(), department.id]));
+    const ids = departmentNames
+      .map((departmentName) => departmentIndex.get(departmentName.trim().toLowerCase()))
+      .filter((departmentId): departmentId is number => typeof departmentId === 'number');
+
+    return Array.from(new Set(ids));
+  }
+
+  private parseIdArray(rawValue: unknown): number[] {
+    if (!Array.isArray(rawValue)) {
+      return [];
+    }
+
+    const ids = rawValue
+      .map((value) => Number(value))
+      .filter((id) => Number.isInteger(id) && id > 0);
+
+    return Array.from(new Set(ids));
   }
 }
