@@ -4,6 +4,11 @@
     <ion-content class="ion-padding no-scroll">
       <div class="sidebar-inner" [class.hidden]="sidebarWidth() < 160">
         <h3>Tryb pracy</h3>
+        <ion-button *ngIf="isLecturer || isAdminOrPlanner" class="rapla-file-btn" expand="block" fill="outline"
+          color="primary" [href]="raplaFileUrl" target="_blank" rel="noopener noreferrer">
+          <ion-icon slot="start" name="cloud-download-outline"></ion-icon>
+          Pobierz plik Rapla
+        </ion-button>
         <p class="role-label">Rola: {{ userRoleLabel }}</p>
 
         <!-- Tryb wykladowcy: przeplyw zaznaczania dostepnosci -->

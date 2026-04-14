@@ -12,6 +12,7 @@ import {
 } from 'ionicons/icons';
 import { AuthService } from '../../../core/services/auth.service';
 import { DezyderataService, Semestr, Dezyderata, DezyderataCreate, DezyderataCreateEntry } from '../../../core/services/dezyderata.service';
+import { environment } from '../../../../environments/environment';
 
 type AvailabilityMode = 'available' | 'unavailable';
 
@@ -58,6 +59,7 @@ interface HistoryWeekItem {
   imports: [IonicModule, CommonModule, FormsModule],
 })
 export class HomePage implements OnInit {
+  readonly raplaFileUrl = `${environment.apiBaseUrl}/rapla/file`;
   private readonly lecturerTutorialDisabledStorageKey = 'lecturerTutorialDisabled';
   private readonly tutorialCalendarRequiredTiles = 5;
   private readonly minSidebarWidth = 64;
