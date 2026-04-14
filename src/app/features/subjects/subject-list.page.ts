@@ -33,6 +33,12 @@ export class SubjectListPage implements OnInit {
       this.router.navigateByUrl('/home');
       return;
     }
+  }
+
+  ionViewWillEnter(): void {
+    if (this.auth.role !== 'admin') {
+      return;
+    }
 
     this.loadSubjects();
   }
