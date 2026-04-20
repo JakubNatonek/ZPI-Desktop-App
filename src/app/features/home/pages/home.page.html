@@ -71,36 +71,74 @@
 
         <!-- Tryb admina/planisty: lista wpisow wykladowcow -->
         <ng-template #adminPlannerFolders>
-          <div class="sent-data" *ngIf="submissionsForAdminPlanner.length > 0; else emptyFolderState">
-            <h4>Wpisy wykładowców</h4>
-            <p>Wczytane wpisy: {{ allSubmissions.length }}</p>
-            <button type="button" class="submission-card is-clickable" *ngFor="let entry of submissionsForAdminPlanner"
-              [class.is-active]="isPlannerSubmissionActive(entry)" (click)="selectPlannerSubmission(entry)">
-              <div class="submission-row">
-                <span class="submission-label">Wykładowca</span>
-                <span class="submission-value">{{ entry.lecturerDisplayName }}</span>
-              </div>
-              <div class="submission-row">
-                <span class="submission-label">Tydzień</span>
-                <span class="submission-value">{{ entry.weekStartIso || 'brak daty' }}</span>
-              </div>
-              <div class="submission-row">
-                <span class="submission-label">Typ</span>
-                <span class="submission-value">{{ strategyLabel(entry.strategy) }}</span>
-              </div>
-              <div class="submission-row">
-                <span class="submission-label">Akcja</span>
-                <span class="submission-value">Pokaż w planie</span>
-              </div>
-            </button>
-
-            <div class="preview-box" *ngIf="selectedSubmissionPreview">
-              <p><strong>Podgląd:</strong> {{ selectedSubmissionPreview.lecturerDisplayName }}</p>
-              <p><strong>Tydzień:</strong> {{ selectedSubmissionPreview.weekStartIso }}</p>
-              <p><strong>Tryb zaznaczeń:</strong> {{ strategyLabel(selectedSubmissionPreview.strategy) }}</p>
-              <p><strong>Zaznaczone:</strong> {{ selectedSubmissionPreview.markedHours }} h</p>
-              <p><strong>Dostępne dla planisty:</strong> {{ selectedSubmissionPreview.plannerAvailabilityHours }} h</p>
+          <div class="sent-data" *ngIf="isAdmin; else plannerInfo">
+            <div class="semestr-selector">
+              <ion-label>Semestr</ion-label>
+              <ion-select
+                [value]="selectedSemestrId"
+                (ionChange)="onSemestrChange($event)"
+                interface="popover"
+                [disabled]="semestry.length === 0 || isLoadingSemestry || isLoadingLecturerStatuses">
+                <ion-select-option *ngFor="let semestr of semestry" [value]="semestr.id">
+                  {{ semestr.nazwa }}
+                </ion-select-option>
+                <ion-select-option *ngIf="semestry.length === 0" [value]="null" disabled>
+                  Brak dostępnych semestrów
+                </ion-select-option>
+              </ion-select>
             </div>
+
+            <h4>Lista wykładowców</h4>
+            <p class="lecturer-message" *ngIf="adminPanelMessage">{{ adminPanelMessage }}</p>
+
+            <div class="loading-indicator" *ngIf="isLoadingLecturerStatuses">
+              <ion-spinner name="crescent"></ion-spinner>
+              <span>Ładowanie listy wykładowców...</span>
+            </div>
+
+            <div class="lecturer-list" *ngIf="!isLoadingLecturerStatuses && lecturerStatusList.length > 0; else emptyLecturerState">
+              <div
+                class="submission-card lecturer-status-card"
+                *ngFor="let lecturer of lecturerStatusList"
+                [class.is-active]="isLecturerStatusActive(lecturer)"
+                [class.is-clickable]="lecturer.isApproved"
+                [class.status-approved]="lecturer.isApproved"
+                [class.status-missing]="!lecturer.isApproved"
+                [attr.role]="lecturer.isApproved ? 'button' : null"
+                [attr.tabindex]="lecturer.isApproved ? '0' : null"
+                (click)="lecturer.isApproved && selectLecturerStatus(lecturer)">
+                <div class="submission-row">
+                  <span class="submission-label">Wykładowca</span>
+                  <span class="submission-value">{{ lecturer.lecturerDisplayName }}</span>
+                </div>
+                <div class="submission-row">
+                  <span class="submission-label">Status</span>
+                  <span class="status-pill">{{ lecturer.isApproved ? 'Zatwierdzona dezyderata' : 'Brak zatwierdzonej dezyderaty' }}</span>
+                </div>
+                <div class="submission-row" *ngIf="lecturer.isApproved && lecturer.submission">
+                  <span class="submission-label">Tydzień wpisu</span>
+                  <span class="submission-value">{{ lecturer.submission.weekStartIso }}</span>
+                </div>
+
+                <div class="submission-row submission-expand-row">
+                  <span class="submission-label">Dane wykładowcy</span>
+                  <ion-button size="small" fill="outline" color="medium" (click)="toggleLecturerDetails(lecturer.userId, $event)">
+                    {{ isLecturerDetailsExpanded(lecturer.userId) ? 'Zwiń' : 'Rozwiń' }}
+                  </ion-button>
+                </div>
+
+                <div class="lecturer-extra" *ngIf="isLecturerDetailsExpanded(lecturer.userId)">
+                  <div class="submission-row">
+                    <span class="submission-label">Wydziały</span>
+                    <span class="submission-value">{{ lecturer.departments.length > 0 ? lecturer.departments.join(', ') : 'Brak wydziałów' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <ng-template #emptyLecturerState>
+              <p>Brak wykładowców do wyświetlenia.</p>
+            </ng-template>
 
             <div class="preview-box" *ngIf="activePlannerSubmission">
               <p><strong>Aktualny plan w siatce:</strong> {{ activePlannerSubmission.lecturerDisplayName }}</p>
@@ -111,8 +149,9 @@
               </ion-button>
             </div>
           </div>
-          <ng-template #emptyFolderState>
-            <p>Brak zatwierdzonych danych od wykładowców.</p>
+
+          <ng-template #plannerInfo>
+            <p>Lista dezyderat wykładowców jest dostępna dla administratora.</p>
           </ng-template>
         </ng-template>
       </div>
@@ -131,7 +170,6 @@
       <ion-toolbar mode="md">
         <ion-buttons slot="start">
           <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
-          <ion-title class="calendar-title">{{ currentMonthName }} {{ currentYear }}</ion-title>
         </ion-buttons>
 
         <ion-buttons slot="end">

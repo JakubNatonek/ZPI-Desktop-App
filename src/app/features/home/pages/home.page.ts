@@ -10,8 +10,10 @@ import {
   checkmarkDoneOutline, createOutline, swapHorizontalOutline,
   timeOutline, calendarOutline
 } from 'ionicons/icons';
+import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { DezyderataService, Semestr, Dezyderata, DezyderataCreate, DezyderataCreateEntry } from '../../../core/services/dezyderata.service';
+import { UsersAdminApiService, AdminUserRow } from '../../../core/services/users-admin-api.service';
 import { environment } from '../../../../environments/environment';
 
 type AvailabilityMode = 'available' | 'unavailable';
@@ -35,6 +37,15 @@ interface LecturerSubmission {
   timestamp: string;
   semestrId?: number;
   semestrNazwa?: string;
+}
+
+interface LecturerStatusItem {
+  userId: number;
+  lecturerDisplayName: string;
+  lecturerEmail: string;
+  departments: string[];
+  isApproved: boolean;
+  submission: LecturerSubmission | null;
 }
 
 interface TutorialStep {
@@ -66,6 +77,7 @@ export class HomePage implements OnInit {
   private readonly maxSidebarWidth = 500;
   private readonly collapsedThreshold = 160;
   private readonly lecturerWeeklyHours = 30;
+  private readonly lecturerRoleNames = new Set(['wykladowca', 'wykładowca', 'lecturer', 'cwiczenia', 'laboratorium', 'seminarium']);
 
   sidebarWidth = signal(280);
   isResizing = false;
@@ -79,11 +91,15 @@ export class HomePage implements OnInit {
   selectionStrategy: AvailabilityMode | null = null;
   isHoursConfirmed = false;
   lecturerMessage = '';
+  adminPanelMessage = '';
   allSubmissions: LecturerSubmission[] = [];
+  lecturerStatusList: LecturerStatusItem[] = [];
+  expandedLecturerIds = new Set<number>();
   activePlannerSubmissionId: string | null = null;
   selectedSubmissionPreview: LecturerSubmission | null = null;
   isSubmissionModalOpen = false;
   submissionPreviewWeekDays: WeekDay[] = [];
+  isLoadingLecturerStatuses = false;
   isTutorialActive = false;
   tutorialStepIndex = 0;
   tutorialShownThisSession = false;
@@ -117,8 +133,6 @@ export class HomePage implements OnInit {
   ];
   hours24 = Array.from({ length: 14 }, (_, i) => i + 7);
   selectedDate: Date = new Date();
-  currentMonthName = '';
-  currentYear = 0;
   weekDays: WeekDay[] = [];
 
   // Semestry i historia
@@ -132,17 +146,16 @@ export class HomePage implements OnInit {
   isLoadingDezyderaty = false;
   isSaving = false;
 
-  teachers = [
-    { name: 'Dr Isabella Storm', progress: 0.9 },
-    { name: 'Prof. Adam Nowak', progress: 0.4 }
-  ];
-
   get isLecturer(): boolean {
     return this.auth.role === 'lecturer';
   }
 
   get isAdminOrPlanner(): boolean {
     return this.auth.role === 'admin' || this.auth.role === 'planner';
+  }
+
+  get isAdmin(): boolean {
+    return this.auth.role === 'admin';
   }
 
   get userRoleLabel(): string {
@@ -187,28 +200,6 @@ export class HomePage implements OnInit {
 
   get currentLecturerEmail(): string {
     return this.auth.email || '';
-  }
-
-  get lecturerSubmissions(): LecturerSubmission[] {
-    return this.allSubmissions
-      .filter((submission) => submission.lecturerEmail === this.currentLecturerEmail)
-      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-  }
-
-  get submissionsForAdminPlanner(): LecturerSubmission[] {
-    const latestByLecturer = new Map<string, LecturerSubmission>();
-
-    for (const submission of this.allSubmissions) {
-      const lecturerKey = submission.lecturerEmail || submission.lecturerDisplayName || submission.id;
-      const current = latestByLecturer.get(lecturerKey);
-
-      if (!current || submission.timestamp.localeCompare(current.timestamp) > 0) {
-        latestByLecturer.set(lecturerKey, submission);
-      }
-    }
-
-    return Array.from(latestByLecturer.values())
-      .sort((a, b) => a.lecturerDisplayName.localeCompare(b.lecturerDisplayName));
   }
 
   get activePlannerSubmission(): LecturerSubmission | null {
@@ -260,7 +251,8 @@ export class HomePage implements OnInit {
   constructor(
     private router: Router,
     private auth: AuthService,
-    private dezyderataService: DezyderataService
+    private dezyderataService: DezyderataService,
+    private usersAdminApi: UsersAdminApiService
   ) {
     addIcons({
       chevronBackOutline,
@@ -309,14 +301,14 @@ export class HomePage implements OnInit {
       next: (semestr) => {
         this.currentSemestr = semestr;
         this.selectedSemestrId = semestr.id;
-        this.loadCurrentDezyderata();
+        this.loadRoleScopedData();
       },
       error: () => {
         // Brak aktywnego semestru - użyj pierwszego dostępnego
         if (this.semestry.length > 0) {
           this.currentSemestr = this.semestry[0];
           this.selectedSemestrId = this.semestry[0].id;
-          this.loadCurrentDezyderata();
+          this.loadRoleScopedData();
         }
       }
     });
@@ -348,7 +340,7 @@ export class HomePage implements OnInit {
     }
 
     const matching = dezyderaty.filter(
-      (d) => d.data_od === weekStartIso && d.data_do === weekEndIso
+      (d) => this.isMatchingWeekRange(d.data_od, d.data_do, weekStartIso, weekEndIso)
     );
 
     if (matching.length === 0) {
@@ -370,7 +362,8 @@ export class HomePage implements OnInit {
         continue;
       }
 
-      for (let hour = entry.from_hour; hour <= entry.to_hour; hour++) {
+      const displayToHour = this.getDisplayToHour(entry);
+      for (let hour = entry.from_hour; hour <= displayToHour; hour++) {
         this.slotSelections.set(`${dayIso}-${hour}`, strategy);
       }
     }
@@ -380,10 +373,20 @@ export class HomePage implements OnInit {
   }
 
   onSemestrChange(event: CustomEvent) {
-    const semestrId = parseInt(event.detail.value, 10);
+    const semestrId = Number(event.detail.value);
+    if (!Number.isInteger(semestrId) || semestrId <= 0) {
+      this.selectedSemestrId = null;
+      this.currentSemestr = null;
+      this.allSubmissions = [];
+      this.lecturerStatusList = [];
+      this.expandedLecturerIds.clear();
+      this.activePlannerSubmissionId = null;
+      return;
+    }
+
     this.selectedSemestrId = semestrId;
     this.currentSemestr = this.semestry.find(s => s.id === semestrId) ?? null;
-    this.loadCurrentDezyderata();
+    this.loadRoleScopedData();
   }
 
   openHistoryModal() {
@@ -429,7 +432,8 @@ export class HomePage implements OnInit {
         continue;
       }
 
-      for (let hour = entry.from_hour; hour <= entry.to_hour; hour++) {
+      const displayToHour = this.getDisplayToHour(entry);
+      for (let hour = entry.from_hour; hour <= displayToHour; hour++) {
         this.slotSelections.set(`${dayIso}-${hour}`, this.selectionStrategy);
       }
     }
@@ -494,9 +498,10 @@ export class HomePage implements OnInit {
 
   updateView() {
     this.generateWeek(this.selectedDate);
-    const months = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
-    this.currentMonthName = months[this.selectedDate.getMonth()];
-    this.currentYear = this.selectedDate.getFullYear();
+
+    if (this.isAdmin) {
+      this.loadAdminLecturerStatuses();
+    }
   }
 
   generateWeek(baseDate: Date) {
@@ -510,7 +515,7 @@ export class HomePage implements OnInit {
       const nextDay = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
       this.weekDays.push({
         name: names[i],
-        iso: nextDay.toISOString().slice(0, 10),
+        iso: this.formatLocalDateIso(nextDay),
         isToday: nextDay.toDateString() === new Date().toDateString(),
       });
     }
@@ -712,17 +717,39 @@ export class HomePage implements OnInit {
     this.isSubmissionModalOpen = true;
   }
 
-  selectPlannerSubmission(entry: LecturerSubmission) {
-    this.activePlannerSubmissionId = entry.id;
-
-    if (entry.weekStartIso) {
-      this.selectedDate = new Date(`${entry.weekStartIso}T00:00:00`);
-      this.updateView();
+  selectLecturerStatus(lecturer: LecturerStatusItem) {
+    if (!lecturer.submission) {
+      return;
     }
+
+    this.activePlannerSubmissionId = lecturer.submission.id;
+
+    const weekStartDate = this.parseIsoDate(lecturer.submission.weekStartIso);
+    this.selectedDate = new Date(weekStartDate.getTime());
+    this.generateWeek(weekStartDate);
   }
 
-  isPlannerSubmissionActive(entry: LecturerSubmission): boolean {
-    return this.activePlannerSubmissionId === entry.id;
+  isLecturerStatusActive(lecturer: LecturerStatusItem): boolean {
+    if (!lecturer.submission) {
+      return false;
+    }
+
+    return this.activePlannerSubmissionId === lecturer.submission.id;
+  }
+
+  toggleLecturerDetails(userId: number, event?: Event) {
+    event?.stopPropagation();
+
+    if (this.expandedLecturerIds.has(userId)) {
+      this.expandedLecturerIds.delete(userId);
+      return;
+    }
+
+    this.expandedLecturerIds.add(userId);
+  }
+
+  isLecturerDetailsExpanded(userId: number): boolean {
+    return this.expandedLecturerIds.has(userId);
   }
 
   closeSubmissionPreview() {
@@ -735,9 +762,7 @@ export class HomePage implements OnInit {
     }
 
     const key = this.getSlotKey(day, hour);
-    return this.selectedSubmissionPreview.selectedSlots?.includes(key)
-      ? this.selectedSubmissionPreview.strategy
-      : null;
+    return this.resolveSubmissionSlotState(this.selectedSubmissionPreview, key);
   }
 
   getPlannerSlotState(day: WeekDay, hour: number): AvailabilityMode | null {
@@ -747,9 +772,7 @@ export class HomePage implements OnInit {
     }
 
     const key = this.getSlotKey(day, hour);
-    return activeSubmission.selectedSlots?.includes(key)
-      ? activeSubmission.strategy
-      : null;
+    return this.resolveSubmissionSlotState(activeSubmission, key);
   }
 
   formatDateRange(dataOd: string, dataDo: string): string {
@@ -760,7 +783,199 @@ export class HomePage implements OnInit {
   }
 
   countWeekHours(entries: Dezyderata[]): number {
-    return entries.reduce((sum, entry) => sum + (entry.to_hour - entry.from_hour + 1), 0);
+    return entries.reduce((sum, entry) => {
+      const displayToHour = this.getDisplayToHour(entry);
+      return sum + (displayToHour - entry.from_hour + 1);
+    }, 0);
+  }
+
+  private loadRoleScopedData() {
+    if (this.isLecturer) {
+      this.loadCurrentDezyderata();
+      return;
+    }
+
+    if (this.isAdmin) {
+      this.loadAdminLecturerStatuses();
+    }
+  }
+
+  private loadAdminLecturerStatuses() {
+    if (!this.isAdmin || !this.selectedSemestrId || this.weekDays.length < 7) {
+      return;
+    }
+
+    this.isLoadingLecturerStatuses = true;
+    this.adminPanelMessage = '';
+
+    forkJoin({
+      users: this.usersAdminApi.getUsersForAdmin(),
+      dezyderaty: this.dezyderataService.getDezyderaty(this.selectedSemestrId),
+    }).subscribe({
+      next: ({ users, dezyderaty }) => {
+        const lecturers = users
+          .filter((user) => this.isLecturerAccount(user))
+          .sort((a, b) => this.buildLecturerDisplayName(a).localeCompare(this.buildLecturerDisplayName(b), 'pl'));
+
+        const lecturerIds = new Set(lecturers.map((lecturer) => lecturer.user_id));
+        this.expandedLecturerIds = new Set(
+          Array.from(this.expandedLecturerIds).filter((userId) => lecturerIds.has(userId)),
+        );
+        const entriesByLecturer = new Map<number, Dezyderata[]>();
+        for (const entry of dezyderaty.items) {
+          if (!entriesByLecturer.has(entry.user_id)) {
+            entriesByLecturer.set(entry.user_id, []);
+          }
+          entriesByLecturer.get(entry.user_id)?.push(entry);
+        }
+
+        const submissionByLecturer = new Map<number, LecturerSubmission>();
+        const submissions: LecturerSubmission[] = [];
+
+        for (const lecturer of lecturers) {
+          const submission = this.buildSubmissionForLecturer(lecturer, entriesByLecturer.get(lecturer.user_id) ?? []);
+          if (!submission) {
+            continue;
+          }
+
+          submissionByLecturer.set(lecturer.user_id, submission);
+          submissions.push(submission);
+        }
+
+        this.allSubmissions = submissions;
+
+        this.lecturerStatusList = lecturers.map((lecturer) => {
+          const submission = submissionByLecturer.get(lecturer.user_id) ?? null;
+
+          return {
+            userId: lecturer.user_id,
+            lecturerDisplayName: this.buildLecturerDisplayName(lecturer),
+            lecturerEmail: lecturer.email,
+            departments: this.normalizeDetailList(lecturer.departments),
+            isApproved: submission !== null,
+            submission,
+          };
+        });
+
+        if (this.activePlannerSubmissionId && !this.allSubmissions.some((entry) => entry.id === this.activePlannerSubmissionId)) {
+          const activeUserIdText = this.activePlannerSubmissionId.split('-')[0];
+          const activeUserId = Number.parseInt(activeUserIdText, 10);
+          const fallbackSubmission = Number.isNaN(activeUserId)
+            ? null
+            : submissionByLecturer.get(activeUserId) ?? null;
+          this.activePlannerSubmissionId = fallbackSubmission?.id ?? null;
+        }
+
+        this.isLoadingLecturerStatuses = false;
+      },
+      error: () => {
+        this.isLoadingLecturerStatuses = false;
+        this.allSubmissions = [];
+        this.lecturerStatusList = [];
+        this.expandedLecturerIds.clear();
+        this.activePlannerSubmissionId = null;
+        this.adminPanelMessage = 'Nie udało się pobrać listy wykładowców i dezyderat.';
+      },
+    });
+  }
+
+  private isLecturerAccount(user: AdminUserRow): boolean {
+    return user.roles.some((roleName) => this.lecturerRoleNames.has(this.normalizeRoleName(roleName)));
+  }
+
+  private normalizeRoleName(roleName: string): string {
+    return roleName
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  private normalizeDetailList(values: string[] | null | undefined): string[] {
+    return (values ?? [])
+      .map((value) => String(value ?? '').trim())
+      .filter((value) => value.length > 0);
+  }
+
+  private buildLecturerDisplayName(user: AdminUserRow): string {
+    const titles = this.normalizeDetailList(user.titles);
+    const displayName = `${user.first_name} ${user.last_name}`.trim();
+    const baseName = displayName || user.login;
+    const titlePrefix = titles.length > 0 ? `${titles[0]} ` : '';
+    return `${titlePrefix}${baseName}`.trim();
+  }
+
+  private buildSubmissionForLecturer(lecturer: AdminUserRow, entries: Dezyderata[]): LecturerSubmission | null {
+    if (entries.length === 0) {
+      return null;
+    }
+
+    const groupedByWeek = new Map<string, Dezyderata[]>();
+    for (const entry of entries) {
+      const key = `${entry.data_od}|${entry.data_do}`;
+      if (!groupedByWeek.has(key)) {
+        groupedByWeek.set(key, []);
+      }
+
+      groupedByWeek.get(key)?.push(entry);
+    }
+
+    let latestWeekEntries: Dezyderata[] | null = null;
+    let latestWeekStartIso = '';
+    let latestWeekEndIso = '';
+
+    for (const [weekKey, weekEntries] of groupedByWeek.entries()) {
+      const [weekStartIso, weekEndIso] = weekKey.split('|');
+      if (!weekStartIso || !weekEndIso) {
+        continue;
+      }
+
+      if (!latestWeekEntries || weekStartIso.localeCompare(latestWeekStartIso) > 0) {
+        latestWeekEntries = weekEntries;
+        latestWeekStartIso = weekStartIso;
+        latestWeekEndIso = weekEndIso;
+      }
+    }
+
+    if (!latestWeekEntries || !latestWeekStartIso || !latestWeekEndIso) {
+      return null;
+    }
+
+    const weekDaysForSubmission = this.buildWeekDaysFromIso(latestWeekStartIso);
+    const strategy: AvailabilityMode = latestWeekEntries[0].is_available ? 'available' : 'unavailable';
+    const selectedSlots = new Set<string>();
+
+    for (const entry of latestWeekEntries) {
+      const dayIso = weekDaysForSubmission[entry.day_id - 1]?.iso ?? null;
+      if (!dayIso) {
+        continue;
+      }
+
+      const displayToHour = this.getDisplayToHour(entry);
+      for (let hour = entry.from_hour; hour <= displayToHour; hour++) {
+        selectedSlots.add(`${dayIso}-${hour}`);
+      }
+    }
+
+    const markedHours = selectedSlots.size;
+    const plannerAvailabilityHours = strategy === 'available'
+      ? markedHours
+      : Math.max(0, this.totalWeekHours - markedHours);
+
+    return {
+      id: `${lecturer.user_id}-${latestWeekStartIso}`,
+      lecturerDisplayName: this.buildLecturerDisplayName(lecturer),
+      lecturerEmail: lecturer.email,
+      weekStartIso: latestWeekStartIso,
+      strategy,
+      selectedSlots: Array.from(selectedSlots),
+      markedHours,
+      plannerAvailabilityHours,
+      requiredHours: this.requiredAvailabilityHours,
+      timestamp: `${latestWeekStartIso}T00:00:00`,
+      semestrId: latestWeekEntries[0].semestr_id,
+      semestrNazwa: latestWeekEntries[0].semestr_nazwa,
+    };
   }
 
   private applySelection(day: WeekDay, hour: number, isStart: boolean) {
@@ -796,6 +1011,21 @@ export class HomePage implements OnInit {
 
   private getSlotKey(day: WeekDay, hour: number): string {
     return `${day.iso}-${hour}`;
+  }
+
+  private resolveSubmissionSlotState(submission: LecturerSubmission, slotKey: string): AvailabilityMode {
+    const isSelected = submission.selectedSlots?.includes(slotKey) ?? false;
+
+    if (submission.strategy === 'available') {
+      return isSelected ? 'available' : 'unavailable';
+    }
+
+    return isSelected ? 'unavailable' : 'available';
+  }
+
+  private getDisplayToHour(entry: Pick<Dezyderata, 'from_hour' | 'to_hour'>): number {
+    // Backend persists to_hour with +1, so normalize only for UI rendering.
+    return Math.max(entry.from_hour, entry.to_hour - 1);
   }
 
   private dayIdToIso(dayId: number): string | null {
@@ -893,7 +1123,7 @@ export class HomePage implements OnInit {
   }
 
   private buildWeekDaysFromIso(weekStartIso: string): WeekDay[] {
-    const monday = new Date(`${weekStartIso}T00:00:00`);
+    const monday = this.parseIsoDate(weekStartIso);
     const names = ['PN', 'WT', 'ŚR', 'CZ', 'PT', 'SO', 'ND'];
     const days: WeekDay[] = [];
 
@@ -901,12 +1131,49 @@ export class HomePage implements OnInit {
       const nextDay = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
       days.push({
         name: names[i],
-        iso: nextDay.toISOString().slice(0, 10),
+        iso: this.formatLocalDateIso(nextDay),
         isToday: false,
       });
     }
 
     return days;
+  }
+
+  private isMatchingWeekRange(dataOd: string, dataDo: string, weekStartIso: string, weekEndIso: string): boolean {
+    if (dataOd === weekStartIso && dataDo === weekEndIso) {
+      return true;
+    }
+
+    // Compatibility for records saved before timezone fix (stored one day earlier).
+    const legacyWeekStartIso = this.shiftIsoDateByDays(weekStartIso, -1);
+    const legacyWeekEndIso = this.shiftIsoDateByDays(weekEndIso, -1);
+    return dataOd === legacyWeekStartIso && dataDo === legacyWeekEndIso;
+  }
+
+  private shiftIsoDateByDays(isoDate: string, days: number): string {
+    const date = this.parseIsoDate(isoDate);
+    date.setDate(date.getDate() + days);
+    return this.formatLocalDateIso(date);
+  }
+
+  private parseIsoDate(isoDate: string): Date {
+    const [yearText, monthText, dayText] = String(isoDate).split('-');
+    const year = Number.parseInt(yearText ?? '', 10);
+    const month = Number.parseInt(monthText ?? '', 10);
+    const day = Number.parseInt(dayText ?? '', 10);
+
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+      return new Date(isoDate);
+    }
+
+    return new Date(year, month - 1, day);
+  }
+
+  private formatLocalDateIso(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private maybeStartLecturerTutorial() {

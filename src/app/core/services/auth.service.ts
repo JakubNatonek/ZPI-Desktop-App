@@ -418,16 +418,27 @@ export class AuthService {
       return localAccount.role;
     }
 
-    switch (backendRole) {
+    const normalizedRole = String(backendRole ?? '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    switch (normalizedRole) {
+      case 'admin':
+        return 'admin';
       case 'wykladowca':
       case 'cwiczenia':
       case 'laboratorium':
       case 'seminarium':
+      case 'lecturer':
         return 'lecturer';
+      case 'planista':
+      case 'planner':
       case 'student':
         return 'planner';
       default:
-        return 'admin';
+        return 'planner';
     }
   }
 
