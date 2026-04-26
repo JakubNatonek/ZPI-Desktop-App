@@ -244,7 +244,7 @@ export class HermonogramPage implements OnInit {
 
     for (const file of Array.from(files)) {
       const extension = file.name.split('.').pop()?.toLowerCase();
-      const canRead = extension === 'json' || extension === 'csv' || extension === 'raply';
+      const canRead = extension === 'json' || extension === 'csv' || extension === 'xml';
 
       if (!canRead) {
         continue;
