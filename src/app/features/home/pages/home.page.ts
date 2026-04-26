@@ -359,13 +359,12 @@ export class HomePage implements OnInit {
       return;
     }
 
-    const strategy: AvailabilityMode = matching[0].is_available ? 'available' : 'unavailable';
-    this.slotSelections.clear();
-
-    this.selectionStrategy = strategy;
-    this.selectionMode = strategy;
+    // Rozpakuj wpisy na sloty i zbierz dni z wpisami
+    const coveredSlots = new Set<string>();
+    const daysWithEntries = new Set<number>();
 
     for (const entry of matching) {
+      daysWithEntries.add(entry.day_id);
       const dayIso = this.dayIdToIso(entry.day_id);
       if (!dayIso) {
         continue;
@@ -373,7 +372,32 @@ export class HomePage implements OnInit {
 
       const displayToHour = this.getDisplayToHour(entry);
       for (let hour = entry.from_hour; hour <= displayToHour; hour++) {
-        this.slotSelections.set(`${dayIso}-${hour}`, strategy);
+        coveredSlots.add(`${dayIso}-${hour}`);
+      }
+    }
+
+    // Dedukuj strategię: jeśli wpisy są dla >= 5 dni, to prawie na pewno 'available'
+    const strategy: AvailabilityMode = daysWithEntries.size >= 5 ? 'available' : 'unavailable';
+
+    this.slotSelections.clear();
+    this.selectionStrategy = strategy;
+    this.selectionMode = strategy;
+
+    // Zaznacz odpowiednie sloty w zależności od strategii
+    if (strategy === 'available') {
+      // Dla 'available': zaznacz NIEZAZNACZONE sloty (dostępne)
+      for (const day of this.weekDays) {
+        for (const hour of this.hours24) {
+          const slotKey = this.getSlotKey(day, hour);
+          if (!coveredSlots.has(slotKey)) {
+            this.slotSelections.set(slotKey, 'available');
+          }
+        }
+      }
+    } else {
+      // Dla 'unavailable': zaznacz ZAZNACZONE sloty (niedostępne)
+      for (const slotKey of coveredSlots) {
+        this.slotSelections.set(slotKey, 'unavailable');
       }
     }
 
