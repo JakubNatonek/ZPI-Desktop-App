@@ -44,8 +44,22 @@ export class ChatApiService {
   }
 
   createGroup(name: string, userIds: number[]) {
-    return this.http.post<CreateGroupResponse>(`${environment.apiBaseUrl}/api/chat/create-group`, {
+    return this.createRoom(name, userIds);
+  }
+
+  createRoom(name: string, userIds: number[]) {
+    return this.http.post<CreateGroupResponse>(`${environment.apiBaseUrl}/api/chat/room`, {
       name,
+      user_ids: userIds,
+    });
+  }
+
+  getRoomUsers(roomId: number) {
+    return this.http.get<SearchUserResponse[]>(`${environment.apiBaseUrl}/api/chat/room/${roomId}/users`);
+  }
+
+  addRoomUsers(roomId: number, userIds: number[]) {
+    return this.http.post<SearchUserResponse[]>(`${environment.apiBaseUrl}/api/chat/room/${roomId}/users`, {
       user_ids: userIds,
     });
   }

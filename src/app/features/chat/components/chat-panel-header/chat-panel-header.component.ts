@@ -17,4 +17,5 @@ export class ChatPanelHeaderComponent {
 
   @Output() back = new EventEmitter<void>();
   @Output() close = new EventEmitter<void>();
+  @Output() options = new EventEmitter<void>();
 }

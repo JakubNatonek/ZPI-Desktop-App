@@ -60,12 +60,17 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   view = signal<ChatView>('contacts');
   selectedUser = signal<ChatUser | null>(null);
   selectedRoom = signal<ChatRoom | null>(null);
+  roomOptionsOpen = signal(false);
+  roomOptionsMode = signal<'members' | 'add'>('members');
+  roomOptionsSearchResults = signal<ChatUser[]>([]);
+  isRoomOptionsSearching = signal(false);
   newRoomMembers = signal<number[]>([]);
 
   messageInput = '';
   newRoomName = '';
+  roomOptionsSearchQuery = '';
   private shouldScrollToBottom = false;
-  private currentUserId: number | null = null;
+  currentUserId: number | null = null;
   private unreadToastTimerId: ReturnType<typeof setTimeout> | null = null;
   private aesKey: CryptoKey | null = null;
   private exportedAesKeyBase64: string | null = null;
@@ -84,6 +89,8 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   showUnreadToast = signal(false);
   private searchSubject = new Subject<string>();
   private searchSubscription!: Subscription;
+  private roomOptionsSearchSubject = new Subject<string>();
+  private roomOptionsSearchSubscription!: Subscription;
   directContacts: ChatUser[] = [];
   availableUsers: ChatUser[] = [];
   rooms: ChatRoom[] = [];
@@ -126,6 +133,36 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
         this.isSearching.set(false);
       });
 
+    this.roomOptionsSearchSubscription = this.roomOptionsSearchSubject
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((query) => {
+          const trimmed = query.trim();
+          if (!trimmed) {
+            this.roomOptionsSearchResults.set([]);
+            this.isRoomOptionsSearching.set(false);
+            return of([]);
+          }
+
+          this.isRoomOptionsSearching.set(true);
+          return this.chatApi.searchUsers(trimmed).pipe(
+            catchError((err) => {
+              console.error('Błąd podczas wyszukiwania użytkowników do pokoju:', err);
+              return of([]);
+            })
+          );
+        })
+      )
+      .subscribe((users) => {
+        const mappedUsers = users
+          .map((user) => this.toChatUser(user))
+          .filter((user) => this.canAddUserToSelectedRoom(user.user_id));
+        this.upsertUsers(mappedUsers);
+        this.roomOptionsSearchResults.set(mappedUsers);
+        this.isRoomOptionsSearching.set(false);
+      });
+
     this.loadCurrentUserAndData();
 
     this.websocket.connect();
@@ -136,6 +173,9 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.searchSubscription) {
       this.searchSubscription.unsubscribe();
+    }
+    if (this.roomOptionsSearchSubscription) {
+      this.roomOptionsSearchSubscription.unsubscribe();
     }
     if (this.unreadToastTimerId) {
       clearTimeout(this.unreadToastTimerId);
@@ -221,14 +261,42 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   openRoom(room: ChatRoom): void {
     this.selectedRoom.set(room);
     this.view.set('room-chat');
+    this.roomOptionsOpen.set(false);
+    this.roomOptionsMode.set('members');
+    this.roomOptionsSearchQuery = '';
+    this.roomOptionsSearchResults.set([]);
     if (!this.roomMessages[room.id]) {
       this.roomMessages[room.id] = [];
     }
     this.ensureConversationJoined(room.id);
+    this.chatApi
+      .getRoomUsers(room.id)
+      .pipe(
+        catchError((err) => {
+          console.error(`Nie udało się pobrać użytkowników pokoju ${room.id}:`, err);
+          return of([]);
+        })
+      )
+      .subscribe((users) => {
+        const refreshedRoom: ChatRoom = {
+          ...room,
+          members: users.map((user) => user.user_id),
+        };
+
+        this.upsertUsers(users.map((user) => this.toChatUser(user)));
+        this.rooms = this.rooms.map((existingRoom) =>
+          existingRoom.id === refreshedRoom.id ? refreshedRoom : existingRoom
+        );
+
+        if (this.selectedRoom()?.id === refreshedRoom.id) {
+          this.selectedRoom.set(refreshedRoom);
+        }
+      });
     this.fetchConversationMessages(room.id, 'room', room.id);
   }
 
   goBack(): void {
+    this.roomOptionsOpen.set(false);
     if (this.view() === 'conversation') {
       this.view.set('contacts');
       this.selectedUser.set(null);
@@ -286,7 +354,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     if (!name || this.newRoomMembers().length === 0) return;
 
     this.chatApi
-      .createGroup(name, this.newRoomMembers())
+      .createRoom(name, this.newRoomMembers())
       .pipe(
         catchError((err) => {
           console.error('Nie udało się utworzyć grupy:', err);
@@ -310,6 +378,93 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
         this.view.set('rooms');
         this.newRoomName = '';
         this.newRoomMembers.set([]);
+      });
+  }
+
+  openRoomOptions(): void {
+    if (!this.selectedRoom()) return;
+    this.roomOptionsOpen.set(true);
+    this.roomOptionsMode.set('members');
+    this.roomOptionsSearchQuery = '';
+    this.roomOptionsSearchResults.set([]);
+  }
+
+  closeRoomOptions(): void {
+    this.roomOptionsOpen.set(false);
+    this.roomOptionsMode.set('members');
+    this.roomOptionsSearchQuery = '';
+    this.roomOptionsSearchResults.set([]);
+    this.isRoomOptionsSearching.set(false);
+  }
+
+  showRoomMembers(): void {
+    this.roomOptionsMode.set('members');
+    this.roomOptionsSearchQuery = '';
+    this.roomOptionsSearchResults.set([]);
+    this.isRoomOptionsSearching.set(false);
+  }
+
+  showAddRoomUsers(): void {
+    if (!this.selectedRoom()) return;
+    this.roomOptionsMode.set('add');
+    this.roomOptionsSearchQuery = '';
+    this.roomOptionsSearchResults.set([]);
+  }
+
+  onRoomOptionsSearch(query: string): void {
+    this.roomOptionsSearchQuery = query;
+    this.roomOptionsSearchSubject.next(query);
+  }
+
+  getSelectedRoomMembers(): ChatUser[] {
+    const room = this.selectedRoom();
+    if (!room) return [];
+
+    return room.members
+      .map((userId) => this.getOrBuildUser(userId))
+      .sort((a, b) => {
+        const lastNameCompare = a.last_name.localeCompare(b.last_name);
+        if (lastNameCompare !== 0) return lastNameCompare;
+        return a.first_name.localeCompare(b.first_name);
+      });
+  }
+
+  canAddUserToSelectedRoom(userId: number): boolean {
+    const room = this.selectedRoom();
+    if (!room) return false;
+    if (this.currentUserId === userId) return false;
+    return !room.members.includes(userId);
+  }
+
+  addUserToRoom(user: ChatUser): void {
+    const room = this.selectedRoom();
+    if (!room || !this.canAddUserToSelectedRoom(user.user_id)) return;
+
+    this.chatApi
+      .addRoomUsers(room.id, [user.user_id])
+      .pipe(
+        catchError((err) => {
+          console.error(`Nie udało się dodać użytkownika ${user.user_id} do pokoju ${room.id}:`, err);
+          return of([]);
+        })
+      )
+      .subscribe((users) => {
+        const refreshedUsers = users.map((item) => this.toChatUser(item));
+        const memberIds = refreshedUsers.map((item) => item.user_id);
+        this.upsertUsers(refreshedUsers);
+
+        const refreshedRoom: ChatRoom = {
+          ...room,
+          members: memberIds,
+        };
+
+        this.selectedRoom.set(refreshedRoom);
+        this.rooms = this.rooms.map((existingRoom) =>
+          existingRoom.id === refreshedRoom.id ? refreshedRoom : existingRoom
+        );
+
+        this.roomOptionsSearchQuery = '';
+        this.roomOptionsSearchResults.set([]);
       });
   }
 

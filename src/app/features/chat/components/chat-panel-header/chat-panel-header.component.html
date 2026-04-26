@@ -25,6 +25,13 @@
       <div class="chat-panel__title"># {{ room.name }}</div>
       <div class="chat-panel__subtitle">{{ room.members.length }} uczestników</div>
     </div>
+    <button type="button" class="chat-room-menu-btn" (click)="options.emit()" title="Opcje czatu" aria-label="Opcje czatu">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="5" r="1.8"></circle>
+        <circle cx="12" cy="12" r="1.8"></circle>
+        <circle cx="12" cy="19" r="1.8"></circle>
+      </svg>
+    </button>
   </ng-container>
 
   <ng-container *ngIf="view === 'create-room'">
