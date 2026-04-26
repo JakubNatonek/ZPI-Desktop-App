@@ -41,9 +41,9 @@
             <p>Semestr: <strong>{{ currentSemestrLabel }}</strong></p>
             <p>Minimum dostępności: <strong>{{ requiredAvailabilityHours }} h</strong></p>
             <p *ngIf="selectionStrategy">Tryb: <strong>{{ strategyLabel(selectionStrategy) }}</strong></p>
-            <p>Zaznaczone: <strong>{{ markedHours }} h</strong></p>
-            <p>Dla planisty: <strong>{{ plannerAvailabilityHours }} h</strong></p>
-            <p *ngIf="!canConfirmHours">Pozostało: <strong>{{ remainingAvailabilityHours }} h</strong></p>
+            <p>Dostępnych: <strong>{{ availableHours }} h</strong></p>
+            <p>Niedostępnych (raport): <strong>{{ unavailableHours }} h</strong></p>
+            <p *ngIf="!canConfirmHours">Pozostało do minimum: <strong>{{ remainingAvailabilityHours }} h</strong></p>
           </div>
 
           <ion-button expand="block" fill="outline" color="medium" (click)="clearSelection()"

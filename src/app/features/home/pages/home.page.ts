@@ -174,7 +174,7 @@ export class HomePage implements OnInit {
     return this.slotSelections.size;
   }
 
-  get plannerAvailabilityHours(): number {
+  get availableHours(): number {
     if (!this.selectionStrategy) {
       return 0;
     }
@@ -186,12 +186,21 @@ export class HomePage implements OnInit {
     return this.totalWeekHours - this.markedHours;
   }
 
+  get unavailableHours(): number {
+    return Math.max(0, this.totalWeekHours - this.availableHours);
+  }
+
+  get plannerAvailabilityHours(): number {
+    // Dla kompatybilności z istniejącym kodem
+    return this.availableHours;
+  }
+
   get remainingAvailabilityHours(): number {
-    return Math.max(0, this.requiredAvailabilityHours - this.plannerAvailabilityHours);
+    return Math.max(0, this.requiredAvailabilityHours - this.availableHours);
   }
 
   get canConfirmHours(): boolean {
-    return !!this.selectionStrategy && this.plannerAvailabilityHours >= this.requiredAvailabilityHours;
+    return !!this.selectionStrategy && this.availableHours >= this.requiredAvailabilityHours;
   }
 
   get currentLecturerName(): string {
@@ -420,24 +429,50 @@ export class HomePage implements OnInit {
     this.selectedDate = new Date(`${historyWeek.data_od}T00:00:00`);
     this.updateView();
 
-    // Przywróć zaznaczenia
+    // Rozpakuj wpisy na sloty i zbierz dni z wpisami
     this.slotSelections.clear();
 
-    this.selectionStrategy = historyWeek.is_available ? 'available' : 'unavailable';
-    this.selectionMode = this.selectionStrategy;
+    const weekDays = this.buildWeekDaysFromIso(historyWeek.data_od);
+    const coveredSlots = new Set<string>();
+    const daysWithEntries = new Set<number>();
 
     for (const entry of historyWeek.entries) {
-      const dayIso = this.dayIdToIso(entry.day_id);
+      daysWithEntries.add(entry.day_id);
+      const dayIso = weekDays[entry.day_id - 1]?.iso ?? null;
       if (!dayIso) {
         continue;
       }
 
       const displayToHour = this.getDisplayToHour(entry);
       for (let hour = entry.from_hour; hour <= displayToHour; hour++) {
-        this.slotSelections.set(`${dayIso}-${hour}`, this.selectionStrategy);
+        coveredSlots.add(`${dayIso}-${hour}`);
       }
     }
 
+    // Dedukuj strategię: jeśli wpisy są dla >= 5 dni, to prawie na pewno 'available'
+    const strategy: AvailabilityMode = daysWithEntries.size >= 5 ? 'available' : 'unavailable';
+
+    // Dla 'available': zaznacz NIEZAZNACZONE sloty (dostępne, które będę edytować)
+    // Dla 'unavailable': zaznacz ZAZNACZONE sloty (niedostępne, które będę edytować)
+    if (strategy === 'available') {
+      // Zaznacz wszystkie niezaznaczone
+      for (const day of weekDays) {
+        for (const hour of this.hours24) {
+          const slotKey = this.getSlotKey(day, hour);
+          if (!coveredSlots.has(slotKey)) {
+            this.slotSelections.set(slotKey, 'available');
+          }
+        }
+      }
+    } else {
+      // Zaznacz zaznaczone (niedostępne)
+      for (const slotKey of coveredSlots) {
+        this.slotSelections.set(slotKey, 'unavailable');
+      }
+    }
+
+    this.selectionStrategy = strategy;
+    this.selectionMode = strategy;
     this.isHoursConfirmed = true;
     this.closeHistoryModal();
     this.lecturerMessage = `Wczytano dezyderatę z ${historyWeek.data_od} - ${historyWeek.data_do}`;
@@ -942,10 +977,13 @@ export class HomePage implements OnInit {
     }
 
     const weekDaysForSubmission = this.buildWeekDaysFromIso(latestWeekStartIso);
-    const strategy: AvailabilityMode = latestWeekEntries[0].is_available ? 'available' : 'unavailable';
-    const selectedSlots = new Set<string>();
+
+    // Rozpakuj wpisy na pojedyncze (day, hour) pary i zbierz dni z wpisami
+    const allSlots = new Set<string>();
+    const daysWithEntries = new Set<number>();
 
     for (const entry of latestWeekEntries) {
+      daysWithEntries.add(entry.day_id);
       const dayIso = weekDaysForSubmission[entry.day_id - 1]?.iso ?? null;
       if (!dayIso) {
         continue;
@@ -953,14 +991,19 @@ export class HomePage implements OnInit {
 
       const displayToHour = this.getDisplayToHour(entry);
       for (let hour = entry.from_hour; hour <= displayToHour; hour++) {
-        selectedSlots.add(`${dayIso}-${hour}`);
+        allSlots.add(`${dayIso}-${hour}`);
       }
     }
 
-    const markedHours = selectedSlots.size;
-    const plannerAvailabilityHours = strategy === 'available'
-      ? markedHours
-      : Math.max(0, this.totalWeekHours - markedHours);
+    // Dedukuj strategię na podstawie liczby dni z wpisami:
+    // - Dla 'available' zapisuję niezaznaczone z każdego dnia (prawie każdy dzień będzie miał wpis)
+    // - Dla 'unavailable' mogę zapisywać tylko kilka dni
+    // Jeśli wpisy są dla >= 5 dni, to prawie na pewno 'available'
+    const strategy: AvailabilityMode = daysWithEntries.size >= 5 ? 'available' : 'unavailable';
+
+    // Interpretacja markedHours: zawsze to total - covered
+    const coveredSlotCount = allSlots.size;
+    const availabilityHours = Math.max(0, this.totalWeekHours - coveredSlotCount);
 
     return {
       id: `${lecturer.user_id}-${latestWeekStartIso}`,
@@ -968,9 +1011,9 @@ export class HomePage implements OnInit {
       lecturerEmail: lecturer.email,
       weekStartIso: latestWeekStartIso,
       strategy,
-      selectedSlots: Array.from(selectedSlots),
-      markedHours,
-      plannerAvailabilityHours,
+      selectedSlots: Array.from(allSlots),
+      markedHours: coveredSlotCount,
+      plannerAvailabilityHours: availabilityHours,
       requiredHours: this.requiredAvailabilityHours,
       timestamp: `${latestWeekStartIso}T00:00:00`,
       semestrId: latestWeekEntries[0].semestr_id,
@@ -1014,13 +1057,16 @@ export class HomePage implements OnInit {
   }
 
   private resolveSubmissionSlotState(submission: LecturerSubmission, slotKey: string): AvailabilityMode {
-    const isSelected = submission.selectedSlots?.includes(slotKey) ?? false;
+    const isInSelectedSlots = submission.selectedSlots?.includes(slotKey) ?? false;
 
     if (submission.strategy === 'available') {
-      return isSelected ? 'available' : 'unavailable';
+      // Dla 'available': selectedSlots zawierają niezaznaczone (niedostępne)
+      // Jeśli slot jest w selectedSlots, to jest niedostępny
+      return isInSelectedSlots ? 'unavailable' : 'available';
     }
 
-    return isSelected ? 'unavailable' : 'available';
+    // Dla 'unavailable': selectedSlots zawierają zaznaczone (niedostępne)
+    return isInSelectedSlots ? 'unavailable' : 'available';
   }
 
   private getDisplayToHour(entry: Pick<Dezyderata, 'from_hour' | 'to_hour'>): number {
@@ -1038,6 +1084,44 @@ export class HomePage implements OnInit {
       return [];
     }
 
+    // Dla trybu 'available': zwracamy NIEZAZNACZONE godziny (niedostępności)
+    // Dla trymu 'unavailable': zwracamy ZAZNACZONE godziny (niedostępności)
+    if (this.selectionStrategy === 'available') {
+      return this.buildEntriesForAvailabilityMode();
+    } else {
+      return this.buildEntriesForUnavailabilityMode();
+    }
+  }
+
+  private buildEntriesForAvailabilityMode(): DezyderataCreateEntry[] {
+    // Dla trybu 'available', zapisujemy NIEZAZNACZONE godziny jako niedostępne (is_available=false)
+    const hoursByDayIso = new Map<string, Set<number>>();
+
+    // Najpierw zbierz wszystkie zaznaczone sloty
+    const markedSlots = new Set<string>(this.slotSelections.keys());
+
+    // Dla każdego dnia i godziny, jeśli NIEZNACZONE, dodaj do hoursByDayIso
+    for (const day of this.weekDays) {
+      const dayHours = new Set<number>();
+      for (const hour of this.hours24) {
+        const slotKey = this.getSlotKey(day, hour);
+        if (!markedSlots.has(slotKey)) {
+          // Nieznaczone godziny
+          dayHours.add(hour);
+        }
+      }
+      if (dayHours.size > 0) {
+        hoursByDayIso.set(day.iso, dayHours);
+      }
+    }
+
+    // Teraz zbuduj wpisy z niezaznaczonych godzin
+    return this.buildEntriesFromHoursByDay(hoursByDayIso, false);
+  }
+
+  private buildEntriesForUnavailabilityMode(): DezyderataCreateEntry[] {
+    // Dla trymu 'unavailable', zapisujemy ZAZNACZONE godziny jako niedostępne (is_available=false)
+    // To działa jak stary system
     const hoursByDayIso = new Map<string, Set<number>>();
 
     for (const slotKey of this.slotSelections.keys()) {
@@ -1057,8 +1141,11 @@ export class HomePage implements OnInit {
       hoursByDayIso.get(iso)?.add(hour);
     }
 
+    return this.buildEntriesFromHoursByDay(hoursByDayIso, false);
+  }
+
+  private buildEntriesFromHoursByDay(hoursByDayIso: Map<string, Set<number>>, isAvailable: boolean): DezyderataCreateEntry[] {
     const entries: DezyderataCreateEntry[] = [];
-    const isAvailable = this.selectionStrategy === 'available';
 
     for (const [dayIso, hourSet] of hoursByDayIso.entries()) {
       const dayIndex = this.weekDays.findIndex((day) => day.iso === dayIso);
@@ -1105,7 +1192,8 @@ export class HomePage implements OnInit {
     const groups = new Map<string, HistoryWeekItem>();
 
     for (const entry of entries) {
-      const key = `${entry.data_od}|${entry.data_do}|${entry.semestr_id}|${entry.is_available}`;
+      // Nie grupuj po is_available, bo teraz wszystkie wpisy mają is_available=false
+      const key = `${entry.data_od}|${entry.data_do}|${entry.semestr_id}`;
       if (!groups.has(key)) {
         groups.set(key, {
           data_od: entry.data_od,
