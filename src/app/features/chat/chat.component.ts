@@ -943,7 +943,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   ): Promise<void> {
     this.isEncrypting.set(true);
     // Default: plaintext payload
-    let payloadStr = content;
+        let payloadStr = content.trim();
 
     if (this.aesKey && target === 'direct') {
       const recipientId = targetId;
@@ -1078,7 +1078,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
           conversationId,
           message.id,
           message.sender_id,
-          message.content ?? '',
+          payloadStr,
           message.created_at,
         );
 
@@ -1103,7 +1103,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.wsSubscriptions.push(
       this.websocket.messageReceived$.subscribe((event) => {
         const ownMessage = this.currentUserId !== null && event.sender_id === this.currentUserId;
-        this.mergeSocketMessage(event.conversation_id, event, ownMessage);
+        void this.mergeSocketMessage(event.conversation_id, event, ownMessage);
       }),
     );
 
@@ -1124,7 +1124,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.joinedConversationIds.add(conversationId);
   }
 
-  private mergeSocketMessage(
+  private async mergeSocketMessage(
     conversationId: number,
     message: {
       message_id: number;
@@ -1133,32 +1133,32 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       created_at: string;
     },
     isOwn: boolean,
-  ): void {
+  ): Promise<void> {
     const directUserId = Object.entries(this.directConversationIdByUserId)
       .find(([, id]) => id === conversationId)?.[0];
 
     const sender = this.usersById[message.sender_id];
-    // If the incoming `content` looks like an encrypted payload (JSON with ciphertext/wrapped_key)
-    // show a placeholder instead of an empty raw JSON string.
-    let displayContent = message.content ?? '';
-    try {
-      if (!displayContent) {
-        // keep empty if truly empty
-      } else if (displayContent.trim().startsWith('{')) {
-        const lower = displayContent.toLowerCase();
-        if (lower.includes('"ciphertext"') || lower.includes('"encrypted"') || lower.includes('"wrapped_key"') || lower.includes('"wrappedkey"') || lower.includes('"encrypted_aes_key"')) {
-          displayContent = '[zaszyfrowana wiadomość]';
-        }
-      }
-    } catch (e) {
-      void e;
-    }
+    const displayContent = await this.decryptApiMessageContent({
+      id: message.message_id,
+      sender_id: message.sender_id,
+      conversation_id: conversationId,
+      content: message.content,
+      ciphertext: undefined,
+      iv: undefined,
+      wrapped_key: undefined,
+      encrypted_message: undefined,
+      encrypted_aes_key: undefined,
+      created_at: message.created_at,
+      delivered_at: null,
+      is_read: false,
+      read_at: null,
+    } as MessageApiResponse);
 
     const mapped: ChatMessage = {
       id: message.message_id,
       senderId: isOwn ? 'me' : message.sender_id,
       senderName: isOwn ? this.currentUserName : (sender ? `${sender.first_name} ${sender.last_name}`.trim() : `Użytkownik #${message.sender_id}`),
-      content: displayContent,
+      content: displayContent ?? '',
       timestamp: new Date(message.created_at),
       isOwn,
       isRead: false,
