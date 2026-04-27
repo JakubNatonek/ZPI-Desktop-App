@@ -1,5 +1,5 @@
 import { Component, OnInit, HostListener, signal } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { IonicModule, ModalController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -8,13 +8,15 @@ import {
   chevronBackOutline, chevronForwardOutline, cloudDownloadOutline,
   cloudUploadOutline, addOutline, peopleOutline, menuOutline,
   checkmarkDoneOutline, createOutline, swapHorizontalOutline,
-  timeOutline, calendarOutline
+  timeOutline, calendarOutline, alertCircleOutline
 } from 'ionicons/icons';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { DezyderataService, Semestr, Dezyderata, DezyderataCreate, DezyderataCreateEntry } from '../../../core/services/dezyderata.service';
 import { UsersAdminApiService, AdminUserRow } from '../../../core/services/users-admin-api.service';
+import { UnavailabilityNotesApiService } from '../../../core/services/unavailability-notes-api.service';
 import { environment } from '../../../../environments/environment';
+import { UnavailabilityNoteModalComponent } from '../../subjects/components/unavailability-note-modal/unavailability-note-modal.component';
 
 type AvailabilityMode = 'available' | 'unavailable';
 
@@ -46,6 +48,7 @@ interface LecturerStatusItem {
   departments: string[];
   isApproved: boolean;
   submission: LecturerSubmission | null;
+  hasActiveUnavailability: boolean; // Czy ma aktywną notatkę o niedostępności
 }
 
 interface TutorialStep {
@@ -261,7 +264,9 @@ export class HomePage implements OnInit {
     private router: Router,
     private auth: AuthService,
     private dezyderataService: DezyderataService,
-    private usersAdminApi: UsersAdminApiService
+    private usersAdminApi: UsersAdminApiService,
+    private unavailabilityNotesApi: UnavailabilityNotesApiService,
+    private modalController: ModalController
   ) {
     addIcons({
       chevronBackOutline,
@@ -276,6 +281,7 @@ export class HomePage implements OnInit {
       swapHorizontalOutline,
       timeOutline,
       calendarOutline,
+      alertCircleOutline,
     });
   }
 
@@ -913,8 +919,12 @@ export class HomePage implements OnInit {
             departments: this.normalizeDetailList(lecturer.departments),
             isApproved: submission !== null,
             submission,
+            hasActiveUnavailability: false, // Inicjalnie false, będzie aktualizowane asynchronicznie
           };
         });
+
+        // Asynchronicznie załaduj informacje o aktywnych notatkach dla każdego nauczyciela
+        this.loadUnavailabilityInfoForLecturers();
 
         if (this.activePlannerSubmissionId && !this.allSubmissions.some((entry) => entry.id === this.activePlannerSubmissionId)) {
           const activeUserIdText = this.activePlannerSubmissionId.split('-')[0];
@@ -1359,5 +1369,64 @@ export class HomePage implements OnInit {
 
     const remaining = this.tutorialCalendarRequiredTiles - this.slotSelections.size;
     this.lecturerMessage = `Samouczek: zaznacz jeszcze ${remaining} kafelk${remaining === 1 ? 'ek' : 'i'}.`;
+  }
+
+  /**
+   * Ładuje informacje o aktywnych notatkach o niedostępności dla każdego nauczyciela
+   * Jeśli admin, pobiera wszystkie notatki i sprawdza które są aktywne na dzisiaj
+   */
+  private loadUnavailabilityInfoForLecturers(): void {
+    // Pobierz wszystkie notatki
+    this.unavailabilityNotesApi.getAllNotes().subscribe({
+      next: (notes) => {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+        // Dla każdego nauczyciela sprawdź czy ma aktywną notatkę
+        this.lecturerStatusList.forEach((lecturer) => {
+          const hasActive = notes.some((note) => {
+            // Sprawdź czy notatka należy do tego nauczyciela
+            if (note.user_id !== lecturer.userId) return false;
+
+            // Ikona pokazuje się jeśli notatka jeszcze się nie skończyła
+            const endDate = note.end_date || note.start_date;
+            return today <= endDate;
+          });
+
+          lecturer.hasActiveUnavailability = hasActive;
+        });
+      },
+      error: (error) => {
+        console.error('Error loading unavailability info:', error);
+      },
+    });
+  }
+
+  /**
+   * Naviguje do widoku admin notatek o niedostępności
+   */
+  goToUnavailabilityNotes(): void {
+    this.router.navigate(['/admin/unavailability-notes']);
+  }
+
+  /**
+   * Otwiera modal do zgłaszania niedostępności
+   */
+  async openUnavailabilityModal(): Promise<void> {
+    const modal = await this.modalController.create({
+      component: UnavailabilityNoteModalComponent,
+      presentingElement: await this.modalController.getTop(),
+    });
+
+    await modal.present();
+
+    // Po zamknięciu modalu, przeładuj notatki
+    const { data, role } = await modal.onWillDismiss();
+
+    if (role === 'confirm' || (data && data.success)) {
+      // Przeładuj informacje o niedostępności (aby zaktualizować ikonkę w admin view)
+      if (this.auth.role === 'admin') {
+        this.loadUnavailabilityInfoForLecturers();
+      }
+    }
   }
 }

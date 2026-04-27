@@ -1,0 +1,330 @@
+ion-content {
+  --padding-top: 0;
+
+  @media (prefers-color-scheme: light) {
+    --background: #f8f9fa;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    --background: #1a1a1a;
+  }
+}
+
+.filter-segment {
+  margin: 16px;
+  display: flex;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(56, 128, 255, 0.05) 0%, rgba(47, 123, 232, 0.02) 100%);
+  padding: 8px;
+
+  @media (prefers-color-scheme: dark) {
+    background: linear-gradient(135deg, rgba(91, 163, 255, 0.1) 0%, rgba(74, 150, 255, 0.05) 100%);
+  }
+
+  ion-segment-button {
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+
+  ion-spinner {
+    width: 50px;
+    height: 50px;
+
+    @media (prefers-color-scheme: dark) {
+      --color: #5ba3ff;
+    }
+  }
+}
+
+.notes-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.note-card {
+  margin: 0;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  @media (prefers-color-scheme: dark) {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  &:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+
+    @media (prefers-color-scheme: dark) {
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  ion-card-header {
+    padding: 16px;
+    background: linear-gradient(135deg, var(--ion-color-primary, #3880ff) 0%, var(--ion-color-primary-shade, #3171e0) 100%);
+    color: white;
+  }
+
+  ion-card-title {
+    color: white;
+    font-weight: 700;
+    margin: 0;
+    font-size: 16px;
+  }
+
+  .note-author {
+    margin-bottom: 12px;
+    font-size: 13px;
+    opacity: 0.95;
+  }
+
+  .note-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    ion-badge {
+      font-size: 11px;
+      padding: 6px 10px;
+      font-weight: 600;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+ion-card-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @media (prefers-color-scheme: dark) {
+    --background: #2d2d2d;
+    color: #ffffff;
+  }
+
+  .note-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-size: 14px;
+    border-bottom: 1px solid var(--ion-color-light, #e0e0e0);
+    padding-bottom: 12px;
+    gap: 12px;
+
+    @media (prefers-color-scheme: dark) {
+      border-color: #404040;
+    }
+
+    &:last-of-type:not(.action-buttons) {
+      border-bottom: none;
+    }
+
+    .label {
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      min-width: 100px;
+
+      @media (prefers-color-scheme: light) {
+        color: #64748b;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        color: #9ca3af;
+      }
+    }
+
+    .value {
+      text-align: right;
+      flex: 1;
+      word-break: break-word;
+      font-weight: 500;
+
+      @media (prefers-color-scheme: light) {
+        color: #1a1a1a;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        color: #ffffff;
+      }
+    }
+  }
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 2px solid var(--ion-color-light, #e0e0e0);
+
+  @media (prefers-color-scheme: dark) {
+    border-color: #404040;
+  }
+
+  .button-wrapper {
+    width: 100%;
+
+    ion-button {
+      --padding-start: 12px;
+      --padding-end: 12px;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-radius: 8px;
+      height: 40px;
+
+      ion-spinner {
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+      }
+    }
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: row;
+
+    .button-wrapper {
+      flex: 1;
+    }
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  padding: 40px 20px;
+
+  @media (prefers-color-scheme: light) {
+    color: #94a3b8;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    color: #6b7280;
+  }
+
+  ion-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.6;
+
+    @media (prefers-color-scheme: light) {
+      color: #cbd5e1;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      color: #4b5563;
+    }
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+
+    @media (prefers-color-scheme: light) {
+      color: #1a1a1a;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      color: #ffffff;
+    }
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.7;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 480px) {
+  .notes-container {
+    padding: 8px 12px;
+    gap: 12px;
+  }
+
+  .note-card {
+    ion-card-header {
+      padding: 12px;
+    }
+
+    ion-card-title {
+      font-size: 14px;
+    }
+
+    .note-meta {
+      gap: 6px;
+
+      ion-badge {
+        font-size: 10px;
+        padding: 4px 8px;
+      }
+    }
+  }
+
+  ion-card-content {
+    padding: 12px;
+    gap: 10px;
+
+    .note-detail {
+      flex-direction: column;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--ion-color-light, #e0e0e0);
+      padding-bottom: 10px;
+
+      @media (prefers-color-scheme: dark) {
+        border-color: #404040;
+      }
+
+      .label {
+        margin-bottom: 4px;
+      }
+
+      .value {
+        text-align: left;
+        width: 100%;
+      }
+    }
+  }
+
+  .filter-segment {
+    margin: 8px 8px;
+    padding: 6px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+
+    .button-wrapper {
+      width: 100%;
+    }
+  }
+}

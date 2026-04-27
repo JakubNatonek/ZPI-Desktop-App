@@ -64,6 +64,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/admin/pages/user-create.page').then((m) => m.UserCreatePage),
   },
   {
+    path: 'admin/unavailability-notes',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/admin/pages/unavailability-notes-list-admin/unavailability-notes-list-admin.component').then((m) => m.UnavailabilityNotesListAdminComponent),
+  },
+  {
     path: '',
     redirectTo: 'login',
     pathMatch: 'full',

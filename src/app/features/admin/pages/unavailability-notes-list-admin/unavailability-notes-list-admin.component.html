@@ -1,0 +1,112 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Notatki o Niedostępności</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="onRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Filter Segment -->
+  <ion-segment
+    [value]="filterType"
+    (ionChange)="onFilterChange($event)"
+    class="filter-segment"
+  >
+    <ion-segment-button value="all">
+      <ion-label>Wszystkie</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="pending">
+      <ion-label>Oczekujące</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="accepted">
+      <ion-label>Zaakceptowane</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="rejected">
+      <ion-label>Odrzucone</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="acknowledged">
+      <ion-label>Zapoznane</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <!-- Loading Spinner -->
+  <div *ngIf="isLoading" class="loading-container">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+  </div>
+
+  <!-- Notes List -->
+  <div *ngIf="!isLoading && notes.length > 0" class="notes-container">
+    <ion-card *ngFor="let note of notes" class="note-card">
+      <ion-card-header>
+        <ion-card-title class="note-author">
+          {{ note.first_name }} {{ note.last_name }}
+        </ion-card-title>
+        <div class="note-meta">
+          <ion-badge [color]="note.note_type === 'request' ? 'primary' : 'warning'">
+            {{ getNoteTypeDisplay(note.note_type) }}
+          </ion-badge>
+          <ion-badge [color]="getStatusColor(note.status)">
+            {{ getStatusDisplay(note.status) }}
+          </ion-badge>
+        </div>
+      </ion-card-header>
+
+      <ion-card-content>
+        <!-- Date Range -->
+        <div class="note-detail">
+          <span class="label">Okres:</span>
+          <span class="value">{{ getDateRange(note) }}</span>
+        </div>
+
+        <!-- Description -->
+        <div class="note-detail" *ngIf="note.description">
+          <span class="label">Opis:</span>
+          <span class="value">{{ note.description }}</span>
+        </div>
+
+        <!-- Created At -->
+        <div class="note-detail">
+          <span class="label">Dodana:</span>
+          <span class="value">{{ formatDate(note.created_at) }}</span>
+        </div>
+
+        <!-- Action Buttons (only for pending) -->
+        <div *ngIf="shouldShowActions(note)" class="action-buttons">
+          <div *ngFor="let action of getActionButtonsForNote(note)" class="button-wrapper">
+            <ion-button
+              [color]="action.color"
+              expand="block"
+              size="small"
+              (click)="confirmStatusChange(note, action.status)"
+              [disabled]="isProcessing[note.id]"
+            >
+              <ion-icon [name]="action.icon" slot="start"></ion-icon>
+              {{ action.label }}
+              <ion-spinner
+                *ngIf="isProcessing[note.id]"
+                name="crescent"
+                slot="end"
+              ></ion-spinner>
+            </ion-button>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="hasNoNotes" class="empty-state">
+    <ion-icon name="document-outline"></ion-icon>
+    <h2>Brak notatek</h2>
+    <p>
+      {{
+        filterType === 'pending'
+          ? 'Brak notatek oczekujących na rozpatrzenie'
+          : 'Brak notatek w tym filtrze'
+      }}
+    </p>
+  </div>
+</ion-content>

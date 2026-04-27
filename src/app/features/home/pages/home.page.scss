@@ -186,6 +186,33 @@
       text-align: right;
     }
 
+    .submission-value-with-icon {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-align: right;
+
+      .submission-value {
+        text-align: right;
+      }
+
+      .unavailable-icon {
+        font-size: 20px;
+        color: #f59e0b;
+        flex-shrink: 0;
+        animation: pulse 2s infinite;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.6;
+      }
+    }
+
     .submission-card.is-clickable {
       cursor: pointer;
       transition: border-color 0.2s ease, background 0.2s ease;

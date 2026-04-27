@@ -59,6 +59,12 @@
             Historia dezyderat
           </ion-button>
 
+          <!-- Przycisk zgłoszenia niedostępności -->
+          <ion-button expand="block" fill="outline" color="warning" (click)="openUnavailabilityModal()" class="unavailability-btn">
+            <ion-icon slot="start" name="alert-circle"></ion-icon>
+            Zgłoś niedostępność
+          </ion-button>
+
           <p class="lecturer-message" *ngIf="lecturerMessage">{{ lecturerMessage }}</p>
 
           <div class="loading-indicator" *ngIf="isLoadingSemestry || isLoadingDezyderaty || isSaving">
@@ -109,7 +115,16 @@
                 (click)="lecturer.isApproved && selectLecturerStatus(lecturer)">
                 <div class="submission-row">
                   <span class="submission-label">Wykładowca</span>
-                  <span class="submission-value">{{ lecturer.lecturerDisplayName }}</span>
+                  <div class="submission-value-with-icon">
+                    <span class="submission-value">{{ lecturer.lecturerDisplayName }}</span>
+                    <ion-icon
+                      *ngIf="lecturer.hasActiveUnavailability"
+                      name="alert-circle"
+                      class="unavailable-icon"
+                      title="Kliknij aby zobaczyć notatki o niedostępności"
+                      (click)="goToUnavailabilityNotes()"
+                    ></ion-icon>
+                  </div>
                 </div>
                 <div class="submission-row">
                   <span class="submission-label">Status</span>

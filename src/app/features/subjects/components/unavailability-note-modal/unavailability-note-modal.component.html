@@ -1,0 +1,111 @@
+<ion-content>
+  <div class="ion-padding">
+    <!-- Header -->
+    <div class="modal-header">
+      <div>
+        <h1>Zgłoś niedostępność</h1>
+      </div>
+      <ion-button
+        fill="clear"
+        class="close-button"
+        (click)="dismiss()"
+        aria-label="Zamknij"
+      >
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </div>
+
+    <!-- Form -->
+    <form [formGroup]="form">
+      <!-- Typ niedostępności -->
+      <ion-item>
+        <ion-label optional>Typ niedostępności</ion-label>
+        <ion-select
+          formControlName="noteType"
+          (ionChange)="onNoteTypeChange($event)"
+          interface="popover"
+          aria-label="Wybierz typ niedostępności"
+        >
+          <ion-select-option value="request">📋 Prośba o wolne</ion-select-option>
+          <ion-select-option value="forced">🏥 Przymusowa nieobecność (np. choroba)</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <!-- Toggle: Jednodniowa vs. Zakres dat -->
+      <div class="date-type-toggle">
+        <span class="toggle-label">📅 {{ dateRangeLabel }}</span>
+        <ion-button
+          fill="outline"
+          size="small"
+          (click)="toggleDateType()"
+          type="button"
+        >
+          {{ isDateRange ? '→ Jednodniowa' : '→ Zakres dat' }}
+        </ion-button>
+      </div>
+
+      <!-- Data początkowa -->
+      <ion-item>
+        <ion-label optional>Od dnia</ion-label>
+        <ion-datetime
+          formControlName="startDate"
+          presentation="date"
+          displayFormat="DD.MM.YYYY"
+          placeholder="Wybierz datę"
+          aria-label="Data początkowa"
+        ></ion-datetime>
+      </ion-item>
+
+      <!-- Data końcowa (tylko jeśli zakres) -->
+      <ion-item *ngIf="isDateRange">
+        <ion-label optional>Do dnia</ion-label>
+        <ion-datetime
+          formControlName="endDate"
+          presentation="date"
+          displayFormat="DD.MM.YYYY"
+          placeholder="Wybierz datę"
+          aria-label="Data końcowa"
+        ></ion-datetime>
+      </ion-item>
+
+      <!-- Opis/Powód -->
+      <ion-item>
+        <ion-label optional>Opis / Powód</ion-label>
+        <ion-textarea
+          formControlName="description"
+          placeholder="np. Choroba, urlop, inne..."
+          rows="4"
+          maxlength="1000"
+          aria-label="Opis powodu niedostępności"
+        ></ion-textarea>
+      </ion-item>
+
+      <!-- Error message -->
+      <div *ngIf="form.invalid && form.touched" class="error-message" role="alert">
+        ⚠️ Proszę poprawnie wypełnić wszystkie wymagane pola
+      </div>
+    </form>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <ion-button
+        expand="block"
+        color="primary"
+        (click)="onSubmit()"
+        [disabled]="isLoading || form.invalid"
+      >
+        <ion-spinner *ngIf="isLoading" name="crescent" slot="start"></ion-spinner>
+        {{ isLoading ? 'Zapisywanie...' : 'Zgłoś' }}
+      </ion-button>
+      <ion-button
+        expand="block"
+        fill="outline"
+        (click)="dismiss()"
+        [disabled]="isLoading"
+      >
+        Anuluj
+      </ion-button>
+    </div>
+  </div>
+</ion-content>
+
