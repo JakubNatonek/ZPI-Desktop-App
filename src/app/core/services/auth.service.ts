@@ -279,6 +279,14 @@ export class AuthService {
     return this._mustChangePassword.value;
   }
 
+  isBackendSessionActive(): boolean {
+    if (!this.ensureActiveSession()) {
+      return false;
+    }
+
+    return this.currentAuthMode === 'backend';
+  }
+
   get currentUserId(): number | null {
     if (!this.ensureActiveSession()) {
       return null;
@@ -320,7 +328,7 @@ export class AuthService {
       return of({ success: false, message: 'Sesja wygasła. Zaloguj się ponownie.' });
     }
 
-    if (this.isBackendSession()) {
+    if (this.isBackendSessionActive()) {
       const url = `${environment.apiBaseUrl}/auth/change-one-time-password`;
       return this.http.post<{ message: string }>(url, {
         new_password: newPassword,
@@ -390,10 +398,6 @@ export class AuthService {
       this.applyTheme('light');
       this.router.navigateByUrl('/login');
     }
-  }
-
-  private isBackendSession(): boolean {
-    return this.currentAuthMode === 'backend';
   }
 
   private clearLegacySessionStorage(): void {

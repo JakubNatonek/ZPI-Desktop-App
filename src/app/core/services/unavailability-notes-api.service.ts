@@ -54,7 +54,7 @@ export class UnavailabilityNotesApiService {
    * POST /unavailability-notes/
    */
   createNote(payload: CreateUnavailabilityNoteRequest): Observable<UnavailabilityNoteDto> {
-    return this.http.post<UnavailabilityNoteDto>(this.apiUrl, payload);
+    return this.http.post<UnavailabilityNoteDto>(this.apiUrl, payload, { withCredentials: true });
   }
 
   /**

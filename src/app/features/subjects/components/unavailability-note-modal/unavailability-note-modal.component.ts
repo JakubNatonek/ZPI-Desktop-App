@@ -109,6 +109,7 @@ export class UnavailabilityNoteModalComponent implements OnInit {
       }
 
       // Wyślij do API
+      console.debug('Creating unavailability note payload:', payload);
       await this.unavailabilityService.createNote(payload).toPromise();
 
       await this.showToast('Notatka została dodana pomyślnie', 'success');

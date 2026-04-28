@@ -1,12 +1,13 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
-import { MenuController, ToastController } from '@ionic/angular';
+import { MenuController, AlertController } from '@ionic/angular';
 import { IonApp, IonRouterOutlet, IonMenu, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonButtons, IonButton, IonIcon } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { AuthService } from './core/services/auth.service';
+import { WebSocketService } from './core/services/websocket.service';
 import { ChatComponent } from './features/chat/chat.component';
 import { NotificationsApiService, NotificationDto } from './core/services/notifications-api.service';
-import { filter, Subscription, interval } from 'rxjs';
+import { filter, Subscription, interval, distinctUntilChanged } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -31,7 +32,8 @@ import { filter, Subscription, interval } from 'rxjs';
 })
 export class AppComponent implements OnInit, OnDestroy {
   private routerSub!: Subscription;
-  private notificationCheckSub!: Subscription;
+  private authStateSub?: Subscription;
+  private notificationCheckSub?: Subscription;
   private lastNotificationIds: Set<number> = new Set();
 
   constructor(
@@ -39,7 +41,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private router: Router,
     public menu: MenuController,
     private notificationsService: NotificationsApiService,
-    private toastController: ToastController,
+    private alertController: AlertController,
+    private websocket: WebSocketService,
   ) {}
 
   
@@ -75,15 +78,33 @@ export class AppComponent implements OnInit, OnDestroy {
       this.checkRoute();
     });
 
-    // Uruchom system powiadomień jeśli użytkownik jest zalogowany
-    if (this.auth.isLoggedIn) {
-      this.initNotificationPolling();
-    }
+    this.authStateSub = this.auth.isAuthenticated$
+      .pipe(distinctUntilChanged())
+      .subscribe(() => this.syncNotificationPollingState());
+
+    // Subscribe to live socket notifications
+    this.websocket.notification$.subscribe((data) => {
+      try {
+        const notification: NotificationDto = data as NotificationDto;
+        // Ensure we haven't shown it already
+        if (!this.lastNotificationIds.has(notification.id)) {
+          this.lastNotificationIds.add(notification.id);
+          void this.displayBlockingNotification(notification);
+        }
+      } catch (e) {
+        console.error('Error handling live notification:', e);
+      }
+    });
+
+    this.syncNotificationPollingState();
   }
 
   ngOnDestroy() {
     if (this.routerSub) {
       this.routerSub.unsubscribe();
+    }
+    if (this.authStateSub) {
+      this.authStateSub.unsubscribe();
     }
     if (this.notificationCheckSub) {
       this.notificationCheckSub.unsubscribe();
@@ -104,9 +125,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
   /**
    * Inicjalizuje sondowanie nowych powiadomień
-   * Sonduje co 10 sekund, wyświetla toast dla nowych powiadomień
+   * Sonduje co 10 sekund, wyświetla blokujący alert dla nowych powiadomień
    */
   private initNotificationPolling(): void {
+    if (this.notificationCheckSub) {
+      return;
+    }
+
     // Pobierz powiadomienia na starcie
     this.checkForNewNotifications();
 
@@ -118,8 +143,29 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  private stopNotificationPolling(): void {
+    if (this.notificationCheckSub) {
+      this.notificationCheckSub.unsubscribe();
+      this.notificationCheckSub = undefined;
+    }
+
+    this.lastNotificationIds.clear();
+  }
+
+  private syncNotificationPollingState(): void {
+    if (this.auth.isLoggedIn && this.auth.isBackendSessionActive()) {
+      this.websocket.connect();
+      this.initNotificationPolling();
+      return;
+    }
+
+    this.websocket.disconnect();
+
+    this.stopNotificationPolling();
+  }
+
   /**
-   * Pobiera nieprzeczytane powiadomienia i wyświetla toast dla nowych
+   * Pobiera nieprzeczytane powiadomienia i wyświetla alert dla nowych
    */
   private checkForNewNotifications(): void {
     this.notificationsService.getUnreadNotifications().subscribe({
@@ -129,11 +175,13 @@ export class AppComponent implements OnInit, OnDestroy {
           (notification) => !this.lastNotificationIds.has(notification.id)
         );
 
-        // Dla każdego nowego powiadomienia pokaż toast
-        newNotifications.forEach((notification) => {
-          this.lastNotificationIds.add(notification.id);
-          this.displayNotificationToast(notification);
-        });
+        // Dla każdego nowego powiadomienia pokaż alert po kolei
+        void (async () => {
+          for (const notification of newNotifications) {
+            this.lastNotificationIds.add(notification.id);
+            await this.displayBlockingNotification(notification);
+          }
+        })();
       },
       error: (error) => {
         console.error('Error checking notifications:', error);
@@ -143,28 +191,29 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Wyświetla powiadomienie jako toast
+   * Wyświetla powiadomienie jako blokujący alert modalny
    */
-  private async displayNotificationToast(notification: NotificationDto): Promise<void> {
-    const toast = await this.toastController.create({
+  private async displayBlockingNotification(notification: NotificationDto): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Nowa notatka o niedostępności',
       message: notification.message,
-      duration: 0, // Nie auto-zamyka, użytkownik musi kliknąć OK
-      position: 'top',
-      color: 'primary',
+      backdropDismiss: false,
+      keyboardClose: false,
+      cssClass: 'notification-alert',
       buttons: [
         {
           text: 'OK',
-          role: 'cancel',
+          role: 'confirm',
           handler: async () => {
             // Oznacz jako przeczytane
             await this.markNotificationAsRead(notification.id);
           },
         },
       ],
-      cssClass: 'notification-toast',
     });
 
-    await toast.present();
+    await alert.present();
+    await alert.onDidDismiss();
   }
 
   /**

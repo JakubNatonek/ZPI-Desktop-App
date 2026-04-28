@@ -8,6 +8,8 @@ import { BehaviorSubject, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
+import { Optional } from '@angular/core';
+import { AuthService as BackendAuthService } from '../auth/auth.service';
 
 export interface ChatMessage {
   message_id: number;
@@ -48,9 +50,11 @@ export class WebSocketService {
   public messageRead$ = new Subject<MessageStatus>();
   public userOnline$ = new Subject<UserPresence>();
   public userOffline$ = new Subject<UserPresence>();
+  public notification$ = new Subject<any>();
 
   constructor(
-    private authService: AuthService
+    private authService: AuthService,
+    @Optional() private backendAuthService?: BackendAuthService,
   ) {}
 
   /**
@@ -58,7 +62,6 @@ export class WebSocketService {
    */
   connect(): void {
     if (this.socket?.connected) {
-      console.log('✓ WebSocket already connected');
       return;
     }
 
@@ -66,12 +69,14 @@ export class WebSocketService {
     const userId = this.authService.currentUserId;
 
     if (!userId) {
-      console.warn('WebSocket connection skipped: missing user_id in auth context.');
       return;
     }
 
+    const token = this.backendAuthService?.getAccessToken?.() ?? null;
+
     this.socket = io(backendUrl, {
       withCredentials: true,
+      auth: token ? { token } : undefined,
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -81,12 +86,10 @@ export class WebSocketService {
 
     // Connection events
     this.socket.on('connect', () => {
-      console.log('✓ WebSocket connected');
       this.isConnected$.next(true);
     });
 
     this.socket.on('disconnect', () => {
-      console.log('✗ WebSocket disconnected');
       this.isConnected$.next(false);
     });
 
@@ -96,33 +99,32 @@ export class WebSocketService {
 
     // Chat events
     this.socket.on('message_received', (data: ChatMessage) => {
-      console.log('📬 Message received:', data);
       this.messageReceived$.next(data);
     });
 
     this.socket.on('user_typing', (data: TypingIndicator) => {
-      console.log('⌨️ User typing:', data);
       this.userTyping$.next(data);
     });
 
     this.socket.on('message_delivered', (data: MessageStatus) => {
-      console.log('✓ Message delivered:', data);
       this.messageDelivered$.next(data);
     });
 
     this.socket.on('message_read', (data: MessageStatus) => {
-      console.log('👁️ Message read:', data);
       this.messageRead$.next(data);
     });
 
     this.socket.on('user_online', (data: UserPresence) => {
-      console.log('🟢 User online:', data);
       this.userOnline$.next(data);
     });
 
     this.socket.on('user_offline', (data: UserPresence) => {
-      console.log('🔴 User offline:', data);
       this.userOffline$.next(data);
+    });
+
+    // Live notifications from backend
+    this.socket.on('notification', (data: any) => {
+      this.notification$.next(data);
     });
   }
 
@@ -134,7 +136,6 @@ export class WebSocketService {
       this.socket.disconnect();
       this.socket = null;
       this.isConnected$.next(false);
-      console.log('✗ WebSocket disconnected manually');
     }
   }
 
@@ -164,7 +165,6 @@ export class WebSocketService {
     this.socket.emit('join_conversation', {
       conversation_id: conversationId,
     });
-    console.log(`📍 Joined conversation ${conversationId}`);
   }
 
   /**
@@ -179,7 +179,6 @@ export class WebSocketService {
     this.socket.emit('leave_conversation', {
       conversation_id: conversationId,
     });
-    console.log(`📍 Left conversation ${conversationId}`);
   }
 
   /**
