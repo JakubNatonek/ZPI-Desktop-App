@@ -119,10 +119,11 @@
                     <span class="submission-value">{{ lecturer.lecturerDisplayName }}</span>
                     <ion-icon
                       *ngIf="lecturer.hasActiveUnavailability"
-                      name="alert-circle"
+                      name="warning-outline"
+                      color="warning"
                       class="unavailable-icon"
                       title="Kliknij aby zobaczyć notatki o niedostępności"
-                      (click)="goToUnavailabilityNotes()"
+                      (click)="goToUnavailabilityNotes(); $event.stopPropagation()"
                     ></ion-icon>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { ModalController, ToastController, IonButton, IonContent, IonDatetime, IonGrid, IonCol, IonRow, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonTextarea, IonSpinner, IonIcon } from '@ionic/angular/standalone';
+import { ModalController, IonButton, IonContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonTextarea, IonSpinner, IonIcon, IonList } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { addIcons } from 'ionicons';
 import { close } from 'ionicons/icons';
@@ -16,10 +16,6 @@ import { CreateUnavailabilityNoteRequest, NoteType, UnavailabilityNotesApiServic
     ReactiveFormsModule,
     IonButton,
     IonContent,
-    IonDatetime,
-    IonGrid,
-    IonCol,
-    IonRow,
     IonItem,
     IonLabel,
     IonInput,
@@ -28,16 +24,17 @@ import { CreateUnavailabilityNoteRequest, NoteType, UnavailabilityNotesApiServic
     IonTextarea,
     IonSpinner,
     IonIcon,
+    IonList,
   ],
 })
 export class UnavailabilityNoteModalComponent implements OnInit {
   form!: FormGroup;
   isLoading = false;
   isDateRange = false;
+  submitErrorMessage = '';
 
   constructor(
     private modalController: ModalController,
-    private toastController: ToastController,
     private fb: FormBuilder,
     private unavailabilityService: UnavailabilityNotesApiService,
   ) {
@@ -63,6 +60,7 @@ export class UnavailabilityNoteModalComponent implements OnInit {
   onNoteTypeChange(event: any): void {
     const selectedType = event.detail.value;
     this.isDateRange = false; // Reset na jednodniową
+    this.submitErrorMessage = '';
     this.form.patchValue({
       startDate: '',
       endDate: '',
@@ -74,6 +72,7 @@ export class UnavailabilityNoteModalComponent implements OnInit {
    */
   toggleDateType(): void {
     this.isDateRange = !this.isDateRange;
+    this.submitErrorMessage = '';
     if (!this.isDateRange) {
       this.form.patchValue({ endDate: '' });
     }
@@ -83,15 +82,21 @@ export class UnavailabilityNoteModalComponent implements OnInit {
    * Zapisuje formę i wysyła do API
    */
   async onSubmit(): Promise<void> {
+    this.submitErrorMessage = '';
+
     if (this.form.invalid) {
-      await this.showToast('Proszę poprawnie wypełnić formularz', 'danger');
+      this.submitErrorMessage = 'Proszę poprawnie wypełnić wszystkie wymagane pola';
+      this.form.markAllAsTouched();
       return;
     }
 
-    this.isLoading = true;
-
     try {
       const formValue = this.form.value;
+
+      if (this.isDateInThePast(formValue.startDate)) {
+        this.submitErrorMessage = 'Nie można zgłosić niedostępności z datą wsteczną';
+        return;
+      }
 
       // Przygotuj payload
       const payload: CreateUnavailabilityNoteRequest = {
@@ -103,24 +108,23 @@ export class UnavailabilityNoteModalComponent implements OnInit {
 
       // Walidacja: end_date nie może być przed start_date
       if (payload.end_date && payload.start_date > payload.end_date) {
-        await this.showToast('Data końcowa nie może być przed datą początkową', 'danger');
-        this.isLoading = false;
+        this.submitErrorMessage = 'Data końcowa nie może być przed datą początkową';
         return;
       }
+
+      this.isLoading = true;
 
       // Wyślij do API
       console.debug('Creating unavailability note payload:', payload);
       await this.unavailabilityService.createNote(payload).toPromise();
 
-      await this.showToast('Notatka została dodana pomyślnie', 'success');
       await this.modalController.dismiss({
         dismissed: true,
         success: true,
       });
     } catch (error: any) {
       console.error('Error creating unavailability note:', error);
-      const errorMessage = error?.error?.detail || 'Błąd podczas tworzenia notatki';
-      await this.showToast(errorMessage, 'danger');
+      this.submitErrorMessage = error?.error?.detail || 'Błąd podczas tworzenia notatki';
     } finally {
       this.isLoading = false;
     }
@@ -134,19 +138,6 @@ export class UnavailabilityNoteModalComponent implements OnInit {
       dismissed: true,
       success: false,
     });
-  }
-
-  /**
-   * Wyświetla toast
-   */
-  private async showToast(message: string, color: string): Promise<void> {
-    const toast = await this.toastController.create({
-      message,
-      duration: 3000,
-      position: 'bottom',
-      color,
-    });
-    await toast.present();
   }
 
   /**
@@ -174,6 +165,28 @@ export class UnavailabilityNoteModalComponent implements OnInit {
    * Getter dla informacyjnego tekstu
    */
   get dateRangeLabel(): string {
-    return this.isDateRange ? 'Zakres dat' : 'Jednodniowa';
+    return this.isDateRange ? 'Tryb: zakres dat' : 'Tryb: jednodniowy';
+  }
+
+  /**
+   * Sprawdza, czy wybrana data jest wcześniejsza niż dziś.
+   */
+  private isDateInThePast(dateString: string): boolean {
+    if (!dateString) {
+      return false;
+    }
+
+    return dateString < this.getTodayDateString();
+  }
+
+  /**
+   * Zwraca dzisiejszą datę w formacie YYYY-MM-DD.
+   */
+  private getTodayDateString(): string {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

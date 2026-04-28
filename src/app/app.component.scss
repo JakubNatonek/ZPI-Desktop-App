@@ -51,3 +51,49 @@ ion-menu ion-item {
   --background-hover: #f8f9fa;
   --background-focused: #f3f4f6;
 }
+
+html.ion-palette-dark ion-menu {
+  color-scheme: dark;
+  --background: #111827;
+  --ion-background-color: #111827;
+  --ion-background-color-rgb: 17, 24, 39;
+  --ion-text-color: #f9fafb;
+  --ion-text-color-rgb: 249, 250, 251;
+  --ion-toolbar-background: #111827;
+  --ion-toolbar-color: #f9fafb;
+  --ion-item-background: #111827;
+  --ion-item-color: #f9fafb;
+  --backdrop-opacity: 0.32;
+}
+
+html.ion-palette-dark ion-menu::part(container) {
+  background: #111827;
+}
+
+html.ion-palette-dark ion-menu ion-toolbar {
+  --background: #111827;
+  --color: #f9fafb;
+}
+
+html.ion-palette-dark ion-menu ion-toolbar.role-toolbar {
+  border-top: 1px solid #1f2937;
+}
+
+html.ion-palette-dark ion-menu ion-toolbar.role-toolbar ion-title {
+  color: #cbd5e1;
+}
+
+html.ion-palette-dark ion-menu ion-content {
+  --background: #111827;
+}
+
+html.ion-palette-dark ion-menu ion-list {
+  background: #111827;
+}
+
+html.ion-palette-dark ion-menu ion-item {
+  --background: #111827;
+  --color: #f9fafb;
+  --background-hover: #1f2937;
+  --background-focused: #1f2937;
+}

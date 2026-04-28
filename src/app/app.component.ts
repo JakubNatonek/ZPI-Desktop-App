@@ -1,9 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { MenuController, AlertController } from '@ionic/angular';
-import { IonApp, IonRouterOutlet, IonMenu, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonButtons, IonButton, IonIcon } from '@ionic/angular/standalone';
+import { IonApp, IonRouterOutlet, IonMenu, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonButtons, IonButton, IonIcon, IonToggle, IonLabel } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
-import { AuthService } from './core/services/auth.service';
+import { AuthService, AppTheme } from './core/services/auth.service';
 import { WebSocketService } from './core/services/websocket.service';
 import { ChatComponent } from './features/chat/chat.component';
 import { NotificationsApiService, NotificationDto } from './core/services/notifications-api.service';
@@ -26,6 +26,8 @@ import { filter, Subscription, interval, distinctUntilChanged } from 'rxjs';
     IonButtons,
     IonButton,
     IonIcon,
+    IonToggle,
+    IonLabel,
     CommonModule,
     ChatComponent,
   ],
@@ -35,6 +37,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private authStateSub?: Subscription;
   private notificationCheckSub?: Subscription;
   private lastNotificationIds: Set<number> = new Set();
+  selectedTheme: AppTheme = 'light';
 
   constructor(
     public auth: AuthService,
@@ -71,6 +74,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.checkRoute();
+    this.selectedTheme = this.auth.getCurrentTheme();
 
     this.routerSub = this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -80,7 +84,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.authStateSub = this.auth.isAuthenticated$
       .pipe(distinctUntilChanged())
-      .subscribe(() => this.syncNotificationPollingState());
+      .subscribe(() => {
+        this.selectedTheme = this.auth.getCurrentTheme();
+        this.syncNotificationPollingState();
+      });
 
     // Subscribe to live socket notifications
     this.websocket.notification$.subscribe((data) => {
@@ -97,6 +104,11 @@ export class AppComponent implements OnInit, OnDestroy {
     });
 
     this.syncNotificationPollingState();
+  }
+
+  onThemeChange(isDark: boolean): void {
+    this.selectedTheme = isDark ? 'dark' : 'light';
+    this.auth.updateCurrentTheme(this.selectedTheme);
   }
 
   ngOnDestroy() {

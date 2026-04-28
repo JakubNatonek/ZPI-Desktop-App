@@ -8,7 +8,7 @@ import {
   chevronBackOutline, chevronForwardOutline, cloudDownloadOutline,
   cloudUploadOutline, addOutline, peopleOutline, menuOutline,
   checkmarkDoneOutline, createOutline, swapHorizontalOutline,
-  timeOutline, calendarOutline, alertCircleOutline
+  timeOutline, calendarOutline, warningOutline
 } from 'ionicons/icons';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
@@ -281,7 +281,7 @@ export class HomePage implements OnInit {
       swapHorizontalOutline,
       timeOutline,
       calendarOutline,
-      alertCircleOutline,
+      warningOutline,
     });
   }
 

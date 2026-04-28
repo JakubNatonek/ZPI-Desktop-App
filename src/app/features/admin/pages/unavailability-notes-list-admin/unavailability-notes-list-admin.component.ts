@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
+  IonButtons,
+  IonMenuButton,
   IonContent,
   IonHeader,
   IonTitle,
@@ -13,20 +15,15 @@ import {
   IonGrid,
   IonRow,
   IonCol,
-  IonSpinner,
   IonIcon,
-  IonBadge,
-  IonRefresher,
-  IonRefresherContent,
-  IonText,
+  IonChip,
   IonSegment,
   IonSegmentButton,
   IonLabel,
-  ToastController,
-  AlertController,
 } from '@ionic/angular/standalone';
+import { ViewWillEnter } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { checkmarkCircle, closeCircle, checkmark, close, refresh } from 'ionicons/icons';
+import { checkmarkCircle, closeCircle, checkmark, close, refresh, documentOutline } from 'ionicons/icons';
 import { UnavailabilityNotesApiService, UnavailabilityNoteListDto, NoteStatus } from '../../../../core/services/unavailability-notes-api.service';
 
 type FilterType = 'all' | 'pending' | 'accepted' | 'rejected' | 'acknowledged';
@@ -38,6 +35,8 @@ type FilterType = 'all' | 'pending' | 'accepted' | 'rejected' | 'acknowledged';
   standalone: true,
   imports: [
     CommonModule,
+    IonButtons,
+    IonMenuButton,
     IonContent,
     IonHeader,
     IonTitle,
@@ -50,33 +49,21 @@ type FilterType = 'all' | 'pending' | 'accepted' | 'rejected' | 'acknowledged';
     IonGrid,
     IonRow,
     IonCol,
-    IonSpinner,
     IonIcon,
-    IonBadge,
-    IonRefresher,
-    IonRefresherContent,
-    IonText,
+    IonChip,
     IonSegment,
     IonSegmentButton,
     IonLabel,
   ],
 })
-export class UnavailabilityNotesListAdminComponent implements OnInit {
+export class UnavailabilityNotesListAdminComponent implements ViewWillEnter {
   notes: UnavailabilityNoteListDto[] = [];
   isLoading = false;
   isProcessing: { [noteId: number]: boolean } = {};
   filterType: FilterType = 'all';
 
-  constructor(
-    private unavailabilityService: UnavailabilityNotesApiService,
-    private toastController: ToastController,
-    private alertController: AlertController,
-  ) {
-    addIcons({ checkmarkCircle, closeCircle, checkmark, close, refresh });
-  }
-
-  ngOnInit(): void {
-    this.loadNotes();
+  constructor(private unavailabilityService: UnavailabilityNotesApiService) {
+    addIcons({documentOutline,checkmarkCircle,closeCircle,checkmark,close,refresh});
   }
 
   /**
@@ -84,6 +71,7 @@ export class UnavailabilityNotesListAdminComponent implements OnInit {
    */
   loadNotes(): void {
     this.isLoading = true;
+    this.isProcessing = {};
 
     let request = this.filterType === 'pending'
       ? this.unavailabilityService.getPendingNotes()
@@ -96,7 +84,6 @@ export class UnavailabilityNotesListAdminComponent implements OnInit {
       },
       error: (error: any) => {
         console.error('Error loading notes:', error);
-        this.showToast('Błąd podczas ładowania notatek', 'danger');
         this.isLoading = false;
       },
     });
@@ -121,6 +108,11 @@ export class UnavailabilityNotesListAdminComponent implements OnInit {
     this.loadNotes();
   }
 
+  ionViewWillEnter(): void {
+    this.isProcessing = {};
+    this.loadNotes();
+  }
+
   /**
    * Odświeża listę
    */
@@ -134,50 +126,35 @@ export class UnavailabilityNotesListAdminComponent implements OnInit {
    */
   async updateNoteStatus(note: UnavailabilityNoteListDto, newStatus: NoteStatus): Promise<void> {
     if (this.isProcessing[note.id]) return;
+    const previousStatus = note.status;
+    const previousIndex = this.notes.findIndex((item) => item.id === note.id);
+    const shouldRemoveFromList = this.filterType === 'pending' && newStatus !== 'pending';
+    const shouldShowSuccessToast = newStatus !== 'acknowledged';
+
     this.isProcessing[note.id] = true;
+    note.status = newStatus;
 
-    try {
-      await this.unavailabilityService.updateNoteStatus(note.id, { status: newStatus }).toPromise();
-
-      const statusMessage = this.getStatusMessage(newStatus);
-      await this.showToast(`Notatka zmieniona na: ${statusMessage}`, 'success');
-
-      // Przeładuj notatki
-      this.loadNotes();
-    } catch (error: any) {
-      console.error('Error updating note status:', error);
-      const errorMessage = error?.error?.detail || 'Błąd podczas aktualizacji statusu';
-      await this.showToast(errorMessage, 'danger');
-    } finally {
-      this.isProcessing[note.id] = false;
+    if (shouldRemoveFromList) {
+      this.notes = this.notes.filter((item) => item.id !== note.id);
     }
-  }
 
-  /**
-   * Tworzy alert potwierdzający zmianę statusu
-   */
-  async confirmStatusChange(note: UnavailabilityNoteListDto, newStatus: NoteStatus): Promise<void> {
-    const statusMessage = this.getStatusMessage(newStatus);
+    this.unavailabilityService.updateNoteStatus(note.id, { status: newStatus }).subscribe({
+      next: async () => {
+        this.isProcessing[note.id] = false;
+      },
+      error: async (error: any) => {
+        console.error('Error updating note status:', error);
+        note.status = previousStatus;
 
-    const alert = await this.alertController.create({
-      header: 'Potwierdź zmianę statusu',
-      message: `Zmienić status notatki od ${note.first_name} ${note.last_name} na "${statusMessage}"?`,
-      buttons: [
-        {
-          text: 'Anuluj',
-          role: 'cancel',
-        },
-        {
-          text: 'Potwierdź',
-          role: 'confirm',
-          handler: () => {
-            this.updateNoteStatus(note, newStatus);
-          },
-        },
-      ],
+        if (shouldRemoveFromList && previousIndex >= 0 && !this.notes.some((item) => item.id === note.id)) {
+          const restoredNotes = [...this.notes];
+          restoredNotes.splice(previousIndex, 0, note);
+          this.notes = restoredNotes;
+        }
+
+        this.isProcessing[note.id] = false;
+      },
     });
-
-    await alert.present();
   }
 
   /**
@@ -241,10 +218,10 @@ export class UnavailabilityNotesListAdminComponent implements OnInit {
    */
   private getStatusMessage(status: NoteStatus): string {
     const messages: { [key in NoteStatus]: string } = {
-      accepted: 'zaakceptowana',
-      rejected: 'odrzucona',
-      acknowledged: 'zapoznano się',
-      pending: 'oczekująca',
+      accepted: 'Zaakceptowana',
+      rejected: 'Odrzucona',
+      acknowledged: 'Zapoznano się',
+      pending: 'Oczekująca',
     };
     return messages[status];
   }
@@ -268,19 +245,6 @@ export class UnavailabilityNotesListAdminComponent implements OnInit {
       return `${startDate} - ${endDate}`;
     }
     return startDate;
-  }
-
-  /**
-   * Wyświetla toast
-   */
-  private async showToast(message: string, color: string): Promise<void> {
-    const toast = await this.toastController.create({
-      message,
-      duration: 3000,
-      position: 'bottom',
-      color,
-    });
-    await toast.present();
   }
 
   /**

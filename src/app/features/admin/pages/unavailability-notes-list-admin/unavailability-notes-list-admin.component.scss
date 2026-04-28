@@ -1,0 +1,146 @@
+.notes-page {
+	--background: linear-gradient(180deg, rgba(var(--ion-color-primary-rgb), 0.03), rgba(var(--ion-color-light-rgb), 0.04));
+}
+
+.page-shell {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+.notes-header ion-toolbar {
+	--border-width: 0;
+}
+
+.filter-segment {
+	background: rgba(var(--ion-color-medium-rgb), 0.08);
+	border-radius: 18px;
+	padding: 6px;
+}
+
+.loading-container,
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 14px;
+	min-height: 220px;
+	text-align: center;
+	color: var(--ion-color-medium-shade);
+}
+
+.loading-container {
+	min-height: 140px;
+	font-weight: 600;
+}
+
+.notes-container {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.note-card {
+	margin: 0;
+	border-radius: 22px;
+	box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+}
+
+.note-card-header {
+	padding-bottom: 0;
+}
+
+.note-title-row {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.note-author {
+	font-size: 1.2rem;
+	font-weight: 800;
+	color: var(--ion-text-color, #0f172a);
+}
+
+.note-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.note-chip {
+	margin: 0;
+	font-weight: 700;
+}
+
+.note-details-grid {
+	padding: 0;
+}
+
+.detail-block {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 14px;
+	border-radius: 18px;
+	background: rgba(var(--ion-color-step-50-rgb), 0.9);
+	border: 1px solid rgba(var(--ion-color-medium-rgb), 0.12);
+	height: 100%;
+}
+
+.detail-label {
+	font-size: 0.76rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	font-weight: 800;
+	color: var(--ion-color-medium-shade);
+}
+
+.detail-value {
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--ion-text-color, #0f172a);
+	line-height: 1.5;
+}
+
+.detail-value--description {
+	white-space: pre-wrap;
+}
+
+.detail-block--full {
+	margin-top: 4px;
+}
+
+.action-buttons--right {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin-top: 16px;
+
+	ion-button {
+		margin: 0;
+		--padding-start: 16px;
+		--padding-end: 16px;
+		font-weight: 700;
+	}
+}
+
+@media (max-width: 576px) {
+	.filter-segment {
+		overflow-x: auto;
+	}
+
+	.note-author {
+		font-size: 1.05rem;
+	}
+
+	.action-buttons--right {
+		justify-content: stretch;
+
+		ion-button {
+			flex: 1 1 100%;
+		}
+	}
+}

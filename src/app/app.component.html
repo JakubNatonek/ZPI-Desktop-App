@@ -16,6 +16,13 @@
     </ion-header>
     <ion-content>
       <ion-list>
+        <ion-item lines="none">
+          <ion-label>Tryb ciemny</ion-label>
+          <ion-toggle slot="end" [checked]="selectedTheme === 'dark'" (ionChange)="onThemeChange($event.detail.checked)"></ion-toggle>
+        </ion-item>
+      </ion-list>
+
+      <ion-list>
         <ion-item button (click)="navigate('/home')">Wykładowcy</ion-item>
         <ion-item button *ngIf="auth.role !== 'lecturer'" (click)="navigate('/hermonogram')">Harmonogram</ion-item>
         <ion-item button *ngIf="auth.role !== 'lecturer'" (click)="navigate('/konflikty')">Konflikty</ion-item>
