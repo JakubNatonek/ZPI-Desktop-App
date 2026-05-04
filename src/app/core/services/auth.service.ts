@@ -6,7 +6,7 @@ import { CryptoService } from './crypto.service';
 
 import { environment } from '../../../environments/environment';
 
-export type UserRole = 'admin' | 'lecturer' | 'planner';
+export type UserRole = 'admin' | 'lecturer' | 'planner' | 'rapla_editor';
 export type AppTheme = 'light' | 'dark';
 
 interface UserAccount {
@@ -441,6 +441,8 @@ export class AuthService {
       case 'planner':
       case 'student':
         return 'planner';
+      case 'rapla_editor':
+        return 'rapla_editor';
       default:
         return 'planner';
     }

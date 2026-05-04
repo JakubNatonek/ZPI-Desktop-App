@@ -1,0 +1,78 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Historia zmian (Audit Log)</ion-title>
+    <ion-buttons slot="end" *ngIf="hasNew">
+      <ion-button color="success" (click)="acknowledgeChanges()">
+        <ion-icon name="checkmark-done" slot="start"></ion-icon>
+        Zapoznałem się ze zmianami
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="container">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Ostatnie Modyfikacje w Systemie</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item *ngFor="let log of logs" [class.is-new]="log.isNew" lines="full" class="log-item">
+            <ion-label class="ion-text-wrap">
+              <h2>
+                <strong>{{ getTranslatedEntity(log.entity_name) }}</strong> {{ getEntityDisplayName(log) }} - 
+                <ion-badge [color]="log.action === 'CREATE' ? 'success' : (log.action === 'UPDATE' ? 'warning' : 'danger')">
+                  {{ log.action === 'CREATE' ? 'UTWORZONO' : (log.action === 'UPDATE' ? 'ZAKTUALIZOWANO' : 'USUNIĘTO') }}
+                </ion-badge>
+                <ion-badge *ngIf="log.isNew" color="tertiary" style="margin-left: 5px;">NOWE</ion-badge>
+              </h2>
+              <p>Modyfikował: {{ log.modified_by_name || 'System' }} w dniu {{ log.timestamp | date:'dd.MM.yyyy HH:mm' }}</p>
+              
+              <div class="changes-grid" *ngIf="log.action === 'UPDATE' && log.old_values && log.new_values">
+                <div class="changes-row header-row">
+                  <div class="changes-col pole">Pole</div>
+                  <div class="changes-col stara-wartosc">Było</div>
+                  <div class="changes-col nowa-wartosc">Jest</div>
+                </div>
+                <div class="changes-row" *ngFor="let key of getParsedKeys(log.new_values)">
+                  <div class="changes-col pole">
+                    <strong>{{ getTranslatedKey(key) }}</strong>
+                  </div>
+                  <div class="changes-col stara-wartosc changes-old" [class.changed-val]="log.old_values[key] !== log.new_values[key]">
+                    {{ getDisplayValue(log.old_values[key]) }}
+                  </div>
+                  <div class="changes-col nowa-wartosc changes-new" [class.changed-val]="log.old_values[key] !== log.new_values[key]">
+                    {{ getDisplayValue(log.new_values[key]) }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="changes-grid single-grid" *ngIf="log.action === 'CREATE' || log.action === 'DELETE'">
+                <div class="changes-row header-row">
+                  <div class="changes-col pole">Pole</div>
+                  <div class="changes-col wartosc">Wartość</div>
+                </div>
+                <div class="changes-row" *ngFor="let key of getParsedKeys(log.action === 'CREATE' ? log.new_values : log.old_values)">
+                  <div class="changes-col pole">
+                    <strong>{{ getTranslatedKey(key) }}</strong>
+                  </div>
+                  <div class="changes-col wartosc changes-single">
+                    {{ getDisplayValue((log.action === 'CREATE' ? log.new_values : log.old_values)[key]) }}
+                  </div>
+                </div>
+              </div>
+              
+            </ion-label>
+          </ion-item>
+          <ion-item *ngIf="logs.length === 0">
+            <ion-label>Brak wpisów audytu.</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>
