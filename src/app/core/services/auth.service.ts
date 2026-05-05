@@ -38,6 +38,9 @@ interface ApiCurrentUserResponse {
   email: string;
   role: string;
   department: string;
+  first_name?: string;
+  last_name?: string;
+  avatar?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -78,6 +81,9 @@ export class AuthService {
   private _userId = new BehaviorSubject<number | null>(null);
   private _mustChangePassword = new BehaviorSubject<boolean>(false);
   private _isRestoringSession = new BehaviorSubject<boolean>(true);
+  private _firstName = new BehaviorSubject<string>('');
+  private _lastName = new BehaviorSubject<string>('');
+  private _avatar = new BehaviorSubject<string>(this.defaultAvatarUrl);
   private currentAuthMode: 'backend' | 'local' | null = null;
 
   readonly isAuthenticated$ = this._authenticated.asObservable();
@@ -86,6 +92,7 @@ export class AuthService {
   readonly email$ = this._email.asObservable();
   readonly mustChangePassword$ = this._mustChangePassword.asObservable();
   readonly isRestoringSession$ = this._isRestoringSession.asObservable();
+  readonly avatarUrl$ = this._avatar.asObservable();
   private readonly loginUrl = `${environment.apiBaseUrl}/auth/`;
   private readonly meUrl = `${environment.apiBaseUrl}/auth/me`;
   private readonly logoutUrl = `${environment.apiBaseUrl}/auth/logout`;
@@ -124,11 +131,14 @@ export class AuthService {
         const mappedRole = this.mapBackendRoleToAppRole(me.role, me.email);
         this.activateSession(
           mappedRole,
-          this.resolveDisplayName(me.email, me.login),
+          this.resolveDisplayName(me.email, me.login, me.first_name, me.last_name),
           me.email,
           me.user_id,
           'backend',
-          false
+          false,
+          me.first_name ?? '',
+          me.last_name ?? '',
+          me.avatar ?? ''
         );
       }),
       catchError(() => {
@@ -165,11 +175,14 @@ export class AuthService {
               const mappedRole = this.mapBackendRoleToAppRole(me.role, me.email);
               this.activateSession(
                 mappedRole,
-                this.resolveDisplayName(me.email, me.login),
+                this.resolveDisplayName(me.email, me.login, me.first_name, me.last_name),
                 me.email,
                 me.user_id,
                 'backend',
-                needsPasswordChange
+                needsPasswordChange,
+                me.first_name ?? '',
+                me.last_name ?? '',
+                me.avatar ?? ''
               );
             }),
             map(() => ({ success: true, mustChangePassword: needsPasswordChange }))
@@ -198,7 +211,10 @@ export class AuthService {
     email: string,
     userId: number | null,
     authMode: 'backend' | 'local',
-    mustChangePassword: boolean = false
+    mustChangePassword: boolean = false,
+    firstName: string = '',
+    lastName: string = '',
+    avatar: string = ''
   ): void {
     this._authenticated.next(true);
     this._userRole.next(role);
@@ -206,6 +222,10 @@ export class AuthService {
     this._email.next(email);
     this._userId.next(userId);
     this._mustChangePassword.next(mustChangePassword);
+    this._firstName.next(firstName);
+    this._lastName.next(lastName);
+    const storedAvatar = this.getUserPreferences(email)?.avatar || '';
+    this._avatar.next(avatar || storedAvatar || this.defaultAvatarUrl);
     this.currentAuthMode = authMode;
     this.applyCurrentTheme();
     if (authMode === 'backend' && userId != null) {
@@ -264,6 +284,14 @@ export class AuthService {
     return this._displayName.value;
   }
 
+  get firstName(): string {
+    return this._firstName.value;
+  }
+
+  get lastName(): string {
+    return this._lastName.value;
+  }
+
   get email(): string {
     if (!this.ensureActiveSession()) {
       return '';
@@ -304,23 +332,29 @@ export class AuthService {
     }));
   }
 
-  getProfileAvatarUrl(): string {
-    if (!this.ensureActiveSession()) {
-      return this.defaultAvatarUrl;
-    }
-
-    const preferences = this.getUserPreferences(this._email.value);
-    return preferences?.avatar || this.defaultAvatarUrl;
+  get avatarUrl(): string {
+    return this._avatar.value;
   }
 
-  updateProfileAvatar(avatarDataUrl: string): void {
+  getProfileAvatarUrl(): string {
+    return this._avatar.value;
+  }
+
+  updateProfileAvatar(avatarDataUrl: string): Observable<string> {
     if (!this.ensureActiveSession() || !avatarDataUrl) {
-      return;
+      return of(this._avatar.value);
     }
 
-    this.updateUserPreferences(this._email.value, {
-      avatar: avatarDataUrl,
-    });
+    // Keep localStorage backup
+    this.updateUserPreferences(this._email.value, { avatar: avatarDataUrl });
+    // Update in-memory reactive state immediately
+    this._avatar.next(avatarDataUrl);
+
+    const avatarUrl = `${environment.apiBaseUrl}/users/me/avatar`;
+    return this.http.put<{ avatar: string | null }>(avatarUrl, { avatar: avatarDataUrl }, { withCredentials: true }).pipe(
+      map((res) => res.avatar || avatarDataUrl),
+      catchError(() => of(avatarDataUrl))
+    );
   }
 
   changePassword(currentPassword: string, newPassword: string): Observable<{ success: boolean; message: string }> {
@@ -355,7 +389,7 @@ export class AuthService {
     this.updateUserPreferences(this._email.value, {
       password: newPassword,
     });
-    
+
     this._mustChangePassword.next(false);
 
     return of({ success: true, message: 'Hasło zostało zmienione.' });
@@ -392,6 +426,7 @@ export class AuthService {
     this._email.next('');
     this._userId.next(null);
     this._mustChangePassword.next(false);
+    this._avatar.next(this.defaultAvatarUrl);
     this.currentAuthMode = null;
 
     if (redirectToLogin) {
@@ -446,7 +481,10 @@ export class AuthService {
     }
   }
 
-  private resolveDisplayName(email: string, backendLogin: string): string {
+  private resolveDisplayName(email: string, backendLogin: string, firstName?: string, lastName?: string): string {
+    if (firstName || lastName) {
+      return `${firstName || ''} ${lastName || ''}`.trim();
+    }
     const localAccount = this.accounts.find((account) => account.email === email);
     return localAccount?.displayName || backendLogin;
   }

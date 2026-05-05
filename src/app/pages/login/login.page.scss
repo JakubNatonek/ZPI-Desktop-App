@@ -1,187 +1,304 @@
-﻿.login-view {
+﻿// ─── Variables ───────────────────────────────────────────────────────────────
+$navy: #1a3a5c;
+$navy-dark: #122946;
+$gold: #d4a843;
+$gold-dark: #bb943b;
+$white: #ffffff;
+$bg-light: #f4f6fb;
+$text-dark: #1a1a2e;
+$text-muted: #6b7a90;
+$border: #dce3ef;
+$error: #e74c3c;
+$radius: 10px;
 
-  --background: #ffffff;
+// ─── Full-screen layout ───────────────────────────────────────────────────────
+ion-content.login-view {
+  --background: #{$bg-light};
 }
 
-.page-container {
+.login-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+// ─── Brand panel (left) ───────────────────────────────────────────────────────
+.brand-panel {
+  flex: 0 0 42%;
+  background: linear-gradient(160deg, #{$navy-dark} 0%, #{$navy} 60%, #1e4d7a 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-
-ion-content.login-view {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  width: 100vw;
-  padding: 0 16px;
+  padding: 48px 40px;
+  color: $white;
   position: relative;
+  overflow: hidden;
+
+  // Decorative circle top-right
+  &::before {
+    content: '';
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    border: 50px solid rgba(255, 255, 255, 0.04);
+    top: -80px;
+    right: -80px;
+    pointer-events: none;
+  }
+
+  // Decorative circle bottom-left
+  &::after {
+    content: '';
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    border: 40px solid rgba(255, 255, 255, 0.04);
+    bottom: -60px;
+    left: -60px;
+    pointer-events: none;
+  }
 }
 
-.page-header {
+.brand-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  margin-bottom: 16px;
+  gap: 18px;
+  z-index: 1;
 }
 
-.page-header h1 {
-  margin: 0;
-  font-size: 32px;
+.brand-logo {
+  width: 220px;
+  height: auto;
+  object-fit: contain;
+  background: none;
+  padding: 0;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.25));
+}
+
+.brand-title {
+  font-size: 24px;
   font-weight: 700;
-  color: #1d1d1f;
+  line-height: 1.3;
+  margin: 0;
+  color: $white;
 }
 
-.page-header .subtitle {
+.brand-tagline {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $gold;
+  margin: 0;
+}
+
+.brand-divider {
+  width: 48px;
+  height: 3px;
+  background: $gold;
+  border-radius: 2px;
+}
+
+.brand-desc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  max-width: 280px;
+}
+
+.brand-footer {
+  position: absolute;
+  bottom: 24px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0;
+  z-index: 1;
+}
+
+// ─── Form panel (right) ───────────────────────────────────────────────────────
+.form-panel {
+  flex: 1;
+  background: $white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  overflow-y: auto;
+}
+
+.form-wrapper {
+  width: 100%;
+  max-width: 380px;
+}
+
+.form-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: $text-dark;
+  margin: 0 0 6px;
+}
+
+.form-subtitle {
   font-size: 14px;
-  color: #7f7f7f;
-  margin-top: 4px;
+  color: $text-muted;
+  margin: 0 0 32px;
+}
+
+// ─── Fields ───────────────────────────────────────────────────────────────────
+.field-group {
+  margin-bottom: 20px;
 }
 
 .field-label {
   display: block;
-  margin-top: 12px;
-  margin-bottom: 2px;
   font-size: 12px;
-  color: #000;
-}
-
-ion-input {
-  --color: #000;
-}
-
-.card-wrapper {
-  width: 100%;
-  max-width: 320px;
-  margin: auto;
-  margin-top: 16px;
-}
-
-ion-card {
-  border-radius: 12px;
-  --background: #ffffff;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
-  padding: 0;
-}
-
-ion-card-header {
-  padding-top: 32px;
-  padding-bottom: 8px;
-  text-align: center;
-}
-
-ion-card-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1d1d1f;
-}
-
-ion-card-subtitle {
-  font-size: 14px;
-  color: #7f7f7f;
-  margin-top: 4px;
+  font-weight: 600;
+  color: $text-dark;
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .input-shell {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #ffffff;
-  border-radius: 6px;
-  border: 1px solid #cbd5e1;
-  margin-top: 16px;
-  padding: 0 16px;
-  height: 48px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  gap: 10px;
+  background: $bg-light;
+  border: 1.5px solid $border;
+  border-radius: $radius;
+  padding: 0 14px;
+  height: 50px;
+  transition: border-color 0.2s;
+
+  &:focus-within {
+    border-color: $navy;
+    background: $white;
+  }
+
+  ion-icon {
+    font-size: 18px;
+    color: $text-muted;
+    flex-shrink: 0;
+  }
+
+  ion-input {
+    --padding-start: 0;
+    --padding-end: 0;
+    --color: #{$text-dark};
+    --placeholder-color: #{$text-muted};
+    font-size: 14px;
+    flex: 1;
+  }
 }
 
-.input-shell ion-icon {
-  font-size: 20px;
-  color: #7f7f7f;
+.toggle-password {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: $text-muted;
+  font-size: 18px;
+
+  &:hover {
+    color: $navy;
+  }
 }
 
-ion-input {
-  --padding: 0;
-  --color: #1a1a1a;
-  font-size: 14px;
-}
-
-ion-input {
-  padding-left: 4px;
-}
-
-ion-button {
-  --background: #0a3d62;
-  --border-radius: 6px;
-  font-weight: 600;
-  font-size: 16px;
-  height: 44px;
-  color: #ffffff;
-}
-
+// ─── Error ────────────────────────────────────────────────────────────────────
 .error-message {
-  color: #e74c3c;
-  font-size: 0.9rem;
-  text-align: center;
+  background: rgba($error, 0.08);
+  border: 1px solid rgba($error, 0.25);
+  border-radius: $radius;
+  color: $error;
+  font-size: 13px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
 }
 
-div.demo-credentials {
-  font-size: 0.8rem;
-  color: #555;
-  margin-top: 16px;
-  background: #f9fafb;
-  padding: 12px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  cursor: pointer;
-  user-select: text;
+// ─── Submit button ────────────────────────────────────────────────────────────
+.submit-btn {
+  --background: #{$navy};
+  --background-activated: #{$navy-dark};
+  --background-hover: #{$navy-dark};
+  --border-radius: #{$radius};
+  --color: #{$white};
+  font-weight: 700;
+  font-size: 15px;
+  height: 50px;
+  margin-top: 8px;
+  letter-spacing: 0.03em;
+
+  &::part(native) {
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.28);
+  }
+
+  &:hover::part(native) {
+    box-shadow: 0 6px 20px rgba(26, 58, 92, 0.38);
+  }
 }
 
-.account-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-}
+// ─── Dark mode ────────────────────────────────────────────────────────────────
+:host-context(html.ion-palette-dark) {
+  ion-content.login-view {
+    --background: #0c1524;
+  }
 
-.account-item {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-  border: 1px solid #dbe0e8;
-  border-radius: 6px;
-  background: #ffffff;
-  padding: 8px;
-  color: #374151;
-  cursor: pointer;
-}
+  .form-panel {
+    background: #162336;
+  }
 
-.account-item:hover {
-  border-color: #0a3d62;
-}
+  .form-title {
+    color: #e8edf4;
+  }
 
-.account-role {
-  font-weight: 600;
-}
+  .form-subtitle {
+    color: #94a3b8;
+  }
 
-.no-register {
-  color: #999;
-  font-size: 0.85rem;
-  margin-top: 12px;
-  text-align: center;
-  opacity: 0.9;
-}
+  .field-label {
+    color: #e8edf4;
+  }
 
-.login-footer {
-  position: absolute;
-  bottom: 16px;
-  width: 100%;
-  text-align: center;
-  font-size: 0.75rem;
-  color: #888;
-}
+  .input-shell {
+    background: #1a2c42;
+    border-color: rgba(255, 255, 255, 0.08);
 
-.login-footer .brand {
-  font-size: 0.7rem;
-  margin-top: 4px;
+    &:focus-within {
+      border-color: rgba(212, 168, 67, 0.4);
+      background: #1a2c42;
+    }
+
+    ion-icon {
+      color: #64748b;
+    }
+
+    ion-input {
+      --color: #e8edf4;
+      --placeholder-color: #64748b;
+    }
+  }
+
+  .toggle-password {
+    color: #64748b;
+
+    &:hover {
+      color: #d4a843;
+    }
+  }
+
+  .error-message {
+    background: rgba(231, 76, 60, 0.1);
+    border-color: rgba(231, 76, 60, 0.3);
+    color: #fca5a5;
+  }
 }

@@ -47,7 +47,7 @@ export interface UnavailabilityNoteListDto extends UnavailabilityNoteDto {
 export class UnavailabilityNotesApiService {
   private readonly apiUrl = `${environment.apiBaseUrl}/unavailability-notes`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   /**
    * Tworzy nową notatkę o niedostępności
@@ -70,7 +70,7 @@ export class UnavailabilityNotesApiService {
    * GET /unavailability-notes/all
    */
   getAllNotes(): Observable<UnavailabilityNoteListDto[]> {
-    return this.http.get<UnavailabilityNoteListDto[]>(`${this.apiUrl}/all`);
+    return this.http.get<UnavailabilityNoteListDto[]>(`${this.apiUrl}/all`, { withCredentials: true });
   }
 
   /**
@@ -78,7 +78,7 @@ export class UnavailabilityNotesApiService {
    * GET /unavailability-notes/all/pending
    */
   getPendingNotes(): Observable<UnavailabilityNoteListDto[]> {
-    return this.http.get<UnavailabilityNoteListDto[]>(`${this.apiUrl}/all/pending`);
+    return this.http.get<UnavailabilityNoteListDto[]>(`${this.apiUrl}/all/pending`, { withCredentials: true });
   }
 
   /**
@@ -86,7 +86,7 @@ export class UnavailabilityNotesApiService {
    * PUT /unavailability-notes/{note_id}/status
    */
   updateNoteStatus(noteId: number, payload: UpdateUnavailabilityNoteStatusRequest): Observable<UnavailabilityNoteDto> {
-    return this.http.put<UnavailabilityNoteDto>(`${this.apiUrl}/${noteId}/status`, payload);
+    return this.http.put<UnavailabilityNoteDto>(`${this.apiUrl}/${noteId}/status`, payload, { withCredentials: true });
   }
 
   /**
@@ -94,6 +94,6 @@ export class UnavailabilityNotesApiService {
    * GET /unavailability-notes/{note_id}
    */
   getNoteDetail(noteId: number): Observable<UnavailabilityNoteDto> {
-    return this.http.get<UnavailabilityNoteDto>(`${this.apiUrl}/${noteId}`);
+    return this.http.get<UnavailabilityNoteDto>(`${this.apiUrl}/${noteId}`, { withCredentials: true });
   }
 }

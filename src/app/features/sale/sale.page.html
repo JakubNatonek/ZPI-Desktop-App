@@ -1,18 +1,26 @@
 <!-- Gorny pasek z dostepem do menu aplikacji -->
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
     <ion-title>{{ isEditMode ? 'Edycja sali' : 'Tworzenie sali' }}</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
-      <ion-button fill="clear" (click)="navigateToList()">Lista sal</ion-button>
-      <ion-button fill="clear" (click)="navigateToDictionaries()">Slowniki sal</ion-button>
-      <ion-chip color="medium" outline>
+      <ion-button class="toolbar-nav-btn" fill="clear" (click)="navigateToList()">
+        <ion-icon slot="start" name="arrow-back-outline"></ion-icon>
+        Lista sal
+      </ion-button>
+      <ion-button class="toolbar-nav-btn" fill="clear" (click)="navigateToDictionaries()">
+        <ion-icon slot="start" name="library-outline"></ion-icon>
+        Słowniki
+      </ion-button>
+      <ion-chip class="role-chip" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
-      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
-        <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+      <span class="toolbar-username">{{ userDisplayName }}</span>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0"
+        (click)="toggleProfileMenu($event)">
+        <img [src]="auth.avatarUrl" alt="Avatar" />
       </ion-avatar>
 
       <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
@@ -28,122 +36,115 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding room-form-content">
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>{{ isEditMode ? 'Edycja sali' : 'Nowa sala' }}</ion-card-title>
-      <ion-card-subtitle>
-        {{ isEditMode ? 'Zmien dane i zapisz aktualizacje.' : 'Uzupelnij formularz, aby dodac sale.' }}
-      </ion-card-subtitle>
-    </ion-card-header>
+<ion-content class="form-page-content">
+  <div class="form-page-wrapper">
 
-    <ion-card-content>
-      <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
+    <!-- Naglowek strony -->
+    <div class="form-page-header">
+      <h1 class="form-page-title">{{ isEditMode ? 'Edycja sali' : 'Nowa sala' }}</h1>
+      <p class="form-page-subtitle">
+        {{ isEditMode ? 'Zmień dane sali i zapisz aktualizację.' : 'Uzupełnij formularz, aby dodać nową salę.' }}
+      </p>
+    </div>
 
-      <!-- Glowny formularz sali z walidacja template-driven -->
-      <form #roomForm="ngForm" (ngSubmit)="onSubmit(roomForm)" *ngIf="!isLoading">
-        <ion-list lines="none">
-          <ion-item>
-            <ion-label position="stacked">Numer sali</ion-label>
-            <ion-input
-              name="roomNumber"
-              [(ngModel)]="roomNumber"
-              required
-              placeholder="Np. A-205"
-              clearInput="true">
+    <ion-progress-bar type="indeterminate" *ngIf="isLoading" class="page-loader"></ion-progress-bar>
+
+    <!-- Glowny formularz sali z walidacja template-driven -->
+    <form #roomForm="ngForm" (ngSubmit)="onSubmit(roomForm)" *ngIf="!isLoading">
+      <div class="form-grid">
+
+        <!-- Lewa kolumna: dane podstawowe -->
+        <div class="form-card">
+          <h3 class="section-heading">Dane podstawowe</h3>
+
+          <div class="field-group">
+            <label class="field-label">Numer sali <span class="required-mark">*</span></label>
+            <ion-input name="roomNumber" [(ngModel)]="roomNumber" required placeholder="Np. A-205" clearInput="true"
+              class="styled-input">
             </ion-input>
-          </ion-item>
+          </div>
 
-          <ion-item>
-            <ion-label position="stacked">Ilosc miejsc</ion-label>
-            <ion-input
-              name="seatsCount"
-              type="number"
-              min="1"
-              [(ngModel)]="seatsCount"
-              required
-              placeholder="Np. 30">
+          <div class="field-group">
+            <label class="field-label">Ilość miejsc <span class="required-mark">*</span></label>
+            <ion-input name="seatsCount" type="number" min="1" [(ngModel)]="seatsCount" required placeholder="Np. 30"
+              class="styled-input">
             </ion-input>
-          </ion-item>
+          </div>
 
-          <ion-item>
-            <ion-label position="stacked">Typ sali</ion-label>
-            <ion-select
-              name="roomTypeId"
-              interface="popover"
-              [(ngModel)]="roomTypeId"
-              required>
+          <div class="field-group">
+            <label class="field-label">Typ sali <span class="required-mark">*</span></label>
+            <ion-select name="roomTypeId" interface="popover" [(ngModel)]="roomTypeId" required class="styled-select"
+              placeholder="Wybierz typ sali">
               <ion-select-option *ngFor="let type of roomTypeOptions" [value]="type.id">
                 {{ type.name }} ({{ type.abbreviation }})
               </ion-select-option>
             </ion-select>
-          </ion-item>
+          </div>
 
-          <ion-item>
-            <ion-label position="stacked">Wydzialy</ion-label>
-            <ion-select
-              name="departmentIds"
-              interface="alert"
-              [multiple]="true"
-              [(ngModel)]="selectedDepartmentIds"
-              required>
+          <div class="field-group">
+            <label class="field-label">Wydziały <span class="required-mark">*</span></label>
+            <ion-select name="departmentIds" interface="alert" [multiple]="true" [(ngModel)]="selectedDepartmentIds"
+              required class="styled-select" placeholder="Wybierz wydziały">
               <ion-select-option *ngFor="let department of departmentOptions" [value]="department.id">
                 {{ department.name }} ({{ department.abbreviation }})
               </ion-select-option>
             </ion-select>
-          </ion-item>
-        </ion-list>
+          </div>
+        </div>
 
-        <div class="section-block">
-          <h3>Aktywnosci realizowane w sali</h3>
-          <p>Wybierz aktywnosci powiazane z sala.</p>
+        <!-- Prawa kolumna: aktywnosci i wyposazenie -->
+        <div class="form-card">
+          <h3 class="section-heading">Aktywności i wyposażenie</h3>
 
-          <ion-item>
-            <ion-label position="stacked">Aktywnosci</ion-label>
-            <ion-select
-              name="activityIds"
-              interface="alert"
-              [multiple]="true"
-              [(ngModel)]="selectedActivityIds"
-              required>
+          <div class="field-group">
+            <label class="field-label">Aktywności realizowane w sali <span class="required-mark">*</span></label>
+            <p class="field-hint">Wybierz rodzaje zajęć, które mogą odbywać się w tej sali.</p>
+            <ion-select name="activityIds" interface="alert" [multiple]="true" [(ngModel)]="selectedActivityIds"
+              required class="styled-select" placeholder="Wybierz aktywności">
               <ion-select-option *ngFor="let activity of activityOptions" [value]="activity.id">
                 {{ activity.name }}
               </ion-select-option>
             </ion-select>
-          </ion-item>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Wyposażenie specjalne</label>
+            <p class="field-hint">Opcjonalne. Dodatkowe wyposażenie dostępne w sali.</p>
+            <ion-select name="specialEquipmentIds" interface="alert" [multiple]="true"
+              [(ngModel)]="selectedSpecialEquipmentIds" class="styled-select" placeholder="Wybierz wyposażenie">
+              <ion-select-option *ngFor="let equipment of specialEquipmentOptions" [value]="equipment.id">
+                {{ equipment.name }}
+              </ion-select-option>
+            </ion-select>
+          </div>
         </div>
+      </div>
 
-        <ion-item>
-          <ion-label position="stacked">Wyposazenie specjalne</ion-label>
-          <ion-select
-            name="specialEquipmentIds"
-            interface="alert"
-            [multiple]="true"
-            [(ngModel)]="selectedSpecialEquipmentIds">
-            <ion-select-option *ngFor="let equipment of specialEquipmentOptions" [value]="equipment.id">
-              {{ equipment.name }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-
-        <!-- Akcje: wyslanie i reset formularza -->
-        <div class="form-actions">
-          <ion-button type="submit" color="primary" [disabled]="isSaving">
-            {{ isEditMode ? 'Zapisz zmiany' : 'Dodaj sale' }}
-          </ion-button>
-          <ion-button type="button" fill="outline" color="medium" (click)="resetForm(roomForm)">
-            Wyczysc formularz
-          </ion-button>
-        </div>
-      </form>
-
-      <ion-note color="danger" *ngIf="errorMessage" class="submit-message">
+      <!-- Komunikaty -->
+      <div class="form-message error-message" *ngIf="errorMessage">
+        <ion-icon name="alert-circle-outline"></ion-icon>
         {{ errorMessage }}
-      </ion-note>
-
-      <ion-note color="success" *ngIf="submitMessage" class="submit-message">
+      </div>
+      <div class="form-message success-message" *ngIf="submitMessage">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
         {{ submitMessage }}
-      </ion-note>
-    </ion-card-content>
-  </ion-card>
+      </div>
+
+      <!-- Akcje formularza -->
+      <div class="form-actions">
+        <ion-button type="submit" class="btn-save" [disabled]="isSaving">
+          <ion-icon slot="start" name="save-outline"></ion-icon>
+          {{ isEditMode ? 'Zapisz zmiany' : 'Dodaj salę' }}
+        </ion-button>
+        <ion-button type="button" fill="outline" color="medium" (click)="resetForm(roomForm)">
+          <ion-icon slot="start" name="refresh-outline"></ion-icon>
+          Wyczyść formularz
+        </ion-button>
+        <ion-button type="button" fill="clear" class="btn-cancel" (click)="navigateToList()">
+          Anuluj
+        </ion-button>
+      </div>
+    </form>
+
+  </div>
 </ion-content>

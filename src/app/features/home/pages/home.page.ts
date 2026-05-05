@@ -165,6 +165,10 @@ export class HomePage implements OnInit {
     return this.auth.roleLabel;
   }
 
+  get userDisplayName(): string {
+    return this.auth.displayName;
+  }
+
   get requiredAvailabilityHours(): number {
     return Math.ceil(this.lecturerWeeklyHours * 1.5);
   }
@@ -262,7 +266,7 @@ export class HomePage implements OnInit {
 
   constructor(
     private router: Router,
-    private auth: AuthService,
+    public auth: AuthService,
     private dezyderataService: DezyderataService,
     private usersAdminApi: UsersAdminApiService,
     private unavailabilityNotesApi: UnavailabilityNotesApiService,
@@ -523,8 +527,7 @@ export class HomePage implements OnInit {
 
     if (clientX == null) return;
 
-    const calculatedWidth = this.isLecturer ? window.innerWidth - clientX : clientX;
-    const clampedWidth = Math.max(this.minSidebarWidth, Math.min(this.maxSidebarWidth, calculatedWidth));
+    const clampedWidth = Math.max(this.minSidebarWidth, Math.min(this.maxSidebarWidth, clientX));
     this.sidebarWidth.set(clampedWidth);
   }
 
@@ -548,6 +551,14 @@ export class HomePage implements OnInit {
 
   expandSidebar() {
     if (this.sidebarWidth() < this.collapsedThreshold) {
+      this.sidebarWidth.set(280);
+    }
+  }
+
+  toggleSidebar() {
+    if (this.sidebarWidth() > this.collapsedThreshold) {
+      this.sidebarWidth.set(this.minSidebarWidth);
+    } else {
       this.sidebarWidth.set(280);
     }
   }
@@ -766,6 +777,14 @@ export class HomePage implements OnInit {
     localStorage.removeItem(this.lecturerTutorialDisabledStorageKey);
     this.tutorialShownThisSession = false;
     this.startTutorial();
+  }
+
+  enableTutorialGuarded() {
+    if (this.slotSelections.size > 0) {
+      this.lecturerMessage = 'Samouczek wymaga pustego kalendarza. Wyczyść zaznaczenia przed włączeniem samouczka.';
+      return;
+    }
+    this.enableTutorial();
   }
 
   isTutorialStepTarget(target: TutorialStep['target']): boolean {
@@ -1310,6 +1329,7 @@ export class HomePage implements OnInit {
     this.isTutorialActive = true;
     this.tutorialStepIndex = 0;
     this.tutorialShownThisSession = true;
+    this.lecturerMessage = '';
     setTimeout(() => this.refreshTutorialSpotlight(), 0);
   }
 
@@ -1339,7 +1359,16 @@ export class HomePage implements OnInit {
     }
 
     const selector = `[data-tour-step="${activeStep.target}"]`;
-    const targetElement = document.querySelector(selector) as HTMLElement | null;
+
+    // Try standard DOM first, then search inside ion-content shadow roots
+    let targetElement = document.querySelector(selector) as HTMLElement | null;
+    if (!targetElement) {
+      for (const ionContent of Array.from(document.querySelectorAll('ion-content'))) {
+        const inner = (ionContent.shadowRoot?.querySelector('.inner-scroll') ?? ionContent) as HTMLElement;
+        const found = inner.querySelector ? (inner.querySelector(selector) as HTMLElement | null) : null;
+        if (found) { targetElement = found; break; }
+      }
+    }
 
     if (!targetElement) {
       this.tutorialSpotlightStyle = {};
@@ -1347,7 +1376,7 @@ export class HomePage implements OnInit {
     }
 
     const rect = targetElement.getBoundingClientRect();
-    const padding = 6;
+    const padding = 8;
 
     this.tutorialSpotlightStyle = {
       top: `${Math.max(0, rect.top - padding)}px`,
@@ -1367,8 +1396,6 @@ export class HomePage implements OnInit {
       return;
     }
 
-    const remaining = this.tutorialCalendarRequiredTiles - this.slotSelections.size;
-    this.lecturerMessage = `Samouczek: zaznacz jeszcze ${remaining} kafelk${remaining === 1 ? 'ek' : 'i'}.`;
   }
 
   /**

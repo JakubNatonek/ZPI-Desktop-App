@@ -1,6 +1,7 @@
 // ── Chat widget variables ──────────────────────────────────────
-$chat-primary: #3880ff;
-$chat-primary-dark: #2563eb;
+$chat-primary: #1a3a5c; // navy – spójne z motywem
+$chat-primary-dark: #122946;
+$chat-gold: #d4a843;
 $chat-bubble-size: 56px;
 $chat-panel-width: 360px;
 $chat-panel-height: 520px;
@@ -19,8 +20,177 @@ app-chat {
   align-items: flex-end;
   pointer-events: none;
 
-  > * {
+  >* {
     pointer-events: auto;
+  }
+}
+
+// ── Page mode overrides ────────────────────────────────────────
+app-chat.chat-page-host {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  bottom: unset;
+  right: unset;
+  z-index: auto;
+  pointer-events: auto;
+  align-items: stretch;
+}
+
+app-chat.chat-page-host .chat-panel--page {
+  position: static;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+  border: 0;
+  opacity: 1 !important;
+  transform: none !important;
+  pointer-events: auto !important;
+  display: flex;
+  flex-direction: row;
+}
+
+// ── Lewa kolumna – lista kontaktów/pokojów ─────────────────────
+.chat-sidebar {
+  width: 300px;
+  min-width: 260px;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e5e7eb;
+  background: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  app-chat-contacts-view,
+  app-chat-rooms-view,
+  app-chat-create-room-view {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+}
+
+// ── Prawa kolumna – kontener wszystkich otwartych czatów ──────
+.chat-convo-area {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  min-width: 0;
+  overflow-x: auto;
+  background: #f4f6fb;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 2px;
+  }
+}
+
+// ── Pojedyncza kolumna czatu ───────────────────────────────────
+.chat-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 300px;
+  flex: 1;
+  border-right: 1px solid #e5e7eb;
+  background: #fff;
+  overflow: hidden;
+
+  &:last-child {
+    border-right: none;
+  }
+
+  .chat-panel__body--messages {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .chat-input-bar {
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+  }
+}
+
+// ── Nagłówek kolumny czatu ────────────────────────────────────
+.chat-column-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: $chat-primary;
+  color: #fff;
+  flex-shrink: 0;
+  min-height: 44px;
+}
+
+.chat-column-header__initials {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.chat-column-header__label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-column-header__close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+}
+
+// ── Placeholder gdy nie wybrano rozmowy ────────────────────────
+.chat-conversation-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #f4f6fb;
+
+  svg {
+    width: 56px;
+    height: 56px;
+    opacity: 0.30;
+  }
+
+  p {
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
   }
 }
 
@@ -323,7 +493,9 @@ app-chat {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .chat-list {
@@ -513,98 +685,6 @@ app-chat {
   overflow-y: auto;
   transition: border-color 0.15s;
 
-
-/* Dark mode */
-html.ion-palette-dark app-chat {
-  .chat-panel {
-    background: #0f172a;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-  }
-
-  .chat-tabs,
-  .chat-input-bar {
-    background: #0f172a;
-    border-color: #334155;
-  }
-
-  .chat-tab {
-    color: #cbd5e1;
-
-    &:hover:not(.active) {
-      color: #f8fafc;
-    }
-  }
-
-  .chat-panel__body {
-    background: #0f172a;
-
-    &::-webkit-scrollbar-thumb {
-      background: #475569;
-    }
-  }
-
-  .chat-list__item:hover {
-    background: #1e293b;
-  }
-
-  .chat-list__item:active {
-    background: #334155;
-  }
-
-  .chat-list__name,
-  .chat-member-item__name,
-  .chat-panel__title,
-  .chat-form__label,
-  .chat-message__bubble,
-  .chat-input,
-  .chat-form__input {
-    color: #f8fafc;
-  }
-
-  .chat-list__preview,
-  .chat-message__sender,
-  .chat-message__time,
-  .chat-empty,
-  .chat-panel__subtitle,
-  .chat-list__members-count {
-    color: #cbd5e1;
-  }
-
-  .chat-message__bubble {
-    background: #1e293b;
-  }
-
-  .chat-message--own .chat-message__bubble {
-    background: $chat-primary;
-    color: #ffffff;
-  }
-
-  .chat-input,
-  .chat-form__input,
-  .chat-search__input {
-    background: #111827;
-    border-color: #334155;
-    color: #f8fafc;
-  }
-
-  .chat-search__input:focus {
-    background: #1e293b;
-  }
-
-  .chat-list__section-title {
-    color: #94a3b8;
-  }
-
-  .chat-member-item {
-    background: #111827;
-    border-color: #334155;
-  }
-
-  .chat-member-item.selected {
-    background: rgba(56, 128, 255, 0.18);
-    border-color: rgba(56, 128, 255, 0.6);
-  }
-}
   &:focus {
     border-color: $chat-primary;
   }
@@ -615,6 +695,219 @@ html.ion-palette-dark app-chat {
 
   &::-webkit-scrollbar {
     width: 3px;
+  }
+}
+
+// ── Dark mode ──────────────────────────────────────────────────
+html.ion-palette-dark app-chat {
+
+  // Panele i tło
+  .chat-panel,
+  .chat-sidebar {
+    background: #0f172a;
+    border-color: rgba(148, 163, 184, 0.2);
+  }
+
+  .chat-convo-area {
+    background: #080f1a;
+  }
+
+  .chat-conversation-placeholder {
+    background: #0c1525;
+
+    p {
+      color: #64748b;
+    }
+  }
+
+  // Tabs i input bar
+  .chat-tabs,
+  .chat-input-bar {
+    background: #0f172a;
+    border-color: #334155;
+  }
+
+  .chat-tab {
+    color: #cbd5e1;
+
+    &::after {
+      background: $chat-gold;
+    }
+
+    &.active {
+      color: $chat-gold;
+    }
+
+    &:hover:not(.active) {
+      color: #f8fafc;
+    }
+  }
+
+  // Panel body (scrollable areas)
+  .chat-panel__body {
+    background: #080f1a;
+
+    &::-webkit-scrollbar-thumb {
+      background: #475569;
+    }
+  }
+
+  // Header
+  .chat-panel__header {
+    background: darken(#1a3a5c, 6%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  // Lista kontaktów
+  .chat-list__item:hover {
+    background: #1e293b;
+  }
+
+  .chat-list__item:active {
+    background: #334155;
+  }
+
+  .chat-list__section-title {
+    color: #94a3b8;
+  }
+
+  .chat-list__members-count {
+    background: #1e293b;
+    color: #94a3b8;
+  }
+
+  // Tekst
+  .chat-list__name,
+  .chat-member-item__name,
+  .chat-panel__title,
+  .chat-form__label,
+  .chat-input,
+  .chat-form__input {
+    color: #f8fafc;
+  }
+
+  .chat-list__preview,
+  .chat-message__sender,
+  .chat-message__time,
+  .chat-empty,
+  .chat-panel__subtitle {
+    color: #94a3b8;
+  }
+
+  // Wiadomości
+  .chat-message__bubble {
+    background: #1e293b;
+    color: #e2e8f0;
+  }
+
+  .chat-message--own .chat-message__bubble {
+    background: $chat-primary;
+    color: #ffffff;
+  }
+
+  // Wyszukiwanie
+  .chat-search__input {
+    background: #111827;
+    border-color: #334155;
+    color: #f8fafc;
+
+    &::placeholder {
+      color: #64748b;
+    }
+
+    &:focus {
+      background: #1e293b;
+      border-color: rgba($chat-primary, 0.6);
+    }
+  }
+
+  .chat-search__icon {
+    fill: #64748b;
+  }
+
+  // Inputs
+  .chat-input,
+  .chat-form__input {
+    background: #111827;
+    border-color: #334155;
+
+    &:focus {
+      border-color: rgba($chat-primary, 0.6);
+    }
+
+    &::placeholder {
+      color: #64748b;
+    }
+  }
+
+  // Przycisk wyślij
+  .chat-send-btn:disabled {
+    background: #334155;
+    color: #64748b;
+  }
+
+  // Create room
+  .chat-create-room-btn {
+    background: #1e293b;
+    color: #93c5fd;
+    border-color: #334155;
+
+    &:hover {
+      background: #334155;
+    }
+  }
+
+  // Member list
+  .chat-member-item {
+    background: #111827;
+    border-color: #334155;
+
+    &:hover {
+      background: #1e293b;
+    }
+
+    &.selected {
+      background: rgba($chat-primary, 0.25);
+      border-color: rgba($chat-primary, 0.5);
+    }
+  }
+
+  // Submit btn
+  .chat-submit-btn {
+    &:hover:not(:disabled) {
+      background: $chat-primary-dark;
+    }
+
+    &:disabled {
+      background: #334155;
+      color: #64748b;
+    }
+  }
+
+  // Scrollbars
+  .chat-panel__body::-webkit-scrollbar-thumb,
+  .chat-member-list::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+
+  // Czat side-by-side kolumny
+  .chat-convo-area {
+    background: #080f1a;
+  }
+
+  .chat-column {
+    background: #0f172a;
+    border-right-color: #1e293b;
+
+    .chat-input-bar {
+      background: #0f172a;
+      border-top-color: #334155;
+    }
+  }
+
+  .chat-column-header {
+    background: darken(#1a3a5c, 6%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 }
 

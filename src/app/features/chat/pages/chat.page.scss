@@ -1,0 +1,57 @@
+// Toolbar – spójny z resztą aplikacji (granatowe tło)
+ion-header ion-toolbar {
+    --background: #1a3a5c;
+    --color: #ffffff;
+    --border-color: transparent;
+
+    ion-title {
+        color: #ffffff;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+
+    ion-buttons ion-menu-button {
+        --color: #ffffff;
+    }
+}
+
+.menu-nav-btn {
+    --color: #ffffff;
+    color: #ffffff;
+}
+
+.role-chip {
+    --color: #ffffff;
+    --border-color: rgba(255, 255, 255, 0.45);
+    color: #ffffff;
+}
+
+.toolbar-username {
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin: 0 6px;
+    white-space: nowrap;
+}
+
+.app-user-avatar {
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+}
+
+.logout-item {
+    --color: #c0392b;
+}
+
+:host {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+app-chat.chat-page-host {
+    flex: 1;
+    min-height: 0;
+}

@@ -13,7 +13,6 @@ import { Router } from '@angular/router';
   imports: [IonicModule, CommonModule, FormsModule],
 })
 export class ProfilePage {
-  avatarUrl = '';
   isProfileMenuOpen = false;
   profileMenuEvent?: Event;
   currentPassword = '';
@@ -29,6 +28,10 @@ export class ProfilePage {
 
   get userRoleLabel(): string {
     return this.auth.roleLabel;
+  }
+
+  get userDisplayName(): string {
+    return this.auth.displayName;
   }
 
   logout() {
@@ -50,7 +53,6 @@ export class ProfilePage {
   }
 
   ionViewWillEnter() {
-    this.avatarUrl = this.auth.getProfileAvatarUrl();
     this.selectedTheme = this.auth.getCurrentTheme();
   }
 
@@ -66,8 +68,7 @@ export class ProfilePage {
     }
 
     const dataUrl = await this.readFileAsDataUrl(file);
-    this.auth.updateProfileAvatar(dataUrl);
-    this.avatarUrl = this.auth.getProfileAvatarUrl();
+    this.auth.updateProfileAvatar(dataUrl).subscribe();
     input.value = '';
   }
 

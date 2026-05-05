@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { addIcons } from 'ionicons';
-import { mailOutline, lockClosedOutline } from 'ionicons/icons';
+import { mailOutline, lockClosedOutline, eyeOutline, eyeOffOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-login',
@@ -15,14 +15,14 @@ import { mailOutline, lockClosedOutline } from 'ionicons/icons';
   imports: [IonicModule, CommonModule, FormsModule],
 })
 export class LoginPage implements OnInit {
-  email = '';
+  login = '';
   password = '';
   error = '';
-
-  demoAccounts = this.auth.availableAccounts;
+  showPassword = false;
+  isLoading = false;
 
   constructor(private auth: AuthService, private router: Router) {
-    addIcons({ mailOutline, lockClosedOutline });
+    addIcons({ mailOutline, lockClosedOutline, eyeOutline, eyeOffOutline });
   }
 
   ngOnInit() {
@@ -31,10 +31,16 @@ export class LoginPage implements OnInit {
     }
   }
 
-  login() {
+  submit() {
+    if (!this.login || !this.password) {
+      this.error = 'Wypełnij wszystkie pola';
+      return;
+    }
     this.error = '';
-    this.auth.login(this.email, this.password).subscribe({
+    this.isLoading = true;
+    this.auth.login(this.login, this.password).subscribe({
       next: (res: { success: boolean; mustChangePassword?: boolean }) => {
+        this.isLoading = false;
         if (res.success) {
           if (res.mustChangePassword) {
             this.router.navigateByUrl('/change-password');
@@ -43,26 +49,16 @@ export class LoginPage implements OnInit {
           }
           return;
         }
-
         this.error = 'Nieprawidłowe dane logowania';
       },
       error: () => {
+        this.isLoading = false;
         this.error = 'Nieprawidłowe dane logowania';
       },
     });
   }
 
-  fillDemo(email: string, password: string) {
-    this.email = email;
-    this.password = password;
-  }
-
-  copyDemo() {
-    const text = this.demoAccounts
-      .map((account: { displayName: string; email: string; password: string }) => `${account.displayName}: ${account.email} / ${account.password}`)
-      .join('\n');
-    navigator.clipboard.writeText(text).then(() => {
-      console.log('skopiowano dane');
-    });
+  togglePassword() {
+    this.showPassword = !this.showPassword;
   }
 }

@@ -1,15 +1,17 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
-    <ion-title>Panel administratora</ion-title>
+    <ion-title>Zarządzanie salami</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
-      <ion-chip color="medium" outline>
+      <ion-chip class="role-chip" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
-      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
-        <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+      <span class="toolbar-username">{{ userDisplayName }}</span>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0"
+        (click)="toggleProfileMenu($event)">
+        <img [src]="auth.avatarUrl" alt="Avatar" />
       </ion-avatar>
 
       <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
@@ -25,57 +27,82 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="rooms-list-content">
-  <div class="canvas-bg" aria-hidden="true"></div>
+<ion-content class="list-page-content">
+  <div class="list-page-wrapper">
 
-  <section class="hero">
-    <p class="eyebrow">Administracja salami</p>
-    <h1>Zarzadzanie salami</h1>
-    <p>
-      Zarzadzaj lista sal i ich parametrami. Uklad strony zostal dopasowany do ekranu
-      dodawania uzytkownikow, a dostep do slownikow jest dostepny jako dodatkowa akcja.
-    </p>
-  </section>
-
-  <ion-card class="form-shell list-shell">
-    <ion-card-content>
-      <div class="actions-row">
-        <ion-button color="primary" (click)="createRoom()">Utworz sale</ion-button>
-        <ion-button fill="outline" color="dark" (click)="openRoomDictionaries()">
-          Zarzadzaj slownikami sal
+    <!-- Nagłówek strony -->
+    <div class="page-header">
+      <div class="page-header-text">
+        <h1 class="page-title">Zarządzanie salami</h1>
+        <p class="page-subtitle">Przeglądaj, dodawaj i edytuj sale oraz zarządzaj słownikami.</p>
+      </div>
+      <div class="page-header-actions">
+        <ion-button class="btn-primary-nav" (click)="createRoom()">
+          <ion-icon slot="start" name="add-outline"></ion-icon>
+          Nowa sala
+        </ion-button>
+        <ion-button fill="outline" class="btn-secondary-nav" (click)="openRoomDictionaries()">
+          <ion-icon slot="start" name="library-outline"></ion-icon>
+          Słowniki sal
         </ion-button>
       </div>
+    </div>
 
-      <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
+    <ion-progress-bar type="indeterminate" *ngIf="isLoading" class="page-loader"></ion-progress-bar>
 
-      <ion-note color="danger" *ngIf="errorMessage" class="list-message">
-        {{ errorMessage }}
-      </ion-note>
+    <div class="error-message" *ngIf="errorMessage">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      {{ errorMessage }}
+    </div>
 
-      <ion-list *ngIf="!isLoading && rooms.length > 0" lines="none" class="room-list">
-        <ion-item *ngFor="let room of rooms; trackBy: trackByRoomId" class="room-item">
-          <ion-label>
-            <h2>{{ room.room_number }} ({{ room.room_type }})</h2>
-            <p>Miejsca: {{ room.seats_count }}</p>
-            <p *ngIf="room.activities.length > 0">Zajecia: {{ getActivitiesLabel(room) }}</p>
-            <p *ngIf="room.special_equipment.length > 0">Wyposazenie: {{ getEquipmentLabel(room) }}</p>
-            <p *ngIf="room.departments.length > 0">Wydzialy: {{ getDepartmentsLabel(room) }}</p>
-          </ion-label>
-
-          <ion-buttons slot="end" class="room-actions">
-            <ion-button fill="outline" color="primary" (click)="editRoom(room.id)">Edytuj</ion-button>
-            <ion-button fill="clear" color="danger" [disabled]="isDeleting" (click)="deleteRoom(room.id)">
-              Usun
-            </ion-button>
-          </ion-buttons>
-        </ion-item>
-      </ion-list>
-
-      <div class="empty-state" *ngIf="!isLoading && rooms.length === 0">
-        <h3>Brak sal w bazie</h3>
-        <p>Dodaj pierwsza sale, aby rozpoczac planowanie.</p>
-        <ion-button color="primary" (click)="createRoom()">Utworz sale</ion-button>
+    <!-- Lista sal -->
+    <div class="rooms-grid" *ngIf="!isLoading && rooms.length > 0">
+      <div class="room-card" *ngFor="let room of rooms; trackBy: trackByRoomId">
+        <div class="room-card-main">
+          <div class="room-number">{{ room.room_number }}</div>
+          <span class="room-type-badge">{{ room.room_type }}</span>
+        </div>
+        <div class="room-card-details">
+          <div class="room-detail">
+            <span class="detail-label">Miejsca</span>
+            <span class="detail-value">{{ room.seats_count }}</span>
+          </div>
+          <div class="room-detail" *ngIf="room.activities.length > 0">
+            <span class="detail-label">Zajęcia</span>
+            <span class="detail-value">{{ getActivitiesLabel(room) }}</span>
+          </div>
+          <div class="room-detail" *ngIf="room.special_equipment.length > 0">
+            <span class="detail-label">Wyposażenie</span>
+            <span class="detail-value">{{ getEquipmentLabel(room) }}</span>
+          </div>
+          <div class="room-detail" *ngIf="room.departments.length > 0">
+            <span class="detail-label">Wydziały</span>
+            <span class="detail-value">{{ getDepartmentsLabel(room) }}</span>
+          </div>
+        </div>
+        <div class="room-card-actions">
+          <ion-button fill="outline" class="btn-edit" (click)="editRoom(room.id)">
+            <ion-icon slot="start" name="pencil-outline"></ion-icon>
+            Edytuj
+          </ion-button>
+          <ion-button fill="clear" class="btn-delete" [disabled]="isDeleting" (click)="deleteRoom(room.id)">
+            <ion-icon slot="start" name="trash-outline"></ion-icon>
+            Usuń
+          </ion-button>
+        </div>
       </div>
-    </ion-card-content>
-  </ion-card>
+    </div>
+
+    <!-- Pusty stan -->
+    <div class="empty-state" *ngIf="!isLoading && rooms.length === 0">
+      <ion-icon name="business-outline" class="empty-icon"></ion-icon>
+      <h3>Brak sal w bazie</h3>
+      <p>Dodaj pierwszą salę, aby rozpocząć planowanie.</p>
+      <ion-button class="btn-primary-nav" (click)="createRoom()">
+        <ion-icon slot="start" name="add-outline"></ion-icon>
+        Utwórz salę
+      </ion-button>
+    </div>
+
+  </div>
 </ion-content>

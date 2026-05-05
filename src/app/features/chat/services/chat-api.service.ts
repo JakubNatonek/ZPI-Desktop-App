@@ -83,4 +83,8 @@ export class ChatApiService {
   getUserPublicKeyById(userId: number) {
     return this.http.get<PublicKeyResponse>(`${environment.apiBaseUrl}/users/${userId}/public-key`);
   }
+
+  getUserAvatarById(userId: number) {
+    return this.http.get<{ avatar: string | null }>(`${environment.apiBaseUrl}/users/${userId}/avatar`, { withCredentials: true });
+  }
 }

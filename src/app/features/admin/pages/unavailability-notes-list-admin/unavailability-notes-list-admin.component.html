@@ -1,105 +1,124 @@
-<ion-header class="ion-no-border notes-header">
+<ion-header class="ion-no-border">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
+      <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
     <ion-title>Zgłoszenia niedostępności</ion-title>
+    <ion-buttons slot="end" class="app-header-user-actions">
+      <ion-chip class="role-chip" outline>
+        <ion-label>{{ userRoleLabel }}</ion-label>
+      </ion-chip>
+      <span class="toolbar-username">{{ userDisplayName }}</span>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0"
+        (click)="toggleProfileMenu($event)">
+        <img [src]="auth.avatarUrl" alt="Avatar" />
+      </ion-avatar>
+
+      <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
+        alignment="end" (didDismiss)="closeProfileMenu()">
+        <ng-template>
+          <ion-list lines="none">
+            <ion-item button detail="false" (click)="openSettings()">Ustawienia</ion-item>
+            <ion-item button detail="false" class="logout-item" (click)="logout()">Wyloguj</ion-item>
+          </ion-list>
+        </ng-template>
+      </ion-popover>
+    </ion-buttons>
   </ion-toolbar>
+
+  <!-- Sticky controls under toolbar -->
+  <div class="controls-bar">
+    <ion-searchbar class="notes-searchbar" placeholder="Szukaj po nazwisku lub opisie..." [debounce]="200"
+      (ionInput)="onSearch($event)" animated="true">
+    </ion-searchbar>
+    <ion-segment [value]="filterType" (ionChange)="onFilterChange($event)" class="filter-segment" scrollable="true">
+      <ion-segment-button value="all"><ion-label>Wszystkie</ion-label></ion-segment-button>
+      <ion-segment-button value="pending"><ion-label>Oczekujące</ion-label></ion-segment-button>
+      <ion-segment-button value="accepted"><ion-label>Zaakceptowane</ion-label></ion-segment-button>
+      <ion-segment-button value="rejected"><ion-label>Odrzucone</ion-label></ion-segment-button>
+      <ion-segment-button value="acknowledged"><ion-label>Zapoznane</ion-label></ion-segment-button>
+    </ion-segment>
+  </div>
 </ion-header>
 
 <ion-content class="notes-page">
-  <div class="page-shell ion-padding">
-    <ion-segment [value]="filterType" (ionChange)="onFilterChange($event)" class="filter-segment">
-      <ion-segment-button value="all">
-        <ion-label>Wszystkie</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="pending">
-        <ion-label>Oczekujące</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="accepted">
-        <ion-label>Zaakceptowane</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="rejected">
-        <ion-label>Odrzucone</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="acknowledged">
-        <ion-label>Zapoznane</ion-label>
-      </ion-segment-button>
-    </ion-segment>
 
-    <div *ngIf="isLoading" class="loading-container">
-      <p>Ładowanie notatek...</p>
-    </div>
-
-    <div *ngIf="!isLoading && notes.length > 0" class="notes-container">
-      <ion-card *ngFor="let note of notes" class="note-card">
-        <ion-card-header class="note-card-header">
-          <div class="note-title-row">
-            <ion-card-title class="note-author">
-              {{ note.first_name }} {{ note.last_name }}
-            </ion-card-title>
-            <div class="note-chips">
-              <ion-chip [color]="note.note_type === 'request' ? 'primary' : 'warning'" class="note-chip">
-                <ion-label>{{ getNoteTypeDisplay(note.note_type) }}</ion-label>
-              </ion-chip>
-              <ion-chip [color]="getStatusColor(note.status)" class="note-chip">
-                <ion-label>{{ getStatusDisplay(note.status) }}</ion-label>
-              </ion-chip>
-            </div>
-          </div>
-        </ion-card-header>
-
-        <ion-card-content>
-          <ion-grid class="note-details-grid">
-            <ion-row>
-              <ion-col size="12" sizeMd="6">
-                <div class="detail-block">
-                  <span class="detail-label">Okres</span>
-                  <span class="detail-value">{{ getDateRange(note) }}</span>
-                </div>
-              </ion-col>
-              <ion-col size="12" sizeMd="6">
-                <div class="detail-block">
-                  <span class="detail-label">Dodana</span>
-                  <span class="detail-value">{{ formatDate(note.created_at) }}</span>
-                </div>
-              </ion-col>
-              <ion-col size="12" *ngIf="note.description">
-                <div class="detail-block detail-block--full">
-                  <span class="detail-label">Opis</span>
-                  <span class="detail-value detail-value--description">{{ note.description }}</span>
-                </div>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-
-          <div *ngIf="shouldShowActions(note)" class="action-buttons action-buttons--right">
-            <ion-button
-              *ngFor="let action of getActionButtonsForNote(note)"
-              [color]="action.color"
-              shape="round"
-              size="small"
-              (click)="updateNoteStatus(note, action.status)"
-              [disabled]="isProcessing[note.id]"
-            >
-              <ion-icon [name]="action.icon" slot="start"></ion-icon>
-              {{ action.label }}
-            </ion-button>
-          </div>
-        </ion-card-content>
-      </ion-card>
-    </div>
-
-    <div *ngIf="hasNoNotes" class="empty-state">
-      <ion-icon name="document-outline"></ion-icon>
-      <h2>Brak notatek</h2>
-      <p>
-        {{
-          filterType === 'pending'
-            ? 'Brak notatek oczekujących na rozpatrzenie'
-            : 'Brak notatek w tym filtrze'
-        }}
-      </p>
-    </div>
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="loading-container">
+    <p>Ładowanie notatek...</p>
   </div>
+
+  <!-- Table -->
+  <div *ngIf="!isLoading && filteredNotes.length > 0" class="notes-table-wrapper">
+    <div class="notes-table">
+
+      <!-- Header row -->
+      <div class="table-head">
+        <div class="col-name sort-col" (click)="toggleSort('name')">
+          Wykładowca
+          <ion-icon
+            [name]="sortField === 'name' ? (sortAsc ? 'chevron-up' : 'chevron-down') : 'swap-vertical-outline'"></ion-icon>
+        </div>
+        <div class="col-date sort-col" (click)="toggleSort('date')">
+          Okres
+          <ion-icon
+            [name]="sortField === 'date' ? (sortAsc ? 'chevron-up' : 'chevron-down') : 'swap-vertical-outline'"></ion-icon>
+        </div>
+        <div class="col-type">Typ</div>
+        <div class="col-status sort-col" (click)="toggleSort('status')">
+          Status
+          <ion-icon
+            [name]="sortField === 'status' ? (sortAsc ? 'chevron-up' : 'chevron-down') : 'swap-vertical-outline'"></ion-icon>
+        </div>
+        <div class="col-actions"></div>
+      </div>
+
+      <!-- Data rows -->
+      <div *ngFor="let note of filteredNotes" class="table-row" [class.row--pending]="note.status === 'pending'">
+        <div class="col-name">
+          <span class="name-text">{{ note.last_name }} {{ note.first_name }}</span>
+          <span *ngIf="note.description" class="desc-text">{{ note.description }}</span>
+        </div>
+        <div class="col-date">{{ getDateRange(note) }}</div>
+        <div class="col-type">
+          <ion-badge [color]="note.note_type === 'request' ? 'primary' : 'warning'" class="type-badge">
+            {{ note.note_type === 'request' ? 'Prośba' : 'Wymuszona' }}
+          </ion-badge>
+        </div>
+        <div class="col-status">
+          <ion-badge [color]="getStatusColor(note.status)" class="status-badge">
+            {{ getStatusDisplay(note.status) }}
+          </ion-badge>
+        </div>
+        <div class="col-actions">
+          <ng-container *ngIf="shouldShowActions(note)">
+            <ion-button *ngFor="let action of getActionButtonsForNote(note)" [color]="action.color" fill="clear"
+              size="small" (click)="updateNoteStatus(note, action.status)" [disabled]="isProcessing[note.id]"
+              [title]="action.label">
+              <ion-icon [name]="action.icon" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ng-container>
+          <ion-badge *ngIf="!shouldShowActions(note)" color="medium" class="done-badge">
+            ✓
+          </ion-badge>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="results-count">{{ filteredNotes.length }} z {{ notes.length }} zgłoszeń</p>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!isLoading && filteredNotes.length === 0" class="empty-state">
+    <ion-icon name="document-outline"></ion-icon>
+    <h2>Brak zgłoszeń</h2>
+    <p>{{ searchQuery ? 'Brak wyników dla podanej frazy' : filterType === 'pending' ? 'Brak zgłoszeń oczekujących' :
+      'Brak zgłoszeń w tym filtrze' }}</p>
+  </div>
+
 </ion-content>
+
+<ion-toast [isOpen]="isToastOpen" [message]="toastMessage" [color]="toastColor" [duration]="3000" position="bottom"
+  (didDismiss)="closeToast()">
+</ion-toast>

@@ -1,14 +1,10 @@
 <div class="chat-panel__body">
   <div class="chat-search">
-    <input
-      type="text"
-      class="chat-search__input"
-      placeholder="Szukaj użytkowników..."
-      [ngModel]="searchQuery"
-      (ngModelChange)="onSearchChange($event)"
-    />
+    <input type="text" class="chat-search__input" placeholder="Szukaj użytkowników..." [ngModel]="searchQuery"
+      (ngModelChange)="onSearchChange($event)" />
     <svg class="chat-search__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+      <path
+        d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
     </svg>
     <div class="chat-search__spinner" *ngIf="isSearching"></div>
   </div>
@@ -19,7 +15,11 @@
       Brak wyników
     </div>
     <div class="chat-list__item" *ngFor="let user of searchResults" (click)="openConversation.emit(user)">
-      <div class="chat-avatar">{{ getInitials(user) }}</div>
+      <div class="chat-avatar" [class.chat-avatar--img]="user.avatarUrl">
+        <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" alt="Avatar"
+          style="width:100%;height:100%;object-fit:cover;border-radius:50%" />
+        <span *ngIf="!user.avatarUrl">{{ getInitials(user) }}</span>
+      </div>
       <div class="chat-list__info">
         <div class="chat-list__name">{{ user.first_name }} {{ user.last_name }}</div>
       </div>
@@ -32,7 +32,11 @@
       Brak rozmów. Wyszukaj użytkownika, aby rozpocząć czat.
     </div>
     <div class="chat-list__item" *ngFor="let user of directContacts" (click)="openConversation.emit(user)">
-      <div class="chat-avatar">{{ getInitials(user) }}</div>
+      <div class="chat-avatar" [class.chat-avatar--img]="user.avatarUrl">
+        <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" alt="Avatar"
+          style="width:100%;height:100%;object-fit:cover;border-radius:50%" />
+        <span *ngIf="!user.avatarUrl">{{ getInitials(user) }}</span>
+      </div>
       <div class="chat-list__info">
         <div class="chat-list__name">{{ user.first_name }} {{ user.last_name }}</div>
         <div class="chat-list__preview" [class.chat-list__preview--unread]="isLastMessageUnread(user.user_id)">

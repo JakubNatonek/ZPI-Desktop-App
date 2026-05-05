@@ -5,8 +5,11 @@ import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angu
 import { Router } from '@angular/router';
 import { AlertController, IonicModule } from '@ionic/angular';
 import { finalize, forkJoin } from 'rxjs';
+import { addIcons } from 'ionicons';
+import { alertCircleOutline, checkmarkCircleOutline, informationCircleOutline, keyOutline, searchOutline, warningOutline } from 'ionicons/icons';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { nameValidator, strictEmailValidator } from '../../../core/validators/form-validators';
 import {
   AdminCreateUserPayload,
   AdminUpdateUserPayload,
@@ -31,9 +34,9 @@ interface SharedCredentials {
 })
 export class UserCreatePage implements OnInit {
   readonly form = this.fb.group({
-    firstName: ['', [Validators.required, Validators.minLength(2)]],
-    lastName: ['', [Validators.required, Validators.minLength(2)]],
-    email: ['', [Validators.required, Validators.email]],
+    firstName: ['', [nameValidator()]],
+    lastName: ['', [nameValidator()]],
+    email: ['', [strictEmailValidator()]],
     oneTimePassword: ['', [Validators.required, Validators.minLength(8)]],
     roleIds: this.fb.control<number[]>([], { nonNullable: true, validators: [Validators.required] }),
     departmentIds: this.fb.control<number[]>([], { nonNullable: true, validators: [Validators.required] }),
@@ -41,10 +44,10 @@ export class UserCreatePage implements OnInit {
   });
 
   readonly editForm = this.fb.group({
-    firstName: ['', [Validators.required, Validators.minLength(2)]],
-    lastName: ['', [Validators.required, Validators.minLength(2)]],
+    firstName: ['', [nameValidator()]],
+    lastName: ['', [nameValidator()]],
     login: ['', [Validators.required, Validators.minLength(3), Validators.pattern('^[a-z0-9._-]+$')]],
-    email: ['', [Validators.required, Validators.email]],
+    email: ['', [strictEmailValidator()]],
     roleIds: this.fb.control<number[]>([], { nonNullable: true, validators: [Validators.required] }),
     departmentIds: this.fb.control<number[]>([], { nonNullable: true, validators: [Validators.required] }),
   });
@@ -76,6 +79,8 @@ export class UserCreatePage implements OnInit {
   isEditModalOpen = false;
   isResetPasswordModalOpen = false;
   resetOneTimePassword = '';
+  resetPasswordError = '';
+
 
   get filteredUsers(): AdminUserRow[] {
     const query = this.searchQuery.trim().toLowerCase();
@@ -125,6 +130,10 @@ export class UserCreatePage implements OnInit {
     return this.auth.roleLabel;
   }
 
+  get userDisplayName(): string {
+    return this.auth.displayName;
+  }
+
   getUserDisplayName(user: AdminUserRow): string {
     const titlePrefix = Array.isArray(user.titles) && user.titles.length > 0 ? `${user.titles.join(' ')} ` : '';
     return `${titlePrefix}${user.first_name} ${user.last_name}`.trim();
@@ -132,11 +141,13 @@ export class UserCreatePage implements OnInit {
 
   constructor(
     private readonly fb: FormBuilder,
-    private readonly auth: AuthService,
+    public readonly auth: AuthService,
     private readonly router: Router,
     private readonly usersAdminApi: UsersAdminApiService,
     private readonly alertController: AlertController
-  ) {}
+  ) {
+    addIcons({ alertCircleOutline, checkmarkCircleOutline, informationCircleOutline, keyOutline, searchOutline, warningOutline });
+  }
 
   ngOnInit(): void {
     if (this.auth.role !== 'admin') {
@@ -371,6 +382,7 @@ export class UserCreatePage implements OnInit {
     this.isResetPasswordModalOpen = false;
     this.selectedUser = null;
     this.resetOneTimePassword = '';
+    this.resetPasswordError = '';
   }
 
   submitResetPassword(): void {
@@ -379,9 +391,30 @@ export class UserCreatePage implements OnInit {
       return;
     }
 
+    this.resetPasswordError = '';
     const normalizedPassword = this.resetOneTimePassword.trim();
+    if (!normalizedPassword) {
+      this.resetPasswordError = 'Hasło jednorazowe jest wymagane.';
+      return;
+    }
     if (normalizedPassword.length < 8) {
-      this.errorMessage = 'Hasło jednorazowe musi mieć minimum 8 znaków.';
+      this.resetPasswordError = 'Hasło jednorazowe musi mieć minimum 8 znaków.';
+      return;
+    }
+    if (!/[A-Z]/.test(normalizedPassword)) {
+      this.resetPasswordError = 'Hasło musi zawierać przynajmniej jedną wielką literę.';
+      return;
+    }
+    if (!/[a-z]/.test(normalizedPassword)) {
+      this.resetPasswordError = 'Hasło musi zawierać przynajmniej jedną małą literę.';
+      return;
+    }
+    if (!/[0-9]/.test(normalizedPassword)) {
+      this.resetPasswordError = 'Hasło musi zawierać przynajmniej jedną cyfrę.';
+      return;
+    }
+    if (!/[!@#$%^&*()\-_=+[\]{};:'",.<>?/\\|`~]/.test(normalizedPassword)) {
+      this.resetPasswordError = 'Hasło musi zawierać przynajmniej jeden znak specjalny.';
       return;
     }
 

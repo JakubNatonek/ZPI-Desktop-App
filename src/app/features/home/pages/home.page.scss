@@ -6,9 +6,6 @@
   overflow: hidden;
 }
 
-.app-shell.lecturer-layout {
-  flex-direction: row-reverse;
-}
 
 /* Zawartosc panelu bocznego: filtry, sterowanie i podglad wpisow */
 .sidebar {
@@ -24,9 +21,33 @@
   max-width: 600px;
 
   .sidebar-inner {
+    .sidebar-collapse-btn {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      cursor: pointer;
+      padding: 4px 0 0;
+      color: #64748b;
+      transition: color 0.15s;
+      font-size: 1.1rem;
+
+      &:hover {
+        color: #1a3a5c;
+      }
+    }
+
     h3 {
-      font-size: 1rem;
-      margin-bottom: 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #1a3a5c;
+      margin: 8px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #1a3a5c;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .rapla-file-btn {
@@ -41,18 +62,81 @@
     }
 
     ion-segment {
-      margin-bottom: 14px;
+      margin-bottom: 12px;
+      --background: #e8edf4;
+      border-radius: 8px;
     }
 
     .hours-box {
-      border: 1px solid #e5e7eb;
+      border: 1px solid rgba(26, 58, 92, 0.18);
       border-radius: 10px;
-      padding: 10px;
-      background: #f8fafc;
+      padding: 10px 12px;
+      background: #f0f4f8;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
 
-      p {
-        margin: 0 0 6px;
-        font-size: 0.88rem;
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 3px 0;
+        border-bottom: 1px solid rgba(26, 58, 92, 0.07);
+
+        &:last-child {
+          border-bottom: none;
+          padding-bottom: 0;
+        }
+      }
+
+      .stat-label {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 500;
+      }
+
+      .stat-value {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1a3a5c;
+        text-align: right;
+      }
+
+      .stat-value--available {
+        color: #15803d;
+      }
+
+      .stat-value--unavailable {
+        color: #b91c1c;
+      }
+
+      .stat-value--warn {
+        color: #b45309;
+      }
+    }
+
+    .lecturer-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      border-left: 3px solid;
+
+      ion-icon {
+        flex-shrink: 0;
+        font-size: 16px;
+        margin-top: 1px;
+      }
+
+      &.lecturer-banner--info {
+        background: #eff6ff;
+        border-left-color: #3b82f6;
+        color: #1d4ed8;
       }
     }
 
@@ -66,8 +150,14 @@
       margin-top: 12px;
 
       h4 {
-        margin: 0 0 8px;
-        font-size: 0.95rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #1a3a5c;
+        margin: 14px 0 8px;
+        padding-bottom: 6px;
+        border-bottom: 2px solid rgba(26, 58, 92, 0.15);
       }
 
       .import-msg {
@@ -110,19 +200,22 @@
     }
 
     .lecturer-status-card.status-approved {
-      border-color: #16a34a;
-      background: #f0fdf4;
+      border-color: #e5e7eb;
+      border-left: 3px solid #16a34a;
+      background: #ffffff;
       cursor: pointer;
     }
 
     .lecturer-status-card.status-approved:hover {
-      border-color: #15803d;
-      background: #dcfce7;
+      border-color: #e5e7eb;
+      border-left-color: #15803d;
+      background: #f0fdf4;
     }
 
     .lecturer-status-card.status-missing {
-      border-color: #dc2626;
-      background: #fef2f2;
+      border-color: #e5e7eb;
+      border-left: 3px solid #dc2626;
+      background: #ffffff;
       cursor: default;
     }
 
@@ -151,21 +244,22 @@
     .status-pill {
       display: inline-flex;
       align-items: center;
-      border-radius: 999px;
-      padding: 2px 8px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      line-height: 1.35;
-      color: #ffffff;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      line-height: 1.4;
       text-align: right;
     }
 
     .lecturer-status-card.status-approved .status-pill {
-      background: #15803d;
+      background: #dcfce7;
+      color: #15803d;
     }
 
     .lecturer-status-card.status-missing .status-pill {
-      background: #b91c1c;
+      background: #fee2e2;
+      color: #b91c1c;
     }
 
     .submission-row {
@@ -205,9 +299,12 @@
     }
 
     @keyframes pulse {
-      0%, 100% {
+
+      0%,
+      100% {
         opacity: 1;
       }
+
       50% {
         opacity: 0.6;
       }
@@ -224,26 +321,30 @@
     }
 
     .submission-card.is-active {
-      border-color: #0f766e;
-      box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.25);
-      background: #f0fdfa;
+      border-color: #1a3a5c;
+      box-shadow: 0 0 0 2px rgba(26, 58, 92, 0.2);
+      background: #eef2f7;
     }
 
     .lecturer-status-card.status-approved.is-active {
-      border-color: #15803d;
-      box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.25);
-      background: #dcfce7;
+      border-color: #e5e7eb;
+      border-left: 3px solid #15803d;
+      box-shadow: 0 1px 4px rgba(21, 128, 61, 0.15);
+      background: #f0fdf4;
     }
 
     .preview-box {
-      border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      padding: 10px;
-      background: #f1f5f9;
+      border: 1px solid #c8d8e8;
+      border-left: 3px solid #d4a843;
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #eef2f7;
+      margin-top: 12px;
 
       p {
-        margin: 0 0 6px;
-        font-size: 0.86rem;
+        margin: 0 0 4px;
+        font-size: 0.84rem;
+        color: #1f2937;
       }
     }
   }
@@ -273,27 +374,18 @@
   height: 100%;
   cursor: col-resize;
   z-index: 1000;
+  transition: background 0.15s;
 
   &:hover {
-    background: rgba(26, 115, 232, 0.2);
+    background: rgba(26, 58, 92, 0.2);
   }
 
   &:active {
-    background: #1a73e8;
+    background: #1a3a5c;
   }
 }
 
-.app-shell.lecturer-layout {
-  .sidebar {
-    border-right: 0;
-    border-left: 1px solid #dadce0;
-  }
 
-  .resizer {
-    right: auto;
-    left: -3px;
-  }
-}
 
 /* Glowny obszar z paskiem narzedzi i siatka kalendarza */
 .main-content {
@@ -304,26 +396,53 @@
   min-width: 0;
 
   ion-toolbar {
-    --background: #ffffff;
-    --color: #000000;
-    border-bottom: 1px solid #e5e7eb;
+    --background: var(--ion-color-primary);
+    --color: #ffffff;
+    border-bottom: none;
   }
 
   .menu-nav-btn {
-    --color: #000000;
-    color: #000000;
+    --color: #ffffff;
+    color: #ffffff;
+  }
+
+  .toolbar-page-title {
+    color: #ffffff;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .role-chip {
+    --color: #ffffff;
+    --border-color: rgba(255, 255, 255, 0.45);
+    color: #ffffff;
+  }
+
+  .toolbar-username {
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin: 0 6px;
+    white-space: nowrap;
   }
 
   .calendar-title {
     font-size: 1.3rem;
     font-weight: 400;
-    color: #000000;
+    color: #ffffff;
     margin-left: 10px;
   }
 
   .today-btn {
-    --border-color: #dadce0;
-    --color: #000000;
+    --border-color: rgba(255, 255, 255, 0.5);
+    --color: #ffffff;
+  }
+
+  ion-chip {
+    --color: #ffffff;
+    --border-color: rgba(255, 255, 255, 0.45);
+    color: #ffffff;
   }
 
   .user-avatar {
@@ -356,12 +475,20 @@
       padding: 10px 0;
       display: flex;
       flex-direction: column;
+      align-items: center;
       justify-content: center;
-      color: #000000;
+      gap: 3px;
+      color: #374151;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.15s;
 
       .day-name {
         font-size: 12px;
         font-weight: 600;
+      }
+
+      .day-today-badge {
+        display: none;
       }
     }
   }
@@ -388,6 +515,7 @@
       .day-cell {
         border-right: 1px solid #f1f3f4;
         position: relative;
+        transition: background 0.1s;
 
         &:hover {
           background: #f8f9fa;
@@ -542,36 +670,36 @@
 :host-context(html.ion-palette-dark) {
   .sidebar {
     ion-content.no-scroll {
-      --background: #0f172a;
+      --background: #0c1524;
     }
   }
 
   .google-calendar-grid {
-    background: #0b1220;
+    background: #0c1524;
 
     .grid-header {
-      background: #0f172a;
-      border-bottom-color: #334155;
+      background: #162336;
+      border-bottom-color: rgba(255, 255, 255, 0.08);
 
       .day-col-header {
-        color: #f8fafc;
+        color: #e8edf4;
       }
     }
 
     .grid-body {
       .hour-row {
-        border-bottom-color: #334155;
+        border-bottom-color: rgba(255, 255, 255, 0.06);
 
         .hour-label {
-          color: #ffffff;
+          color: #94a3b8;
           font-weight: 600;
         }
 
         .day-cell {
-          border-right-color: #334155;
+          border-right-color: rgba(255, 255, 255, 0.06);
 
           &:hover {
-            background: #1e293b;
+            background: #162336;
           }
         }
       }
@@ -580,26 +708,26 @@
 
   .sidebar .sidebar-inner {
     .submission-card {
-      background: #111827;
-      border-color: #334155;
-      color: #f8fafc;
+      background: #162336;
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #e8edf4;
     }
 
     .submission-label {
-      color: #93c5fd;
+      color: #d4a843;
     }
 
     .submission-value {
-      color: #ffffff;
+      color: #e8edf4;
     }
 
     .submission-card.is-clickable:hover {
-      background: #1e293b;
-      border-color: #60a5fa;
+      background: #1a2c42;
+      border-color: #d4a843;
     }
 
     .submission-card.is-active {
-      background: #1d4ed8;
+      background: rgba(26, 58, 92, 0.35);
       border-color: #93c5fd;
       box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.45);
     }
@@ -610,48 +738,61 @@
     }
 
     .lecturer-status-card.status-approved {
-      background: rgba(22, 163, 74, 0.25);
-      border-color: #22c55e;
+      background: #162336;
+      border-color: rgba(255, 255, 255, 0.08);
+      border-left: 3px solid #4ade80;
     }
 
     .lecturer-status-card.status-approved:hover {
-      background: rgba(22, 163, 74, 0.32);
-      border-color: #4ade80;
+      background: rgba(22, 163, 74, 0.12);
+      border-color: rgba(255, 255, 255, 0.08);
+      border-left-color: #86efac;
     }
 
     .lecturer-status-card.status-missing {
-      background: rgba(220, 38, 38, 0.24);
-      border-color: #f87171;
+      background: #162336;
+      border-color: rgba(255, 255, 255, 0.08);
+      border-left: 3px solid #f87171;
     }
 
     .lecturer-extra {
-      border-top-color: #475569;
+      border-top-color: rgba(255, 255, 255, 0.12);
     }
 
     .lecturer-status-card.status-approved.is-active {
-      background: rgba(22, 163, 74, 0.38);
-      border-color: #86efac;
-      box-shadow: 0 0 0 2px rgba(134, 239, 172, 0.35);
+      background: rgba(22, 163, 74, 0.15);
+      border-color: rgba(255, 255, 255, 0.08);
+      border-left: 3px solid #86efac;
+      box-shadow: 0 1px 4px rgba(134, 239, 172, 0.2);
     }
 
     .lecturer-status-card.status-approved .status-pill {
-      background: #22c55e;
-      color: #052e16;
+      background: rgba(22, 163, 74, 0.2);
+      color: #86efac;
     }
 
     .lecturer-status-card.status-missing .status-pill {
-      background: #ef4444;
-      color: #ffffff;
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
     }
   }
 }
 
 .close-modal-btn {
-  border: 1px solid #cbd5e1;
-  background: #f8fafc;
+  border: 1px solid #1a3a5c;
+  background: #fff;
+  color: #1a3a5c;
   border-radius: 8px;
-  padding: 6px 10px;
+  padding: 6px 14px;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: #1a3a5c;
+    color: #fff;
+  }
 }
 
 /* Selector semestru */
@@ -677,25 +818,48 @@
   }
 }
 
-:host-context(.ion-palette-dark) {
+:host-context(html.ion-palette-dark) {
   .semestr-selector {
     ion-label {
-      color: #e5e7eb;
+      color: #e8edf4;
     }
 
     ion-select {
-      border-color: #4b5563;
-      background: #1f2937;
-      color: #f9fafb;
-      --color: #f9fafb;
-      --placeholder-color: #9ca3af;
+      border-color: rgba(255, 255, 255, 0.08);
+      background: #162336;
+      color: #e8edf4;
+      --color: #e8edf4;
+      --placeholder-color: #94a3b8;
     }
   }
 }
 
 /* Przycisk historii */
 .history-btn {
-  margin-top: 10px;
+  margin-top: 6px;
+}
+
+.unavailability-btn {
+  margin-top: 6px;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: rgba(26, 58, 92, 0.12);
+  margin: 12px 0;
+  border-radius: 1px;
+}
+
+.sidebar-action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tutorial-toggle-btn {
+  margin-top: 8px;
+  --color: #64748b;
+  font-size: 0.82rem;
 }
 
 /* Loading indicator */
@@ -705,18 +869,19 @@
   gap: 8px;
   margin-top: 12px;
   padding: 10px;
-  background: #f0f9ff;
+  background: #eef2f7;
   border-radius: 8px;
+  border: 1px solid rgba(26, 58, 92, 0.12);
 
   ion-spinner {
     width: 20px;
     height: 20px;
-    color: #0ea5e9;
+    color: #1a3a5c;
   }
 
   span {
     font-size: 0.85rem;
-    color: #0369a1;
+    color: #1a3a5c;
   }
 }
 
@@ -760,8 +925,9 @@
   background: #fff;
 
   &:hover {
-    border-color: #3b82f6;
-    background: #eff6ff;
+    border-color: #1a3a5c;
+    background: #eef2f7;
+    box-shadow: 0 2px 8px rgba(26, 58, 92, 0.1);
   }
 }
 
@@ -772,7 +938,7 @@
   margin-bottom: 4px;
 
   ion-icon {
-    color: #3b82f6;
+    color: #1a3a5c;
     font-size: 18px;
   }
 
@@ -851,25 +1017,30 @@
   color: #334155;
 }
 
-:host-context(.ion-palette-dark) {
+:host-context(html.ion-palette-dark) {
 
   .app-shell,
   .main-content {
-    background: #0f172a;
+    background: #0c1524;
   }
 
   .sidebar {
-    background: #111827;
-    border-right-color: #334155;
+    background: #0c1524;
+    border-right-color: rgba(255, 255, 255, 0.08);
   }
 
-  .app-shell.lecturer-layout .sidebar {
-    border-left-color: #334155;
-  }
 
   .sidebar ion-content.no-scroll {
-    --background: #111827;
-    color: #e2e8f0;
+    --background: #0c1524;
+    color: #e8edf4;
+  }
+
+  .sidebar .sidebar-inner .sidebar-collapse-btn {
+    color: #64748b;
+
+    &:hover {
+      color: #93c5fd;
+    }
   }
 
   .sidebar .sidebar-inner {
@@ -884,20 +1055,62 @@
     .folder-meta {
       color: #e2e8f0;
     }
+
+    h3 {
+      border-bottom-color: rgba(212, 168, 67, 0.4);
+      color: #d4a843;
+    }
   }
 
   .sidebar .hours-box,
   .sidebar .submission-card,
   .sidebar .preview-box {
-    background: #1f2937;
-    border-color: #475569;
-    color: #e2e8f0;
+    background: #162336;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #e8edf4;
+  }
+
+  .sidebar .hours-box {
+    .stat-row {
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .stat-label {
+      color: #94a3b8;
+    }
+
+    .stat-value {
+      color: #e2e8f0;
+    }
+
+    .stat-value--available {
+      color: #4ade80;
+    }
+
+    .stat-value--unavailable {
+      color: #f87171;
+    }
+
+    .stat-value--warn {
+      color: #fbbf24;
+    }
+  }
+
+  .sidebar ion-segment {
+    --background: #1a2c42;
+
+    ion-segment-button {
+      --color: #94a3b8;
+      --color-checked: #ffffff;
+      --background-checked: #1a3a5c;
+      --indicator-color: #1a3a5c;
+    }
   }
 
   .main-content ion-toolbar {
-    --background: #111827;
-    --color: #f8fafc;
-    border-bottom-color: #334155;
+    --background: var(--ion-toolbar-background);
+    --color: var(--ion-toolbar-color);
+    border-bottom-color: transparent;
   }
 
   .menu-nav-btn,
@@ -908,80 +1121,95 @@
 
   .main-content ion-button,
   .main-content ion-chip {
-    --color: #e2e8f0;
-    --border-color: #64748b;
+    --color: #e8edf4;
+    --border-color: rgba(255, 255, 255, 0.2);
   }
 
   .google-calendar-grid .grid-header {
-    background: #111827;
-    border-bottom-color: #334155;
+    background: #162336;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
   }
 
   .google-calendar-grid .day-col-header .day-name,
   .google-calendar-grid .hour-label {
-    color: #cbd5e1;
+    color: #94a3b8;
   }
 
   .google-calendar-grid .hour-row {
-    border-bottom-color: #334155;
+    border-bottom-color: rgba(255, 255, 255, 0.06);
   }
 
   .google-calendar-grid .hour-row .day-cell {
-    border-right-color: #334155;
+    border-right-color: rgba(255, 255, 255, 0.06);
   }
 
   /* Loading indicator dark mode */
   .loading-indicator {
-    background: #1e3a5f;
+    background: #162336;
+    border-color: rgba(212, 168, 67, 0.2);
 
     ion-spinner {
-      color: #60a5fa;
+      color: #d4a843;
     }
 
     span {
-      color: #93c5fd;
+      color: #d4a843;
     }
+  }
+
+  .sidebar-divider {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .sidebar .sidebar-inner .lecturer-banner.lecturer-banner--info {
+    background: rgba(59, 130, 246, 0.12);
+    border-left-color: #60a5fa;
+    color: #93c5fd;
   }
 
   /* Preview modal dark mode */
   .preview-modal {
-    background: #1f2937;
-    border-color: #475569;
+    background: #162336;
+    border-color: rgba(255, 255, 255, 0.08);
 
     .preview-modal-header h3 {
-      color: #f9fafb;
+      color: #e8edf4;
     }
 
     .close-modal-btn {
-      background: #374151;
-      border-color: #4b5563;
-      color: #f9fafb;
+      background: #1a2c42;
+      border-color: rgba(212, 168, 67, 0.4);
+      color: #e8edf4;
+
+      &:hover {
+        background: #1e3350;
+      }
     }
   }
 
   .submission-preview-grid {
     .preview-header-row {
-      border-bottom-color: #475569;
+      border-bottom-color: rgba(255, 255, 255, 0.08);
 
       .day-col {
-        color: #e5e7eb;
+        color: #e8edf4;
       }
     }
 
     .preview-row {
-      border-bottom-color: #374151;
+      border-bottom-color: rgba(255, 255, 255, 0.06);
     }
 
     .time-col {
-      color: #9ca3af;
+      color: #94a3b8;
     }
 
     .preview-cell {
-      border-right-color: #374151;
+      border-right-color: rgba(255, 255, 255, 0.06);
     }
 
     p {
-      color: #e5e7eb;
+      color: #e8edf4;
     }
   }
 
@@ -999,18 +1227,19 @@
   }
 
   .history-item {
-    background: #1f2937;
-    border-color: #475569;
+    background: #162336;
+    border-color: rgba(255, 255, 255, 0.08);
 
     &:hover {
-      background: #374151;
-      border-color: #60a5fa;
+      background: #1a2c42;
+      border-color: #d4a843;
+      box-shadow: 0 2px 8px rgba(212, 168, 67, 0.15);
     }
   }
 
   .history-item-header {
     .history-date {
-      color: #f9fafb;
+      color: #e8edf4;
     }
   }
 
@@ -1020,15 +1249,21 @@
 
   /* Tutorial panel dark mode */
   .tutorial-panel {
-    background: #1f2937;
-    border-color: #475569;
+    background: #162336;
+    border-color: rgba(255, 255, 255, 0.08);
 
     h3 {
-      color: #f9fafb;
+      color: #e8edf4;
     }
 
     p {
-      color: #cbd5e1;
+      color: #94a3b8;
     }
+  }
+
+  /* Sidebar heading dark mode */
+  .sidebar .sidebar-inner h3 {
+    color: #d4a843;
+    border-bottom-color: #d4a843;
   }
 }

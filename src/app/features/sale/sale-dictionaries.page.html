@@ -1,17 +1,25 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
-    <ion-title>Panel administratora</ion-title>
+    <ion-title>Słowniki sal</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
-      <ion-button fill="clear" (click)="navigateToList()">Lista sal</ion-button>
-      <ion-button fill="clear" (click)="navigateToCreateRoom()">Dodawanie sal</ion-button>
-      <ion-chip color="medium" outline>
+      <ion-button class="toolbar-nav-btn" fill="clear" (click)="navigateToList()">
+        <ion-icon slot="start" name="arrow-back-outline"></ion-icon>
+        Lista sal
+      </ion-button>
+      <ion-button class="toolbar-nav-btn" fill="clear" (click)="navigateToCreateRoom()">
+        <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+        Nowa sala
+      </ion-button>
+      <ion-chip class="role-chip" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
-      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
-        <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+      <span class="toolbar-username">{{ userDisplayName }}</span>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0"
+        (click)="toggleProfileMenu($event)">
+        <img [src]="auth.avatarUrl" alt="Avatar" />
       </ion-avatar>
 
       <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
@@ -27,126 +35,135 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="dictionaries-content">
-  <div class="canvas-bg" aria-hidden="true"></div>
+<ion-content class="dict-page-content">
+  <div class="dict-page-wrapper">
 
-  <section class="hero">
-    <p class="eyebrow">Administracja salami</p>
-    <h1>Slowniki sal</h1>
-    <p>
-      Zarzadzaj slownikami niezaleznie od formularza dodawania sal. Zmiany sa zapisywane
-      od razu i beda dostepne podczas tworzenia lub edycji sal.
-    </p>
-  </section>
+    <!-- Nagłówek -->
+    <div class="page-header">
+      <h1 class="page-title">Słowniki sal</h1>
+      <p class="page-subtitle">Zarządzaj typami sal, aktywnościami, wyposażeniem i wydziałami. Zmiany są dostępne
+        natychmiast podczas tworzenia lub edycji sal.</p>
+    </div>
 
-  <ion-card class="form-shell">
-    <ion-card-content>
-      <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
+    <ion-progress-bar type="indeterminate" *ngIf="isLoading" class="page-loader"></ion-progress-bar>
 
-      <ion-note class="message error" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
-      <ion-note class="message error" *ngIf="dictionaryErrorMessage">{{ dictionaryErrorMessage }}</ion-note>
+    <div class="error-message" *ngIf="errorMessage || dictionaryErrorMessage">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      {{ errorMessage || dictionaryErrorMessage }}
+    </div>
 
-      <div class="groups-grid" *ngIf="!isLoading">
-        <section class="dictionary-group">
-          <div class="group-header">
-            <h2>Typy sal</h2>
-            <ion-button size="small" fill="outline" [disabled]="isUpdatingDictionary" (click)="createRoomType()">
-              Dodaj
-            </ion-button>
+    <div class="dict-grid" *ngIf="!isLoading">
+
+      <!-- Typy sal -->
+      <div class="dict-card">
+        <div class="dict-card-header">
+          <h3 class="dict-heading">Typy sal</h3>
+          <ion-button size="small" class="btn-add" [disabled]="isUpdatingDictionary" (click)="createRoomType()">
+            <ion-icon slot="start" name="add-outline"></ion-icon>
+            Dodaj
+          </ion-button>
+        </div>
+        <div class="dict-list" *ngIf="roomTypeOptions.length > 0">
+          <div class="dict-item" *ngFor="let roomType of roomTypeOptions">
+            <span class="dict-item-name">{{ roomType.name }} <span class="dict-abbr">({{ roomType.abbreviation
+                }})</span></span>
+            <div class="dict-item-actions">
+              <button class="icon-btn" title="Edytuj" [disabled]="isUpdatingDictionary"
+                (click)="editRoomType(roomType)">
+                <ion-icon name="create-outline"></ion-icon>
+              </button>
+              <button class="icon-btn danger" title="Usuń" [disabled]="isUpdatingDictionary"
+                (click)="deleteRoomType(roomType)">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
           </div>
-
-          <ion-list lines="none" class="dictionary-list" *ngIf="roomTypeOptions.length > 0">
-            <ion-item *ngFor="let roomType of roomTypeOptions">
-              <ion-label>{{ roomType.name }} ({{ roomType.abbreviation }})</ion-label>
-              <ion-buttons slot="end" class="item-actions">
-                <ion-button size="small" fill="clear" [disabled]="isUpdatingDictionary" (click)="editRoomType(roomType)">
-                  Edytuj
-                </ion-button>
-                <ion-button size="small" fill="clear" color="danger" [disabled]="isUpdatingDictionary" (click)="deleteRoomType(roomType)">
-                  Usun
-                </ion-button>
-              </ion-buttons>
-            </ion-item>
-          </ion-list>
-
-          <p class="empty" *ngIf="roomTypeOptions.length === 0">Brak wpisow.</p>
-        </section>
-
-        <section class="dictionary-group">
-          <div class="group-header">
-            <h2>Aktywnosci</h2>
-            <ion-button size="small" fill="outline" [disabled]="isUpdatingDictionary" (click)="createActivity()">
-              Dodaj
-            </ion-button>
-          </div>
-
-          <ion-list lines="none" class="dictionary-list" *ngIf="activityOptions.length > 0">
-            <ion-item *ngFor="let activity of activityOptions">
-              <ion-label>{{ activity.name }}</ion-label>
-              <ion-buttons slot="end" class="item-actions">
-                <ion-button size="small" fill="clear" [disabled]="isUpdatingDictionary" (click)="editActivity(activity)">
-                  Edytuj
-                </ion-button>
-                <ion-button size="small" fill="clear" color="danger" [disabled]="isUpdatingDictionary" (click)="deleteActivity(activity)">
-                  Usun
-                </ion-button>
-              </ion-buttons>
-            </ion-item>
-          </ion-list>
-
-          <p class="empty" *ngIf="activityOptions.length === 0">Brak wpisow.</p>
-        </section>
-
-        <section class="dictionary-group">
-          <div class="group-header">
-            <h2>Wyposazenie specjalne</h2>
-            <ion-button size="small" fill="outline" [disabled]="isUpdatingDictionary" (click)="createSpecialEquipment()">
-              Dodaj
-            </ion-button>
-          </div>
-
-          <ion-list lines="none" class="dictionary-list" *ngIf="specialEquipmentOptions.length > 0">
-            <ion-item *ngFor="let equipment of specialEquipmentOptions">
-              <ion-label>{{ equipment.name }}</ion-label>
-              <ion-buttons slot="end" class="item-actions">
-                <ion-button size="small" fill="clear" [disabled]="isUpdatingDictionary" (click)="editSpecialEquipment(equipment)">
-                  Edytuj
-                </ion-button>
-                <ion-button size="small" fill="clear" color="danger" [disabled]="isUpdatingDictionary" (click)="deleteSpecialEquipment(equipment)">
-                  Usun
-                </ion-button>
-              </ion-buttons>
-            </ion-item>
-          </ion-list>
-
-          <p class="empty" *ngIf="specialEquipmentOptions.length === 0">Brak wpisow.</p>
-        </section>
-
-        <section class="dictionary-group">
-          <div class="group-header">
-            <h2>Wydzialy</h2>
-            <ion-button size="small" fill="outline" [disabled]="isUpdatingDictionary" (click)="createDepartment()">
-              Dodaj
-            </ion-button>
-          </div>
-
-          <ion-list lines="none" class="dictionary-list" *ngIf="departmentOptions.length > 0">
-            <ion-item *ngFor="let department of departmentOptions">
-              <ion-label>{{ department.name }} ({{ department.abbreviation }})</ion-label>
-              <ion-buttons slot="end" class="item-actions">
-                <ion-button size="small" fill="clear" [disabled]="isUpdatingDictionary" (click)="editDepartment(department)">
-                  Edytuj
-                </ion-button>
-                <ion-button size="small" fill="clear" color="danger" [disabled]="isUpdatingDictionary" (click)="deleteDepartment(department)">
-                  Usun
-                </ion-button>
-              </ion-buttons>
-            </ion-item>
-          </ion-list>
-
-          <p class="empty" *ngIf="departmentOptions.length === 0">Brak wpisow.</p>
-        </section>
+        </div>
+        <p class="dict-empty" *ngIf="roomTypeOptions.length === 0">Brak wpisów.</p>
       </div>
-    </ion-card-content>
-  </ion-card>
+
+      <!-- Aktywności -->
+      <div class="dict-card">
+        <div class="dict-card-header">
+          <h3 class="dict-heading">Aktywności</h3>
+          <ion-button size="small" class="btn-add" [disabled]="isUpdatingDictionary" (click)="createActivity()">
+            <ion-icon slot="start" name="add-outline"></ion-icon>
+            Dodaj
+          </ion-button>
+        </div>
+        <div class="dict-list" *ngIf="activityOptions.length > 0">
+          <div class="dict-item" *ngFor="let activity of activityOptions">
+            <span class="dict-item-name">{{ activity.name }}</span>
+            <div class="dict-item-actions">
+              <button class="icon-btn" title="Edytuj" [disabled]="isUpdatingDictionary"
+                (click)="editActivity(activity)">
+                <ion-icon name="create-outline"></ion-icon>
+              </button>
+              <button class="icon-btn danger" title="Usuń" [disabled]="isUpdatingDictionary"
+                (click)="deleteActivity(activity)">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+        <p class="dict-empty" *ngIf="activityOptions.length === 0">Brak wpisów.</p>
+      </div>
+
+      <!-- Wyposażenie specjalne -->
+      <div class="dict-card">
+        <div class="dict-card-header">
+          <h3 class="dict-heading">Wyposażenie specjalne</h3>
+          <ion-button size="small" class="btn-add" [disabled]="isUpdatingDictionary" (click)="createSpecialEquipment()">
+            <ion-icon slot="start" name="add-outline"></ion-icon>
+            Dodaj
+          </ion-button>
+        </div>
+        <div class="dict-list" *ngIf="specialEquipmentOptions.length > 0">
+          <div class="dict-item" *ngFor="let equipment of specialEquipmentOptions">
+            <span class="dict-item-name">{{ equipment.name }}</span>
+            <div class="dict-item-actions">
+              <button class="icon-btn" title="Edytuj" [disabled]="isUpdatingDictionary"
+                (click)="editSpecialEquipment(equipment)">
+                <ion-icon name="create-outline"></ion-icon>
+              </button>
+              <button class="icon-btn danger" title="Usuń" [disabled]="isUpdatingDictionary"
+                (click)="deleteSpecialEquipment(equipment)">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+        <p class="dict-empty" *ngIf="specialEquipmentOptions.length === 0">Brak wpisów.</p>
+      </div>
+
+      <!-- Wydziały -->
+      <div class="dict-card">
+        <div class="dict-card-header">
+          <h3 class="dict-heading">Wydziały</h3>
+          <ion-button size="small" class="btn-add" [disabled]="isUpdatingDictionary" (click)="createDepartment()">
+            <ion-icon slot="start" name="add-outline"></ion-icon>
+            Dodaj
+          </ion-button>
+        </div>
+        <div class="dict-list" *ngIf="departmentOptions.length > 0">
+          <div class="dict-item" *ngFor="let department of departmentOptions">
+            <span class="dict-item-name">{{ department.name }} <span class="dict-abbr">({{ department.abbreviation
+                }})</span></span>
+            <div class="dict-item-actions">
+              <button class="icon-btn" title="Edytuj" [disabled]="isUpdatingDictionary"
+                (click)="editDepartment(department)">
+                <ion-icon name="create-outline"></ion-icon>
+              </button>
+              <button class="icon-btn danger" title="Usuń" [disabled]="isUpdatingDictionary"
+                (click)="deleteDepartment(department)">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+        <p class="dict-empty" *ngIf="departmentOptions.length === 0">Brak wpisów.</p>
+      </div>
+
+    </div>
+  </div>
 </ion-content>

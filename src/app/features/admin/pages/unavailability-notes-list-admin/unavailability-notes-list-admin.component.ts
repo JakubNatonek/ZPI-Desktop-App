@@ -20,11 +20,20 @@ import {
   IonSegment,
   IonSegmentButton,
   IonLabel,
+  IonAvatar,
+  IonPopover,
+  IonList,
+  IonItem,
+  IonSearchbar,
+  IonBadge,
+  IonToast,
 } from '@ionic/angular/standalone';
 import { ViewWillEnter } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { checkmarkCircle, closeCircle, checkmark, close, refresh, documentOutline } from 'ionicons/icons';
+import { checkmarkCircle, closeCircle, checkmark, close, refresh, documentOutline, chevronUp, chevronDown, swapVerticalOutline } from 'ionicons/icons';
 import { UnavailabilityNotesApiService, UnavailabilityNoteListDto, NoteStatus } from '../../../../core/services/unavailability-notes-api.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { Router } from '@angular/router';
 
 type FilterType = 'all' | 'pending' | 'accepted' | 'rejected' | 'acknowledged';
 
@@ -54,6 +63,13 @@ type FilterType = 'all' | 'pending' | 'accepted' | 'rejected' | 'acknowledged';
     IonSegment,
     IonSegmentButton,
     IonLabel,
+    IonAvatar,
+    IonPopover,
+    IonList,
+    IonItem,
+    IonSearchbar,
+    IonBadge,
+    IonToast,
   ],
 })
 export class UnavailabilityNotesListAdminComponent implements ViewWillEnter {
@@ -61,9 +77,48 @@ export class UnavailabilityNotesListAdminComponent implements ViewWillEnter {
   isLoading = false;
   isProcessing: { [noteId: number]: boolean } = {};
   filterType: FilterType = 'all';
+  isProfileMenuOpen = false;
+  profileMenuEvent?: Event;
+  searchQuery = '';
+  sortField: 'name' | 'date' | 'status' = 'date';
+  sortAsc = false;
+  isToastOpen = false;
+  toastMessage = '';
+  toastColor: 'success' | 'danger' = 'success';
 
-  constructor(private unavailabilityService: UnavailabilityNotesApiService) {
-    addIcons({documentOutline,checkmarkCircle,closeCircle,checkmark,close,refresh});
+  constructor(
+    private unavailabilityService: UnavailabilityNotesApiService,
+    public auth: AuthService,
+    private router: Router,
+  ) {
+    addIcons({ documentOutline, checkmarkCircle, closeCircle, checkmark, close, refresh, chevronUp, chevronDown, swapVerticalOutline });
+  }
+
+  get userRoleLabel(): string {
+    return this.auth.roleLabel;
+  }
+
+  get userDisplayName(): string {
+    return this.auth.displayName;
+  }
+
+  toggleProfileMenu(event: Event): void {
+    this.profileMenuEvent = event;
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+  }
+
+  closeProfileMenu(): void {
+    this.isProfileMenuOpen = false;
+  }
+
+  openSettings(): void {
+    this.closeProfileMenu();
+    this.router.navigateByUrl('/profile');
+  }
+
+  logout(): void {
+    this.closeProfileMenu();
+    this.auth.logout();
   }
 
   /**
@@ -108,6 +163,42 @@ export class UnavailabilityNotesListAdminComponent implements ViewWillEnter {
     this.loadNotes();
   }
 
+  onSearch(event: any): void {
+    this.searchQuery = (event.detail.value ?? '').toLowerCase();
+  }
+
+  toggleSort(field: 'name' | 'date' | 'status'): void {
+    if (this.sortField === field) {
+      this.sortAsc = !this.sortAsc;
+    } else {
+      this.sortField = field;
+      this.sortAsc = true;
+    }
+  }
+
+  get filteredNotes(): UnavailabilityNoteListDto[] {
+    let result = this.notes;
+    if (this.searchQuery) {
+      result = result.filter(
+        (n) =>
+          `${n.first_name} ${n.last_name}`.toLowerCase().includes(this.searchQuery) ||
+          (n.description ?? '').toLowerCase().includes(this.searchQuery),
+      );
+    }
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      if (this.sortField === 'name') {
+        cmp = `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`, 'pl');
+      } else if (this.sortField === 'date') {
+        cmp = a.start_date.localeCompare(b.start_date);
+      } else if (this.sortField === 'status') {
+        cmp = a.status.localeCompare(b.status);
+      }
+      return this.sortAsc ? cmp : -cmp;
+    });
+    return result;
+  }
+
   ionViewWillEnter(): void {
     this.isProcessing = {};
     this.loadNotes();
@@ -141,6 +232,7 @@ export class UnavailabilityNotesListAdminComponent implements ViewWillEnter {
     this.unavailabilityService.updateNoteStatus(note.id, { status: newStatus }).subscribe({
       next: async () => {
         this.isProcessing[note.id] = false;
+        this.showToast(this.getStatusMessage(newStatus), 'success');
       },
       error: async (error: any) => {
         console.error('Error updating note status:', error);
@@ -153,6 +245,8 @@ export class UnavailabilityNotesListAdminComponent implements ViewWillEnter {
         }
 
         this.isProcessing[note.id] = false;
+        const errorMsg = error?.error?.detail ?? `Błąd ${error?.status ?? ''}`.trim();
+        this.showToast(`Nie udało się zmienić statusu: ${errorMsg}`, 'danger');
       },
     });
   }
@@ -224,6 +318,16 @@ export class UnavailabilityNotesListAdminComponent implements ViewWillEnter {
       pending: 'Oczekująca',
     };
     return messages[status];
+  }
+
+  showToast(message: string, color: 'success' | 'danger') {
+    this.toastMessage = message;
+    this.toastColor = color;
+    this.isToastOpen = true;
+  }
+
+  closeToast() {
+    this.isToastOpen = false;
   }
 
   /**

@@ -5,6 +5,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AlertController, IonicModule } from '@ionic/angular';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize, forkJoin } from 'rxjs';
+import { addIcons } from 'ionicons';
+import { alertCircleOutline, checkmarkCircleOutline } from 'ionicons/icons';
 
 import { AuthService } from '../../core/services/auth.service';
 import {
@@ -50,12 +52,14 @@ export class SalePage implements OnInit {
   departmentOptions: RoomDepartmentOption[] = [];
 
   constructor(
-    private auth: AuthService,
+    public auth: AuthService,
     private router: Router,
     private route: ActivatedRoute,
     private roomsApi: RoomsApiService,
     private alertController: AlertController,
-  ) {}
+  ) {
+    addIcons({ alertCircleOutline, checkmarkCircleOutline });
+  }
 
   ngOnInit(): void {
     if (this.auth.role !== 'admin') {
@@ -68,6 +72,10 @@ export class SalePage implements OnInit {
 
   get userRoleLabel(): string {
     return this.auth.roleLabel;
+  }
+
+  get userDisplayName(): string {
+    return this.auth.displayName;
   }
 
   onSubmit(form: NgForm): void {

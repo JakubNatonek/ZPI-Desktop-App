@@ -30,11 +30,13 @@
           </ion-buttons>
           <ion-buttons slot="end" class="app-header-user-actions">
             <ion-button fill="outline" (click)="goToToday()">Dzisiaj</ion-button>
-            <ion-chip color="medium" outline>
+            <ion-chip class="role-chip" outline>
               <ion-label>{{ userRoleLabel }}</ion-label>
             </ion-chip>
-            <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
-              <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+            <span class="toolbar-username">{{ userDisplayName }}</span>
+            <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0"
+              (click)="toggleProfileMenu($event)">
+              <img [src]="auth.avatarUrl" alt="Avatar" />
             </ion-avatar>
 
             <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
@@ -98,8 +100,9 @@
             <ion-chip color="medium" outline>
               <ion-label>{{ userRoleLabel }}</ion-label>
             </ion-chip>
-            <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
-              <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+            <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0"
+              (click)="toggleProfileMenu($event)">
+              <img [src]="auth.avatarUrl" alt="Avatar" />
             </ion-avatar>
 
             <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"

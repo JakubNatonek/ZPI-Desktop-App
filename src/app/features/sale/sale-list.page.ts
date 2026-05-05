@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { finalize } from 'rxjs';
+import { addIcons } from 'ionicons';
+import { alertCircleOutline, businessOutline } from 'ionicons/icons';
 
 import { AuthService } from '../../core/services/auth.service';
 import { RoomDto, RoomsApiService } from '../../core/services/rooms-api.service';
@@ -23,10 +25,12 @@ export class SaleListPage implements OnInit {
   profileMenuEvent?: Event;
 
   constructor(
-    private readonly auth: AuthService,
+    public readonly auth: AuthService,
     private readonly router: Router,
     private readonly roomsApi: RoomsApiService
-  ) {}
+  ) {
+    addIcons({ alertCircleOutline, businessOutline });
+  }
 
   ngOnInit(): void {
     if (this.auth.role !== 'admin') {
@@ -39,6 +43,10 @@ export class SaleListPage implements OnInit {
 
   get userRoleLabel(): string {
     return this.auth.roleLabel;
+  }
+
+  get userDisplayName(): string {
+    return this.auth.displayName;
   }
 
   createRoom(): void {

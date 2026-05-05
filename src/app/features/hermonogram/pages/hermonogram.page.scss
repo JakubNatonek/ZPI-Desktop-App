@@ -123,13 +123,45 @@
   background: #ffffff;
 }
 
-.menu-nav-btn {
-  --color: #000000;
-  color: #000000;
+.main-content ion-header ion-toolbar {
+  --background: #1a3a5c;
+  --color: #ffffff;
+  --border-color: transparent;
+
+  ion-title {
+    color: #ffffff;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
 }
 
-ion-toolbar {
-  border-bottom: 1px solid #d1d5db;
+.role-chip {
+  --color: #ffffff;
+  --border-color: rgba(255, 255, 255, 0.45);
+  color: #ffffff;
+}
+
+.toolbar-username {
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 0 6px;
+  white-space: nowrap;
+}
+
+.app-user-avatar {
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+}
+
+.logout-item {
+  --color: #c0392b;
+}
+
+.menu-nav-btn {
+  --color: #ffffff;
+  color: #ffffff;
 }
 
 .google-calendar-grid {
@@ -224,44 +256,44 @@ ion-toolbar {
   text-overflow: ellipsis;
 }
 
-:host-context(.ion-palette-dark) {
+:host-context(html.ion-palette-dark) {
 
   .harmonogram-shell,
   .main-content {
-    background: #0f172a;
+    background: #0c1524;
   }
 
   ion-content {
-    --background: #0f172a;
-    color: #e2e8f0;
+    --background: #0c1524;
+    color: #e8edf4;
   }
 
   .sidebar {
-    background: #111827;
-    border-right-color: #334155;
+    background: #0c1524;
+    border-right-color: rgba(255, 255, 255, 0.08);
   }
 
   .sidebar-content {
-    --background: #111827;
+    --background: #0c1524;
 
     h3,
     h4,
     p,
     .plan-summary {
-      color: #e5e7eb;
+      color: #e8edf4;
     }
   }
 
   ion-toolbar {
-    --background: #111827;
-    --color: #f8fafc;
-    border-bottom-color: #334155;
+    --background: var(--ion-toolbar-background);
+    --color: var(--ion-toolbar-color);
+    border-bottom-color: transparent;
   }
 
   ion-title,
   ion-label,
   p {
-    color: #e2e8f0;
+    color: #e8edf4;
   }
 
   .menu-nav-btn {
@@ -270,68 +302,68 @@ ion-toolbar {
   }
 
   ion-toolbar ion-button {
-    --color: #e2e8f0;
-    color: #e2e8f0;
-    --border-color: #64748b;
+    --color: #e8edf4;
+    color: #e8edf4;
+    --border-color: rgba(255, 255, 255, 0.2);
   }
 
   .import-row ion-button {
-    --color: #e2e8f0;
-    --border-color: #64748b;
+    --color: #e8edf4;
+    --border-color: rgba(255, 255, 255, 0.2);
   }
 
   .calendar-scroll {
-    --background: #0f172a;
+    --background: #0c1524;
   }
 
   .google-calendar-grid {
     .grid-header {
-      background: #111827;
-      border-bottom-color: #334155;
+      background: #162336;
+      border-bottom-color: rgba(255, 255, 255, 0.08);
     }
 
     .day-col-header .day-name {
-      color: #f1f5f9;
+      color: #e8edf4;
     }
 
     .hour-row {
-      border-bottom-color: #334155;
+      border-bottom-color: rgba(255, 255, 255, 0.06);
     }
 
     .hour-label {
-      color: #cbd5e1;
+      color: #94a3b8;
     }
 
     .day-cell {
-      border-right-color: #334155;
+      border-right-color: rgba(255, 255, 255, 0.06);
     }
   }
 
   .plan-item {
-    background: #1f2937;
-    border-color: #475569;
+    background: #1a2c42;
+    border-color: rgba(255, 255, 255, 0.12);
   }
 
   .plan-item.legacy {
-    background: #1e293b;
-    border-color: #64748b;
+    background: #162336;
+    border-color: rgba(255, 255, 255, 0.08);
   }
 
   .plan-subject {
-    color: #f8fafc;
+    color: #e8edf4;
   }
 
   .plan-meta {
-    color: #cbd5e1;
+    color: #94a3b8;
   }
 
   .import-msg {
-    background: #14532d;
-    color: #dcfce7;
+    background: rgba(22, 163, 74, 0.12);
+    color: #86efac;
   }
 
   .no-access-state,
   .no-access-state p {
-    color: #e2e8f0;
+    color: #94a3b8;
   }
 }

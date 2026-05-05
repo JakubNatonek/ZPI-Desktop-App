@@ -32,9 +32,29 @@ ion-menu ion-toolbar.role-toolbar {
   border-top: 1px solid #eef2f7;
 }
 
+ion-menu ion-toolbar.user-info-toolbar {
+  --min-height: 48px;
+}
+
 ion-menu ion-toolbar.role-toolbar ion-title {
   font-size: 0.85rem;
   color: #4b5563;
+}
+
+.user-display-name {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a3a5c;
+  line-height: 1.2;
+}
+
+.user-role-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 400;
+  margin-top: 1px;
 }
 
 ion-menu ion-content {
@@ -52,48 +72,64 @@ ion-menu ion-item {
   --background-focused: #f3f4f6;
 }
 
-html.ion-palette-dark ion-menu {
-  color-scheme: dark;
-  --background: #111827;
-  --ion-background-color: #111827;
-  --ion-background-color-rgb: 17, 24, 39;
-  --ion-text-color: #f9fafb;
-  --ion-text-color-rgb: 249, 250, 251;
-  --ion-toolbar-background: #111827;
-  --ion-toolbar-color: #f9fafb;
-  --ion-item-background: #111827;
-  --ion-item-color: #f9fafb;
-  --backdrop-opacity: 0.32;
+/* ─── Global chat FAB ─── */
+.chat-fab {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 99999;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #1a3a5c;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(26, 58, 92, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  svg {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    transform: scale(1.09);
+    box-shadow: 0 8px 28px rgba(26, 58, 92, 0.55);
+    background: #234d80;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
 }
 
-html.ion-palette-dark ion-menu::part(container) {
-  background: #111827;
+.chat-fab__badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e74c3c;
+  border: 2px solid #ffffff;
+  animation: chat-badge-pulse 1.6s ease-in-out infinite;
 }
 
-html.ion-palette-dark ion-menu ion-toolbar {
-  --background: #111827;
-  --color: #f9fafb;
-}
+@keyframes chat-badge-pulse {
 
-html.ion-palette-dark ion-menu ion-toolbar.role-toolbar {
-  border-top: 1px solid #1f2937;
-}
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 
-html.ion-palette-dark ion-menu ion-toolbar.role-toolbar ion-title {
-  color: #cbd5e1;
-}
-
-html.ion-palette-dark ion-menu ion-content {
-  --background: #111827;
-}
-
-html.ion-palette-dark ion-menu ion-list {
-  background: #111827;
-}
-
-html.ion-palette-dark ion-menu ion-item {
-  --background: #111827;
-  --color: #f9fafb;
-  --background-hover: #1f2937;
-  --background-focused: #1f2937;
+  50% {
+    transform: scale(1.3);
+    opacity: 0.8;
+  }
 }

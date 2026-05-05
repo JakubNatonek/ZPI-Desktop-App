@@ -6,11 +6,15 @@
   <ng-container *ngIf="view === 'conversation' && selectedUser as user">
     <button class="chat-back-btn" (click)="back.emit()" title="Wróć">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
       </svg>
     </button>
     <div class="chat-panel__user-info">
-      <div class="chat-avatar chat-avatar--sm">{{ getInitials(user) }}</div>
+      <div class="chat-avatar chat-avatar--sm" [class.chat-avatar--img]="user.avatarUrl">
+        <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" alt="Avatar"
+          style="width:100%;height:100%;object-fit:cover;border-radius:50%" />
+        <span *ngIf="!user.avatarUrl">{{ getInitials(user) }}</span>
+      </div>
       <div class="chat-panel__title">{{ user.first_name }} {{ user.last_name }}</div>
     </div>
   </ng-container>
@@ -18,7 +22,7 @@
   <ng-container *ngIf="view === 'room-chat' && selectedRoom as room">
     <button class="chat-back-btn" (click)="back.emit()" title="Wróć">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
       </svg>
     </button>
     <div>
@@ -30,7 +34,7 @@
   <ng-container *ngIf="view === 'create-room'">
     <button class="chat-back-btn" (click)="back.emit()" title="Wróć">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
       </svg>
     </button>
     <span class="chat-panel__title">Nowy pokój</span>
@@ -38,7 +42,7 @@
 
   <button class="chat-close-btn" (click)="close.emit()" title="Zamknij">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
     </svg>
   </button>
 </div>

@@ -4,6 +4,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AlertController, IonicModule } from '@ionic/angular';
 import { finalize } from 'rxjs';
+import { addIcons } from 'ionicons';
+import { pencilOutline, trashOutline, alertCircleOutline } from 'ionicons/icons';
 
 import { AuthService } from '../../core/services/auth.service';
 import { ActivityOption, SubjectsApiService } from '../../core/services/subjects-api.service';
@@ -26,11 +28,13 @@ export class SubjectDictionariesPage implements OnInit {
   activityOptions: ActivityOption[] = [];
 
   constructor(
-    private readonly auth: AuthService,
+    public readonly auth: AuthService,
     private readonly router: Router,
     private readonly subjectsApi: SubjectsApiService,
     private readonly alertController: AlertController,
-  ) {}
+  ) {
+    addIcons({ pencilOutline, trashOutline, alertCircleOutline });
+  }
 
   ngOnInit(): void {
     if (this.auth.role !== 'admin') {
@@ -43,6 +47,10 @@ export class SubjectDictionariesPage implements OnInit {
 
   get userRoleLabel(): string {
     return this.auth.roleLabel;
+  }
+
+  get userDisplayName(): string {
+    return this.auth.displayName;
   }
 
   navigateToList(): void {

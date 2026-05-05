@@ -1,17 +1,25 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
-    <ion-title>Panel administratora</ion-title>
+    <ion-title>Słownik typów zajęć</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
-      <ion-button fill="clear" (click)="navigateToList()">Lista przedmiotow</ion-button>
-      <ion-button fill="clear" (click)="navigateToCreateSubject()">Dodawanie przedmiotu</ion-button>
-      <ion-chip color="medium" outline>
+      <ion-button class="toolbar-nav-btn" fill="clear" (click)="navigateToList()">
+        <ion-icon slot="start" name="arrow-back-outline"></ion-icon>
+        Lista przedmiotów
+      </ion-button>
+      <ion-button class="toolbar-nav-btn" fill="clear" (click)="navigateToCreateSubject()">
+        <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+        Nowy przedmiot
+      </ion-button>
+      <ion-chip class="role-chip" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
-      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
-        <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+      <span class="toolbar-username">{{ userDisplayName }}</span>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0"
+        (click)="toggleProfileMenu($event)">
+        <img [src]="auth.avatarUrl" alt="Avatar" />
       </ion-avatar>
 
       <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
@@ -27,49 +35,52 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="dictionaries-content">
-  <div class="canvas-bg" aria-hidden="true"></div>
+<ion-content class="dict-page-content">
+  <div class="dict-page-wrapper">
 
-  <section class="hero">
-    <p class="eyebrow">Administracja przedmiotami</p>
-    <h1>Slownik typow zajec</h1>
-    <p>
-      Zarzadzaj slownikiem typow zajec niezaleznie od formularza dodawania przedmiotu.
-      Zmiany sa natychmiast dostepne przy tworzeniu i edycji przedmiotow.
-    </p>
-  </section>
+    <!-- Nagłówek strony -->
+    <div class="dict-page-header">
+      <h1 class="dict-page-title">Słownik typów zajęć</h1>
+      <p class="dict-page-subtitle">Zarządzaj typami zajęć używanymi przy tworzeniu przedmiotów.</p>
+    </div>
 
-  <ion-card class="form-shell">
-    <ion-card-content>
-      <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
+    <ion-progress-bar type="indeterminate" *ngIf="isLoading" class="page-loader"></ion-progress-bar>
 
-      <ion-note class="message error" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
-      <ion-note class="message error" *ngIf="dictionaryErrorMessage">{{ dictionaryErrorMessage }}</ion-note>
+    <div class="form-message error-message" *ngIf="errorMessage || dictionaryErrorMessage">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      {{ errorMessage || dictionaryErrorMessage }}
+    </div>
 
-      <section class="dictionary-group" *ngIf="!isLoading">
-        <div class="group-header">
-          <h2>Typy zajec</h2>
-          <ion-button size="small" fill="outline" [disabled]="isUpdatingDictionary" (click)="createActivity()">
+    <div class="dict-grid" *ngIf="!isLoading">
+      <!-- Typy zajęć -->
+      <div class="dict-card">
+        <div class="dict-card-header">
+          <h2 class="dict-heading">Typy zajęć</h2>
+          <ion-button size="small" class="btn-add-dict" [disabled]="isUpdatingDictionary" (click)="createActivity()">
+            <ion-icon slot="start" name="add-outline"></ion-icon>
             Dodaj
           </ion-button>
         </div>
 
-        <ion-list lines="none" class="dictionary-list" *ngIf="activityOptions.length > 0">
-          <ion-item *ngFor="let activity of activityOptions">
-            <ion-label>{{ activity.name }}</ion-label>
-            <ion-buttons slot="end" class="item-actions">
-              <ion-button size="small" fill="clear" [disabled]="isUpdatingDictionary" (click)="editActivity(activity)">
-                Edytuj
-              </ion-button>
-              <ion-button size="small" fill="clear" color="danger" [disabled]="isUpdatingDictionary" (click)="deleteActivity(activity)">
-                Usun
-              </ion-button>
-            </ion-buttons>
-          </ion-item>
-        </ion-list>
+        <div class="dict-list" *ngIf="activityOptions.length > 0">
+          <div class="dict-item" *ngFor="let activity of activityOptions">
+            <span class="dict-item-name">{{ activity.name }}</span>
+            <div class="dict-item-actions">
+              <button class="icon-btn" title="Edytuj" [disabled]="isUpdatingDictionary"
+                (click)="editActivity(activity)">
+                <ion-icon name="pencil-outline"></ion-icon>
+              </button>
+              <button class="icon-btn danger" title="Usuń" [disabled]="isUpdatingDictionary"
+                (click)="deleteActivity(activity)">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </div>
 
-        <p class="empty" *ngIf="activityOptions.length === 0">Brak wpisow.</p>
-      </section>
-    </ion-card-content>
-  </ion-card>
+        <p class="dict-empty" *ngIf="activityOptions.length === 0">Brak wpisów.</p>
+      </div>
+    </div>
+
+  </div>
 </ion-content>

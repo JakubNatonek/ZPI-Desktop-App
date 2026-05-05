@@ -1,17 +1,25 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
     <ion-title>{{ isEditMode ? 'Edycja przedmiotu' : 'Tworzenie przedmiotu' }}</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
-      <ion-button fill="clear" (click)="navigateToList()">Lista przedmiotow</ion-button>
-      <ion-button fill="clear" (click)="navigateToDictionaries()">Slownik typow zajec</ion-button>
-      <ion-chip color="medium" outline>
+      <ion-button class="toolbar-nav-btn" fill="clear" (click)="navigateToList()">
+        <ion-icon slot="start" name="arrow-back-outline"></ion-icon>
+        Lista przedmiotów
+      </ion-button>
+      <ion-button class="toolbar-nav-btn" fill="clear" (click)="navigateToDictionaries()">
+        <ion-icon slot="start" name="library-outline"></ion-icon>
+        Słownik
+      </ion-button>
+      <ion-chip class="role-chip" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
-      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
-        <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+      <span class="toolbar-username">{{ userDisplayName }}</span>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0"
+        (click)="toggleProfileMenu($event)">
+        <img [src]="auth.avatarUrl" alt="Avatar" />
       </ion-avatar>
 
       <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
@@ -27,92 +35,108 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding subject-form-content">
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>{{ isEditMode ? 'Edycja przedmiotu' : 'Nowy przedmiot' }}</ion-card-title>
-      <ion-card-subtitle>
-        {{ isEditMode ? 'Zmien dane i zapisz aktualizacje.' : 'Uzupelnij formularz, aby dodac przedmiot.' }}
-      </ion-card-subtitle>
-    </ion-card-header>
+<ion-content class="form-page-content">
+  <div class="form-page-wrapper">
 
-    <ion-card-content>
-      <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
+    <!-- Nagłówek strony -->
+    <div class="form-page-header">
+      <h1 class="form-page-title">{{ isEditMode ? 'Edycja przedmiotu' : 'Nowy przedmiot' }}</h1>
+      <p class="form-page-subtitle">
+        {{ isEditMode ? 'Zmień dane przedmiotu i zapisz aktualizację.' : 'Uzupełnij formularz, aby dodać nowy
+        przedmiot.' }}
+      </p>
+    </div>
 
-      <form #subjectForm="ngForm" (ngSubmit)="onSubmit(subjectForm)" *ngIf="!isLoading">
-        <ion-list lines="none">
-          <ion-item>
-            <ion-label position="stacked">Nazwa przedmiotu</ion-label>
-            <ion-input
-              name="name"
-              [(ngModel)]="name"
-              required
-              placeholder="Np. Programowanie obiektowe"
-              clearInput="true">
+    <ion-progress-bar type="indeterminate" *ngIf="isLoading" class="page-loader"></ion-progress-bar>
+
+    <div class="form-message error-message" *ngIf="errorMessage">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      {{ errorMessage }}
+    </div>
+
+    <div class="form-message success-message" *ngIf="submitMessage">
+      <ion-icon name="checkmark-circle-outline"></ion-icon>
+      {{ submitMessage }}
+    </div>
+
+    <form #subjectForm="ngForm" (ngSubmit)="onSubmit(subjectForm)" *ngIf="!isLoading">
+      <div class="form-grid">
+
+        <!-- Lewa kolumna: dane podstawowe -->
+        <div class="form-card">
+          <h3 class="section-heading">Dane podstawowe</h3>
+
+          <div class="field-group">
+            <label class="field-label">Nazwa przedmiotu <span class="required-mark">*</span></label>
+            <ion-input class="styled-input" name="name" [(ngModel)]="name" required
+              placeholder="Np. Programowanie obiektowe">
             </ion-input>
-          </ion-item>
+          </div>
 
-          <ion-item>
-            <ion-label position="stacked">Typ zajec</ion-label>
-            <ion-select
-              name="activityId"
-              interface="popover"
-              [(ngModel)]="activityId"
-              required>
+          <div class="field-group">
+            <label class="field-label">Typ zajęć <span class="required-mark">*</span></label>
+            <ion-select class="styled-select" name="activityId" interface="popover" [(ngModel)]="activityId" required
+              placeholder="Wybierz typ zajęć">
               <ion-select-option *ngFor="let activity of activityOptions" [value]="activity.id">
                 {{ activity.name }}
               </ion-select-option>
             </ion-select>
-          </ion-item>
+          </div>
 
-          <ion-item>
-            <ion-label position="stacked">Skrot typu (opcjonalnie)</ion-label>
-            <ion-input
-              name="typeDisplay"
-              [(ngModel)]="typeDisplay"
-              placeholder="Np. W, C, L"
-              clearInput="true">
+          <div class="field-group">
+            <label class="field-label">Skrót typu</label>
+            <p class="field-hint">Opcjonalny skrót wyświetlany w planie, np. W, C, L.</p>
+            <ion-input class="styled-input" name="typeDisplay" [(ngModel)]="typeDisplay" placeholder="Np. W, C, L">
             </ion-input>
-          </ion-item>
+          </div>
 
-          <ion-item>
-            <ion-label position="stacked">Wlasciwosci sali (opcjonalnie)</ion-label>
-            <ion-input
-              name="roomProperties"
-              [(ngModel)]="roomProperties"
-              placeholder="Np. laboratorium"
-              clearInput="true">
+          <div class="field-group">
+            <label class="field-label">Właściwości sali</label>
+            <p class="field-hint">Opcjonalne wymagania dotyczące sali, np. laboratorium.</p>
+            <ion-input class="styled-input" name="roomProperties" [(ngModel)]="roomProperties"
+              placeholder="Np. laboratorium">
             </ion-input>
-          </ion-item>
-
-          <ion-item>
-            <ion-checkbox name="periodic" [(ngModel)]="periodic" slot="start"></ion-checkbox>
-            <ion-label>Zajecia cykliczne</ion-label>
-          </ion-item>
-
-          <ion-item>
-            <ion-checkbox name="blocked" [(ngModel)]="blocked" slot="start"></ion-checkbox>
-            <ion-label>Przedmiot zablokowany</ion-label>
-          </ion-item>
-        </ion-list>
-
-        <div class="form-actions">
-          <ion-button type="submit" color="primary" [disabled]="isSaving">
-            {{ isEditMode ? 'Zapisz zmiany' : 'Dodaj przedmiot' }}
-          </ion-button>
-          <ion-button type="button" fill="outline" color="medium" (click)="resetForm(subjectForm)">
-            Wyczysc formularz
-          </ion-button>
+          </div>
         </div>
-      </form>
 
-      <ion-note color="danger" *ngIf="errorMessage" class="submit-message">
-        {{ errorMessage }}
-      </ion-note>
+        <!-- Prawa kolumna: opcje -->
+        <div class="form-card">
+          <h3 class="section-heading">Opcje przedmiotu</h3>
 
-      <ion-note color="success" *ngIf="submitMessage" class="submit-message">
-        {{ submitMessage }}
-      </ion-note>
-    </ion-card-content>
-  </ion-card>
+          <div class="field-group checkbox-group">
+            <ion-checkbox name="periodic" [(ngModel)]="periodic" class="styled-checkbox"></ion-checkbox>
+            <div class="checkbox-label-wrap">
+              <span class="field-label">Zajęcia cykliczne</span>
+              <p class="field-hint">Przedmiot powtarza się regularnie przez semestr.</p>
+            </div>
+          </div>
+
+          <div class="field-group checkbox-group">
+            <ion-checkbox name="blocked" [(ngModel)]="blocked" class="styled-checkbox"></ion-checkbox>
+            <div class="checkbox-label-wrap">
+              <span class="field-label">Przedmiot zablokowany</span>
+              <p class="field-hint">Zablokowany przedmiot nie pojawi się w planowaniu zajęć.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Akcje formularza -->
+      <div class="form-actions">
+        <ion-button type="submit" class="btn-save" [disabled]="isSaving">
+          <ion-icon slot="start" name="save-outline"></ion-icon>
+          {{ isEditMode ? 'Zapisz zmiany' : 'Dodaj przedmiot' }}
+        </ion-button>
+        <ion-button type="button" fill="outline" (click)="resetForm(subjectForm)" [disabled]="isSaving">
+          <ion-icon slot="start" name="refresh-outline"></ion-icon>
+          Wyczyść
+        </ion-button>
+        <ion-button type="button" fill="clear" class="btn-cancel" (click)="navigateToList()">
+          Anuluj
+        </ion-button>
+      </div>
+    </form>
+
+  </div>
 </ion-content>

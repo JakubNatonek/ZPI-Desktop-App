@@ -16,12 +16,16 @@ export class KonfliktyPage {
   profileMenuEvent?: Event;
 
   constructor(
-    private readonly auth: AuthService,
+    public readonly auth: AuthService,
     private readonly router: Router
-  ) {}
+  ) { }
 
   get userRoleLabel(): string {
     return this.auth.roleLabel;
+  }
+
+  get userDisplayName(): string {
+    return this.auth.displayName;
   }
 
   toggleProfileMenu(event: Event): void {

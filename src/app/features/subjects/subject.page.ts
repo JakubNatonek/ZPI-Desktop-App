@@ -5,6 +5,8 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AlertController, IonicModule } from '@ionic/angular';
 import { finalize, forkJoin } from 'rxjs';
+import { addIcons } from 'ionicons';
+import { alertCircleOutline, checkmarkCircleOutline } from 'ionicons/icons';
 
 import { AuthService } from '../../core/services/auth.service';
 import { ActivityOption, SubjectPayload, SubjectsApiService } from '../../core/services/subjects-api.service';
@@ -39,12 +41,14 @@ export class SubjectPage implements OnInit {
   activityOptions: ActivityOption[] = [];
 
   constructor(
-    private readonly auth: AuthService,
+    public readonly auth: AuthService,
     private readonly router: Router,
     private readonly route: ActivatedRoute,
     private readonly subjectsApi: SubjectsApiService,
     private readonly alertController: AlertController,
-  ) {}
+  ) {
+    addIcons({ alertCircleOutline, checkmarkCircleOutline });
+  }
 
   ngOnInit(): void {
     if (this.auth.role !== 'admin') {
@@ -57,6 +61,10 @@ export class SubjectPage implements OnInit {
 
   get userRoleLabel(): string {
     return this.auth.roleLabel;
+  }
+
+  get userDisplayName(): string {
+    return this.auth.displayName;
   }
 
   onSubmit(form: NgForm): void {

@@ -4,10 +4,13 @@ import {
   inject,
   ElementRef,
   ViewChild,
+  ViewChildren,
+  QueryList,
   AfterViewChecked,
   OnInit,
   OnDestroy,
   ViewEncapsulation,
+  Input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -22,6 +25,7 @@ import {
   ChatUser,
   ChatView,
   MessageApiResponse,
+  OpenChat,
   SearchUserResponse,
 } from './models/chat.models';
 import { ChatApiService } from './services/chat-api.service';
@@ -49,6 +53,8 @@ import { ChatCreateRoomViewComponent } from './components/chat-create-room-view/
 })
 export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   @ViewChild('messagesContainer') messagesContainer!: ElementRef<HTMLDivElement>;
+  @ViewChildren('chatMsgContainer') chatMsgContainers!: QueryList<ElementRef<HTMLDivElement>>;
+  @Input() pageMode = false;
 
   private auth = inject(AuthService);
   private chatApi = inject(ChatApiService);
@@ -62,9 +68,17 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   selectedRoom = signal<ChatRoom | null>(null);
   newRoomMembers = signal<number[]>([]);
 
+  // Multi-tab open chats (page mode only)
+  openChats = signal<OpenChat[]>([]);
+  activeOpenChatId = signal<string | null>(null);
+  pageModeSelectedUser = signal<ChatUser | null>(null);
+  pageModeSelectedRoom = signal<ChatRoom | null>(null);
+
   messageInput = '';
+  messageInputs: Record<string, string> = {};
   newRoomName = '';
   private shouldScrollToBottom = false;
+  private chatScrollPending = new Set<string>();
   private currentUserId: number | null = null;
   private unreadToastTimerId: ReturnType<typeof setTimeout> | null = null;
   private aesKey: CryptoKey | null = null;
@@ -72,6 +86,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   private usersById: Record<number, ChatUser> = {};
   private directConversationIdByUserId: Record<number, number> = {};
   private resolvingUserIds = new Set<number>();
+  private fetchingAvatarIds = new Set<number>();
   private joinedConversationIds = new Set<number>();
   private wsSubscriptions: Subscription[] = [];
 
@@ -169,6 +184,18 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.scrollToBottom();
       this.shouldScrollToBottom = false;
     }
+    // Scroll individual page-mode chat columns
+    if (this.chatScrollPending.size > 0 && this.chatMsgContainers) {
+      const chats = this.openChats();
+      this.chatMsgContainers.toArray().forEach((ref, idx) => {
+        const chat = chats[idx];
+        if (chat && this.chatScrollPending.has(chat.id)) {
+          const el = ref.nativeElement;
+          el.scrollTop = el.scrollHeight;
+          this.chatScrollPending.delete(chat.id);
+        }
+      });
+    }
   }
 
   onSearch(query: string): void {
@@ -216,6 +243,26 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.ensureConversationJoined(conversationId);
       this.fetchConversationMessages(conversationId, 'direct', user.user_id);
     });
+
+    if (this.pageMode) {
+      const chatId = `direct-${user.user_id}`;
+      const chats = this.openChats();
+      const alreadyOpen = chats.find(c => c.id === chatId);
+      if (!alreadyOpen) {
+        const newChat: OpenChat = {
+          id: chatId,
+          type: 'direct',
+          userId: user.user_id,
+          label: `${user.first_name} ${user.last_name}`,
+          initials: this.getInitials(user),
+          avatarUrl: user.avatarUrl,
+        };
+        this.openChats.set(chats.length >= 4 ? [...chats.slice(1), newChat] : [...chats, newChat]);
+      }
+      this.activeOpenChatId.set(chatId);
+      this.pageModeSelectedUser.set(user);
+      this.pageModeSelectedRoom.set(null);
+    }
   }
 
   openRoom(room: ChatRoom): void {
@@ -226,6 +273,25 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     }
     this.ensureConversationJoined(room.id);
     this.fetchConversationMessages(room.id, 'room', room.id);
+
+    if (this.pageMode) {
+      const chatId = `room-${room.id}`;
+      const chats = this.openChats();
+      const alreadyOpen = chats.find(c => c.id === chatId);
+      if (!alreadyOpen) {
+        const newChat: OpenChat = {
+          id: chatId,
+          type: 'room',
+          roomId: room.id,
+          label: room.name,
+          initials: room.name.slice(0, 2).toUpperCase(),
+        };
+        this.openChats.set(chats.length >= 4 ? [...chats.slice(1), newChat] : [...chats, newChat]);
+      }
+      this.activeOpenChatId.set(chatId);
+      this.pageModeSelectedRoom.set(room);
+      this.pageModeSelectedUser.set(null);
+    }
   }
 
   goBack(): void {
@@ -239,6 +305,54 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.view.set('rooms');
       this.newRoomName = '';
       this.newRoomMembers.set([]);
+    }
+  }
+
+  // ── Multi-tab chat management (page mode) ──────────────────
+
+  activateOpenChat(chatId: string): void {
+    this.activeOpenChatId.set(chatId);
+    const chat = this.openChats().find(c => c.id === chatId);
+    if (!chat) return;
+
+    if (chat.type === 'direct' && chat.userId != null) {
+      const user = this.usersById[chat.userId];
+      if (user) {
+        this.pageModeSelectedUser.set(user);
+        this.pageModeSelectedRoom.set(null);
+        this.selectedUser.set(user);
+        this.selectedRoom.set(null);
+        this.view.set('conversation');
+        this.shouldScrollToBottom = true;
+      }
+    } else if (chat.type === 'room' && chat.roomId != null) {
+      const room = this.rooms.find(r => r.id === chat.roomId) ?? null;
+      if (room) {
+        this.pageModeSelectedRoom.set(room);
+        this.pageModeSelectedUser.set(null);
+        this.selectedRoom.set(room);
+        this.selectedUser.set(null);
+        this.view.set('room-chat');
+        this.shouldScrollToBottom = true;
+      }
+    }
+  }
+
+  closeOpenChat(chatId: string): void {
+    const remaining = this.openChats().filter(c => c.id !== chatId);
+    this.openChats.set(remaining);
+
+    if (this.activeOpenChatId() === chatId) {
+      const next = remaining[remaining.length - 1] ?? null;
+      if (next) {
+        this.activateOpenChat(next.id);
+      } else {
+        this.activeOpenChatId.set(null);
+        this.pageModeSelectedUser.set(null);
+        this.pageModeSelectedRoom.set(null);
+        this.selectedUser.set(null);
+        this.selectedRoom.set(null);
+      }
     }
   }
 
@@ -260,6 +374,62 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       if (!room) return;
       this.sendMessageToConversation(room.id, content, 'room', room.id);
     }
+  }
+
+  // ── Per-column send (page mode) ────────────────────────────
+  sendMessageForChat(chatId: string): void {
+    const content = (this.messageInputs[chatId] ?? '').trim();
+    if (!content) return;
+    const chat = this.openChats().find(c => c.id === chatId);
+    if (!chat) return;
+
+    if (chat.type === 'direct' && chat.userId != null) {
+      const userId = chat.userId;
+      this.getOrCreateDirectConversation(userId, (conversationId) => {
+        this.sendMessageToConversation(conversationId, content, 'direct', userId);
+      });
+    } else if (chat.type === 'room' && chat.roomId != null) {
+      this.sendMessageToConversation(chat.roomId, content, 'room', chat.roomId);
+    }
+    this.messageInputs[chatId] = '';
+  }
+
+  handleKeydownForChat(event: KeyboardEvent, chatId: string): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessageForChat(chatId);
+    }
+  }
+
+  onScrollForChat(event: Event, chat: OpenChat): void {
+    const target = event.target as HTMLElement;
+    if (target.scrollTop <= 50) {
+      this.loadMoreMessagesForChat(chat);
+    }
+  }
+
+  private loadMoreMessagesForChat(chat: OpenChat): void {
+    if (this.isLoadingMore) return;
+    if (chat.type === 'direct' && chat.userId != null) {
+      const conversationId = this.directConversationIdByUserId[chat.userId];
+      const messages = this.conversations[chat.userId];
+      if (!conversationId || !messages || messages.length === 0) return;
+      this.isLoadingMore = true;
+      this.fetchConversationMessages(conversationId, 'direct', chat.userId, {
+        markAsRead: false, scrollToBottom: false, beforeId: messages[0].id,
+      });
+    } else if (chat.type === 'room' && chat.roomId != null) {
+      const messages = this.roomMessages[chat.roomId];
+      if (!messages || messages.length === 0) return;
+      this.isLoadingMore = true;
+      this.fetchConversationMessages(chat.roomId, 'room', chat.roomId, {
+        markAsRead: false, scrollToBottom: false, beforeId: messages[0].id,
+      });
+    }
+  }
+
+  triggerScrollForChat(chatId: string): void {
+    this.chatScrollPending.add(chatId);
   }
 
   showCreateRoom(): void {
@@ -618,6 +788,11 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
         }
         if (options?.scrollToBottom ?? true) {
           this.shouldScrollToBottom = true;
+          // Also scroll the matching page-mode column if it's open
+          if (this.pageMode) {
+            const chatId = target === 'direct' ? `direct-${targetId}` : `room-${targetId}`;
+            this.chatScrollPending.add(chatId);
+          }
         }
       });
   }
@@ -631,7 +806,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   private loadMoreMessages(): void {
     if (this.isLoadingMore) return;
-    
+
     let conversationId: number | null = null;
     let targetId: number | null = null;
     let target: 'direct' | 'room' | null = null;
@@ -1183,6 +1358,11 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     this.updateUnreadIndicators();
     this.shouldScrollToBottom = true;
+    // Scroll the page-mode column for this conversation
+    if (this.pageMode) {
+      const chatId = directUserId ? `direct-${Number(directUserId)}` : `room-${conversationId}`;
+      this.chatScrollPending.add(chatId);
+    }
   }
 
   private refreshLastMessageStatus(target: 'direct' | 'room', targetId: number): void {
@@ -1342,6 +1522,30 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     this.conversations = this.updateMessageSenderNames(this.conversations);
     this.roomMessages = this.updateMessageSenderNames(this.roomMessages);
+
+    this.fetchUserAvatars(users);
+  }
+
+  private fetchUserAvatars(users: ChatUser[]): void {
+    users.forEach((user) => {
+      if (user.avatarUrl != null || this.fetchingAvatarIds.has(user.user_id)) return;
+      this.fetchingAvatarIds.add(user.user_id);
+      this.chatApi.getUserAvatarById(user.user_id).pipe(
+        catchError(() => of({ avatar: null }))
+      ).subscribe((res) => {
+        this.fetchingAvatarIds.delete(user.user_id);
+        const stored = this.usersById[user.user_id];
+        if (stored) {
+          stored.avatarUrl = res.avatar || null;
+        }
+        this.directContacts = [...this.directContacts];
+        this.availableUsers = [...this.availableUsers];
+        const sel = this.selectedUser();
+        if (sel && sel.user_id === user.user_id) {
+          this.selectedUser.set({ ...sel, avatarUrl: res.avatar || null });
+        }
+      });
+    });
   }
 
   private getOrBuildUser(userId: number): ChatUser {

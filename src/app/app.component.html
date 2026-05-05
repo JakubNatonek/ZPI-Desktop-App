@@ -10,32 +10,54 @@
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
-      <ion-toolbar *ngIf="auth.isAuthenticated$ | async" class="role-toolbar">
-        <ion-title size="small">Rola: {{ auth.roleLabel }}</ion-title>
+      <ion-toolbar *ngIf="auth.isAuthenticated$ | async" class="role-toolbar user-info-toolbar">
+        <ion-title size="small">
+          <span class="user-display-name">{{ auth.displayName }}</span>
+          <span class="user-role-label">{{ auth.roleLabel }}</span>
+        </ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content>
       <ion-list>
         <ion-item lines="none">
           <ion-label>Tryb ciemny</ion-label>
-          <ion-toggle slot="end" [checked]="selectedTheme === 'dark'" (ionChange)="onThemeChange($event.detail.checked)"></ion-toggle>
+          <ion-toggle slot="end" [checked]="selectedTheme === 'dark'"
+            (ionChange)="onThemeChange($event.detail.checked)"></ion-toggle>
         </ion-item>
       </ion-list>
 
       <ion-list>
-        <ion-item button (click)="navigate('/home')">Wykładowcy</ion-item>
+        <ion-item button (click)="navigate('/home')">Dezyderaty</ion-item>
         <ion-item button *ngIf="auth.role !== 'lecturer'" (click)="navigate('/hermonogram')">Harmonogram</ion-item>
         <ion-item button *ngIf="auth.role !== 'lecturer'" (click)="navigate('/konflikty')">Konflikty</ion-item>
         <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/sale')">Sale</ion-item>
         <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/subjects')">Przedmioty</ion-item>
-        <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/admin/users/new')">Dodaj użytkownika</ion-item>
-        <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/admin/unavailability-notes')">Notatki o niedostępności</ion-item>
+        <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/admin/users/new')">Dodaj
+          użytkownika</ion-item>
+        <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/admin/unavailability-notes')">Notatki o
+          niedostępności</ion-item>
         <ion-item button (click)="navigate('/profile')">Profil</ion-item>
+        <ion-item button (click)="navigate('/chat')">Czat</ion-item>
       </ion-list>
     </ion-content>
   </ion-menu>
 
   <ion-router-outlet id="main-content"></ion-router-outlet>
 
-  <app-chat *ngIf="(auth.isAuthenticated$ | async) && !(auth.isRestoringSession$ | async)"></app-chat>
+  <!-- Global chat FAB – hidden on /chat and /change-password -->
+  <ng-container *ngIf="(auth.isAuthenticated$ | async) && showChatFab">
+    <button class="chat-fab" (click)="goToChat()" title="Przejdź do czatu" aria-label="Czat">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+        <path
+          d="M408 64H104a56.16 56.16 0 00-56 56v192a56.16 56.16 0 0056 56h40v80l93.72-78.14A8 8 0 01242.86 368H408a56.16 56.16 0 0056-56V120a56.16 56.16 0 00-56-56z"
+          fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="32" />
+        <circle cx="160" cy="216" r="28" fill="currentColor" />
+        <circle cx="256" cy="216" r="28" fill="currentColor" />
+        <circle cx="352" cy="216" r="28" fill="currentColor" />
+      </svg>
+      <span *ngIf="unreadChatCount > 0" class="chat-fab__badge">{{ unreadChatCount > 99 ? '99+' : unreadChatCount
+        }}</span>
+    </button>
+  </ng-container>
+
 </ion-app>

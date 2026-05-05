@@ -1,17 +1,42 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { MenuController, AlertController } from '@ionic/angular';
-import { IonApp, IonRouterOutlet, IonMenu, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonButtons, IonButton, IonIcon, IonToggle, IonLabel } from '@ionic/angular/standalone';
+import { IonApp, IonRouterOutlet, IonMenu, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonButtons, IonButton, IonIcon, IonToggle, IonLabel, IonFab, IonFabButton, IonBadge } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
+import { addIcons } from 'ionicons';
+import {
+  chatbubbleEllipsesOutline,
+  mailOutline, lockClosedOutline, eyeOutline, eyeOffOutline,
+  chevronForwardOutline, chevronBackOutline,
+  arrowBackOutline, libraryOutline,
+  alertCircleOutline, alertCircle,
+  checkmarkCircleOutline, checkmarkCircle, checkmarkDoneOutline, checkmark,
+  saveOutline, refreshOutline, refresh,
+  addOutline, addCircleOutline,
+  pencilOutline, createOutline,
+  trashOutline,
+  informationCircleOutline,
+  keyOutline, searchOutline, warningOutline,
+  personAddOutline, peopleOutline,
+  bookOutline, businessOutline,
+  cameraOutline,
+  cloudDownloadOutline, cloudUploadOutline,
+  timeOutline, calendarOutline,
+  swapHorizontalOutline, swapVerticalOutline,
+  medicalOutline, documentOutline,
+  close, closeCircle,
+  menuOutline,
+  chevronUp, chevronDown,
+} from 'ionicons/icons';
 import { AuthService, AppTheme } from './core/services/auth.service';
 import { WebSocketService } from './core/services/websocket.service';
-import { ChatComponent } from './features/chat/chat.component';
 import { NotificationsApiService, NotificationDto } from './core/services/notifications-api.service';
 import { filter, Subscription, interval, distinctUntilChanged } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
+  styleUrl: 'app.component.scss',
   standalone: true,
   imports: [
     IonApp,
@@ -28,16 +53,29 @@ import { filter, Subscription, interval, distinctUntilChanged } from 'rxjs';
     IonIcon,
     IonToggle,
     IonLabel,
+    IonFab,
+    IonFabButton,
+    IonBadge,
     CommonModule,
-    ChatComponent,
   ],
 })
 export class AppComponent implements OnInit, OnDestroy {
   private routerSub!: Subscription;
   private authStateSub?: Subscription;
   private notificationCheckSub?: Subscription;
+  private unreadChatSub?: Subscription;
   private lastNotificationIds: Set<number> = new Set();
   selectedTheme: AppTheme = 'light';
+  unreadChatCount = 0;
+
+  get isChatPage(): boolean {
+    return this.router.url.startsWith('/chat');
+  }
+
+  get showChatFab(): boolean {
+    const url = this.router.url;
+    return !url.startsWith('/chat') && !url.startsWith('/change-password');
+  }
 
   constructor(
     public auth: AuthService,
@@ -46,9 +84,34 @@ export class AppComponent implements OnInit, OnDestroy {
     private notificationsService: NotificationsApiService,
     private alertController: AlertController,
     private websocket: WebSocketService,
-  ) {}
+  ) {
+    addIcons({
+      chatbubbleEllipsesOutline,
+      mailOutline, lockClosedOutline, eyeOutline, eyeOffOutline,
+      chevronForwardOutline, chevronBackOutline,
+      arrowBackOutline, libraryOutline,
+      alertCircleOutline, alertCircle,
+      checkmarkCircleOutline, checkmarkCircle, checkmarkDoneOutline, checkmark,
+      saveOutline, refreshOutline, refresh,
+      addOutline, addCircleOutline,
+      pencilOutline, createOutline,
+      trashOutline,
+      informationCircleOutline,
+      keyOutline, searchOutline, warningOutline,
+      personAddOutline, peopleOutline,
+      bookOutline, businessOutline,
+      cameraOutline,
+      cloudDownloadOutline, cloudUploadOutline,
+      timeOutline, calendarOutline,
+      swapHorizontalOutline, swapVerticalOutline,
+      medicalOutline, documentOutline,
+      close, closeCircle,
+      menuOutline,
+      chevronUp, chevronDown,
+    });
+  }
 
-  
+
   async navigate(path: string) {
     if (this.auth.isLoggedIn && this.auth.mustChangePassword && path !== '/change-password') {
       await this.router.navigate(['/change-password']);
@@ -57,6 +120,11 @@ export class AppComponent implements OnInit, OnDestroy {
     }
     await this.router.navigate([path]);
     await this.menu.close('mainMenu');
+  }
+
+  goToChat() {
+    this.unreadChatCount = 0;
+    this.router.navigateByUrl('/chat');
   }
 
   openMenu() {
@@ -78,8 +146,18 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.routerSub = this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
-    ).subscribe(() => {
+    ).subscribe((event) => {
       this.checkRoute();
+      if ((event as NavigationEnd).urlAfterRedirects.startsWith('/chat')) {
+        this.unreadChatCount = 0;
+      }
+    });
+
+    // Track unread chat messages
+    this.unreadChatSub = this.websocket.messageReceived$.subscribe(() => {
+      if (!this.isChatPage) {
+        this.unreadChatCount++;
+      }
     });
 
     this.authStateSub = this.auth.isAuthenticated$
@@ -120,6 +198,9 @@ export class AppComponent implements OnInit, OnDestroy {
     }
     if (this.notificationCheckSub) {
       this.notificationCheckSub.unsubscribe();
+    }
+    if (this.unreadChatSub) {
+      this.unreadChatSub.unsubscribe();
     }
   }
 

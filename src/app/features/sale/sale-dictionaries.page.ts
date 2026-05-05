@@ -4,6 +4,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AlertController, IonicModule } from '@ionic/angular';
 import { finalize, forkJoin } from 'rxjs';
+import { addIcons } from 'ionicons';
+import { createOutline, trashOutline, alertCircleOutline } from 'ionicons/icons';
 
 import { AuthService } from '../../core/services/auth.service';
 import {
@@ -36,11 +38,13 @@ export class SaleDictionariesPage implements OnInit {
   departmentOptions: RoomDepartmentOption[] = [];
 
   constructor(
-    private readonly auth: AuthService,
+    public readonly auth: AuthService,
     private readonly router: Router,
     private readonly roomsApi: RoomsApiService,
     private readonly alertController: AlertController,
-  ) {}
+  ) {
+    addIcons({ createOutline, trashOutline, alertCircleOutline });
+  }
 
   ngOnInit(): void {
     if (this.auth.role !== 'admin') {
@@ -53,6 +57,10 @@ export class SaleDictionariesPage implements OnInit {
 
   get userRoleLabel(): string {
     return this.auth.roleLabel;
+  }
+
+  get userDisplayName(): string {
+    return this.auth.displayName;
   }
 
   navigateToList(): void {

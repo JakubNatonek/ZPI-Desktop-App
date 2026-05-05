@@ -42,7 +42,7 @@ export class AuthService {
   constructor(
     private readonly http: HttpClient,
     private readonly jwtService: JwtService
-  ) {}
+  ) { }
 
   login(payload: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(this.loginUrl, payload, { withCredentials: true }).pipe(
@@ -83,8 +83,19 @@ export class AuthService {
     return !this.jwtService.isExpired(this.accessToken, 10);
   }
 
+  private _mustChangePassword = false;
+
+  get mustChangePassword(): boolean {
+    return this._mustChangePassword;
+  }
+
+  setMustChangePassword(value: boolean): void {
+    this._mustChangePassword = value;
+  }
+
   clearSession(): void {
     this.accessToken = null;
+    this._mustChangePassword = false;
     this.currentUserSubject.next(null);
   }
 }

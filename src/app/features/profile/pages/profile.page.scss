@@ -2,42 +2,260 @@
   display: block;
 }
 
-.menu-nav-btn {
-  --color: #000000;
-  color: #000000;
-}
-
 ion-toolbar {
-  border-bottom: 1px solid #d1d5db;
+  --background: #1a3a5c;
+  --color: #ffffff;
 }
 
-.user-avatar {
-  width: 32px;
-  height: 32px;
-  border: 1px solid #e5e7eb;
-  cursor: pointer;
+.menu-nav-btn {
+  --color: #ffffff;
+  color: #ffffff;
 }
 
-.profile-layout {
-  display: grid;
-  gap: 12px;
-  max-width: 720px;
+.role-chip {
+  --color: #ffffff;
+  --border-color: rgba(255, 255, 255, 0.45);
+  color: #ffffff;
 }
 
+.toolbar-username {
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 0 6px;
+  white-space: nowrap;
+}
+
+/* ── Page layout ── */
+.profile-page-content {
+  --background: #f4f6fb;
+}
+
+.profile-page-wrapper {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 24px 48px;
+}
+
+.profile-page-header {
+  margin-bottom: 24px;
+}
+
+.profile-page-title {
+  margin: 0 0 6px;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: #1a3a5c;
+}
+
+.profile-page-subtitle {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+/* ── Cards ── */
+.profile-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.profile-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid rgba(26, 58, 92, 0.1);
+  box-shadow: 0 2px 10px rgba(26, 58, 92, 0.06);
+  padding: 20px 22px 24px;
+}
+
+.section-heading {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1a3a5c;
+  margin: 0 0 18px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(26, 58, 92, 0.15);
+}
+
+/* ── Avatar section ── */
 .avatar-section {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 20px;
 }
 
 .avatar-large {
-  width: 72px;
-  height: 72px;
-  border: 1px solid #e2e8f0;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border: 2px solid rgba(26, 58, 92, 0.12);
+  border-radius: 50%;
+}
+
+.avatar-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-avatar {
+  --border-color: #1a3a5c;
+  --color: #1a3a5c;
+  width: fit-content;
+}
+
+.avatar-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+/* ── Form fields ── */
+.field-group {
+  margin-bottom: 16px;
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+}
+
+.field-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.styled-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  background: #f9fafb;
+  --background: #f9fafb;
+  color: #1f2937;
+  --color: #1f2937;
+  --placeholder-color: #9ca3af;
+  min-height: 40px;
+  font-size: 0.9rem;
+  transition: border-color 0.15s;
 }
 
 .password-message {
-  margin: 10px 0 0;
+  margin: 12px 0 0;
   font-size: 0.86rem;
   color: #0f766e;
+  font-weight: 500;
+}
+
+.form-actions {
+  margin-top: 18px;
+}
+
+.btn-save {
+  --background: #1a3a5c;
+  --background-activated: #122946;
+  --background-hover: #122946;
+  --color: #ffffff;
+}
+
+/* ── Theme toggle row ── */
+.theme-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.theme-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.theme-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.theme-desc {
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+/* ── Dark mode ── */
+:host-context(html.ion-palette-dark) {
+  .profile-page-content {
+    --background: #0c1524;
+  }
+
+  .profile-page-title {
+    color: #e8edf4;
+  }
+
+  .profile-page-subtitle {
+    color: #94a3b8;
+  }
+
+  .profile-card {
+    background: #162336;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .section-heading {
+    color: #d4a843;
+    border-bottom-color: rgba(212, 168, 67, 0.25);
+  }
+
+  .avatar-large {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .avatar-hint {
+    color: #64748b;
+  }
+
+  .btn-avatar {
+    --border-color: rgba(212, 168, 67, 0.5);
+    --color: #d4a843;
+  }
+
+  .field-label {
+    color: #e8edf4;
+  }
+
+  .styled-input {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: #1a2c42;
+    --background: #1a2c42;
+    color: #e8edf4;
+    --color: #e8edf4;
+    --placeholder-color: #64748b;
+  }
+
+  .password-message {
+    color: #6ee7b7;
+  }
+
+  .theme-label {
+    color: #e8edf4;
+  }
+
+  .theme-desc {
+    color: #64748b;
+  }
+
+  ion-toggle {
+    --track-background: #374151;
+    --track-background-checked: #1a3a5c;
+    --handle-background: #9ca3af;
+    --handle-background-checked: #ffffff;
+  }
 }

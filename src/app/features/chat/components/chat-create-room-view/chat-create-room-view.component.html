@@ -1,38 +1,30 @@
 <div class="chat-panel__body chat-panel__body--form">
   <div class="chat-form">
     <label class="chat-form__label">Nazwa pokoju</label>
-    <input
-      class="chat-form__input"
-      type="text"
-      [ngModel]="newRoomName"
-      (ngModelChange)="newRoomNameChange.emit($event)"
-      placeholder="np. Organizacja zajęć"
-      maxlength="50"
-    />
+    <input class="chat-form__input" type="text" [ngModel]="newRoomName" (ngModelChange)="newRoomNameChange.emit($event)"
+      placeholder="np. Organizacja zajęć" maxlength="50" />
 
     <label class="chat-form__label" style="margin-top: 16px;">Dodaj uczestników</label>
     <div class="chat-member-list">
-      <div
-        class="chat-member-item"
-        *ngFor="let user of availableUsers"
-        [class.selected]="isMemberSelected(user.user_id)"
-        (click)="toggleRoomMember.emit(user.user_id)"
-      >
-        <div class="chat-avatar chat-avatar--sm">{{ getInitials(user) }}</div>
+      <div class="chat-member-item" *ngFor="let user of availableUsers"
+        [class.selected]="isMemberSelected(user.user_id)" (click)="toggleRoomMember.emit(user.user_id)">
+        <div class="chat-avatar chat-avatar--sm" [class.chat-avatar--img]="user.avatarUrl">
+          <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" alt="Avatar"
+            style="width:100%;height:100%;object-fit:cover;border-radius:50%" />
+          <span *ngIf="!user.avatarUrl">{{ getInitials(user) }}</span>
+        </div>
         <div class="chat-member-item__name">{{ user.first_name }} {{ user.last_name }}</div>
         <div class="chat-member-item__check">
-          <svg *ngIf="isMemberSelected(user.user_id)" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+          <svg *ngIf="isMemberSelected(user.user_id)" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+            fill="currentColor">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
           </svg>
         </div>
       </div>
     </div>
 
-    <button
-      class="chat-submit-btn"
-      (click)="createRoom.emit()"
-      [disabled]="!newRoomName.trim() || newRoomMembers.length === 0"
-    >
+    <button class="chat-submit-btn" (click)="createRoom.emit()"
+      [disabled]="!newRoomName.trim() || newRoomMembers.length === 0">
       Utwórz pokój
     </button>
   </div>

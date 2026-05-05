@@ -62,7 +62,7 @@ export class HermonogramPage implements OnInit {
   importedRaplyFiles: RaplyImportedFileInfo[] = [];
   raplyImportMessage = '';
 
-  constructor(private auth: AuthService, private router: Router) {
+  constructor(public auth: AuthService, private router: Router) {
     addIcons({ chevronBackOutline, chevronForwardOutline });
   }
 
@@ -72,6 +72,10 @@ export class HermonogramPage implements OnInit {
 
   get userRoleLabel(): string {
     return this.auth.roleLabel;
+  }
+
+  get userDisplayName(): string {
+    return this.auth.displayName;
   }
 
   get activePlan(): ImportedPlanEntry | null {

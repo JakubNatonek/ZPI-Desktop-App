@@ -1,47 +1,61 @@
 ﻿<ion-content class="login-view">
-  <div class="page-container">
+  <div class="login-layout">
 
-    <div class="page-header">
-      <h1>Projekt Harmonogramu</h1>
-      <p class="subtitle">Zaloguj się do swojego konta</p>
+    <!-- Panel lewy – branding -->
+    <div class="brand-panel">
+      <div class="brand-content">
+        <img class="brand-logo" src="assets/icon/logo-ans.png" alt="Logo ANS" />
+        <h1 class="brand-title">System Zarządzania&nbsp;Uczelnią</h1>
+        <p class="brand-tagline">ANS Nowy Sącz</p>
+        <div class="brand-divider"></div>
+        <p class="brand-desc">
+          Platforma wspierająca zarządzanie harmonogramami,<br>
+          wykazami ocen i komunikacją akademicką.
+        </p>
+      </div>
+      <p class="brand-footer">© 2026 ANS Nowy Sącz</p>
     </div>
 
-    <div class="card-wrapper">
-      <ion-card>
-        <ion-card-content>
-          <label class="field-label" for="email">Email</label>
+    <!-- Panel prawy – formularz -->
+    <div class="form-panel">
+      <div class="form-wrapper">
+        <h2 class="form-title">Logowanie</h2>
+        <p class="form-subtitle">Wprowadź dane swojego konta</p>
+
+        <div class="field-group">
+          <label class="field-label" for="loginInput">Login</label>
           <div class="input-shell">
             <ion-icon name="mail-outline"></ion-icon>
-            <ion-input id="email" type="email" placeholder="mail@gmail.com" [(ngModel)]="email" required></ion-input>
+            <ion-input id="loginInput" type="text" placeholder="login" [(ngModel)]="login" (keyup.enter)="submit()"
+              required>
+            </ion-input>
           </div>
+        </div>
 
-          <label class="field-label" for="password">Hasło</label>
+        <div class="field-group">
+          <label class="field-label" for="passwordInput">Hasło</label>
           <div class="input-shell">
             <ion-icon name="lock-closed-outline"></ion-icon>
-            <ion-input id="password" type="password" placeholder="********" [(ngModel)]="password" required></ion-input>
+            <ion-input id="passwordInput" [type]="showPassword ? 'text' : 'password'" placeholder="••••••••"
+              [(ngModel)]="password" (keyup.enter)="submit()" required>
+            </ion-input>
+            <button type="button" class="toggle-password" (click)="togglePassword()" tabindex="-1">
+              <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </button>
           </div>
+        </div>
 
-          <ion-button expand="block" class="ion-margin-top" (click)="login()">Zaloguj się</ion-button>
-          <div *ngIf="error" class="error-message ion-text-center ion-margin-top">
-            {{ error }}
-          </div>
+        <div *ngIf="error" class="error-message">
+          <ion-icon name="mail-outline" style="display:none"></ion-icon>
+          {{ error }}
+        </div>
 
-          <div class="demo-credentials ion-margin-top" tabindex="0">
-            <strong>Dane logowania:</strong>
-            <div class="account-list">
-              <button type="button" class="account-item" *ngFor="let account of demoAccounts"
-                (click)="fillDemo(account.email, account.password)">
-                <span class="account-role">{{ account.displayName }}</span>
-                <span>{{ account.email }} / {{ account.password }}</span>
-              </button>
-            </div>
-          </div>
-        </ion-card-content>
-      </ion-card>
+        <ion-button expand="block" class="submit-btn" [disabled]="isLoading" (click)="submit()">
+          <span *ngIf="!isLoading">Zaloguj się</span>
+          <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
+        </ion-button>
+      </div>
     </div>
-  </div>
-  <div class="login-footer">
-    <p>Projekt realizowany w ramach przedsięwzięcia inżynierskiego</p>
-    <p>© 2026 ANS Nowy Sącz.</p>
+
   </div>
 </ion-content>

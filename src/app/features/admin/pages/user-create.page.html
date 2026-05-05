@@ -1,15 +1,17 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
-    <ion-title>Panel administratora</ion-title>
+    <ion-title>Zarządzanie użytkownikami</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
-      <ion-chip color="medium" outline>
+      <ion-chip class="role-chip" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
-      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
-        <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+      <span class="toolbar-username">{{ userDisplayName }}</span>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0"
+        (click)="toggleProfileMenu($event)">
+        <img [src]="auth.avatarUrl" alt="Avatar" />
       </ion-avatar>
 
       <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
@@ -25,184 +27,268 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="user-create-content">
-  <div class="canvas-bg" aria-hidden="true"></div>
+<ion-content class="admin-page-content">
+  <div class="admin-page-wrapper">
 
-  <section class="hero">
-    <p class="eyebrow">Administracja użytkownikami</p>
-    <h1>Dodaj nowego użytkownika</h1>
-    <p>
-      Wprowadź dane konta. Użytkownik zaloguje się hasłem jednorazowym i przy pierwszym logowaniu
-      zostanie zmuszony do ustawienia własnego hasła.
-    </p>
-  </section>
+    <!-- Sekcja: Dodaj użytkownika -->
+    <div class="page-header">
+      <div class="page-header-text">
+        <h1 class="page-title">Dodaj nowego użytkownika</h1>
+        <p class="page-subtitle">
+          Użytkownik zaloguje się hasłem jednorazowym i przy pierwszym logowaniu zostanie poproszony o zmianę hasła.
+        </p>
+      </div>
+    </div>
 
-  <ion-card class="form-shell">
-    <ion-card-content>
-      <ion-progress-bar type="indeterminate" *ngIf="isLoadingOptions"></ion-progress-bar>
+    <ion-progress-bar type="indeterminate" *ngIf="isLoadingOptions" class="page-loader"></ion-progress-bar>
 
-      <form [formGroup]="form" (ngSubmit)="submit()" *ngIf="!isLoadingOptions">
-        <div class="grid">
-          <ion-item>
-            <ion-label position="stacked">Imię</ion-label>
-            <ion-input formControlName="firstName" placeholder="Np. Jan"></ion-input>
-          </ion-item>
+    <div class="form-message error-message" *ngIf="errorMessage">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      {{ errorMessage }}
+    </div>
 
-          <ion-item>
-            <ion-label position="stacked">Nazwisko</ion-label>
-            <ion-input formControlName="lastName" placeholder="Np. Kowalski"></ion-input>
-          </ion-item>
+    <div class="form-message success-message" *ngIf="successMessage">
+      <ion-icon name="checkmark-circle-outline"></ion-icon>
+      {{ successMessage }}
+    </div>
 
-          <ion-item>
-            <ion-label position="stacked">Email</ion-label>
-            <ion-input type="email" formControlName="email" placeholder="Np. jan.kowalski@ans.local"></ion-input>
-          </ion-item>
+    <form [formGroup]="form" (ngSubmit)="submit()" *ngIf="!isLoadingOptions">
+      <div class="form-grid">
 
-          <ion-item>
-            <ion-label position="stacked">Wydziały (department)</ion-label>
-            <ion-select
-              formControlName="departmentIds"
-              interface="alert"
-              [multiple]="true"
-              placeholder="Wybierz wydziały">
-              <ion-select-option *ngFor="let department of departments" [value]="department.id">
-                {{ department.name }}
-              </ion-select-option>
-            </ion-select>
-          </ion-item>
+        <!-- Lewa kolumna: dane osobowe i kontaktowe -->
+        <div class="form-card">
+          <h3 class="section-heading">Dane użytkownika</h3>
 
-          <ion-item>
-            <ion-label position="stacked">Role</ion-label>
-            <ion-select
-              formControlName="roleIds"
-              interface="alert"
-              [multiple]="true"
-              placeholder="Wybierz role">
-              <ion-select-option *ngFor="let role of roles" [value]="role.id">
-                {{ role.name }}
-              </ion-select-option>
-            </ion-select>
-          </ion-item>
+          <div class="field-group">
+            <label class="field-label">Imię <span class="required-mark">*</span></label>
+            <ion-input class="styled-input" formControlName="firstName" placeholder="Np. Jan"></ion-input>
+            <div class="field-errors" *ngIf="form.controls.firstName.invalid && form.controls.firstName.touched">
+              <span *ngIf="form.controls.firstName.errors?.['required']">Imię jest wymagane.</span>
+              <span *ngIf="form.controls.firstName.errors?.['minlength']">Imię musi mieć minimum 2 znaki.</span>
+              <span *ngIf="form.controls.firstName.errors?.['maxlength']">Imię może mieć maksymalnie 100 znaków.</span>
+              <span *ngIf="form.controls.firstName.errors?.['nameInvalid']">Imię może zawierać tylko litery (w tym
+                polskie znaki), spację i myślnik.</span>
+            </div>
+          </div>
 
-          <ion-item>
-            <ion-label position="stacked">Tytuły naukowe (opcjonalnie)</ion-label>
-            <ion-select
-              formControlName="titleId"
-              interface="popover"
-              placeholder="Wybierz tytuł naukowy">
+          <div class="field-group">
+            <label class="field-label">Nazwisko <span class="required-mark">*</span></label>
+            <ion-input class="styled-input" formControlName="lastName" placeholder="Np. Kowalski"></ion-input>
+            <div class="field-errors" *ngIf="form.controls.lastName.invalid && form.controls.lastName.touched">
+              <span *ngIf="form.controls.lastName.errors?.['required']">Nazwisko jest wymagane.</span>
+              <span *ngIf="form.controls.lastName.errors?.['minlength']">Nazwisko musi mieć minimum 2 znaki.</span>
+              <span *ngIf="form.controls.lastName.errors?.['maxlength']">Nazwisko może mieć maksymalnie 100
+                znaków.</span>
+              <span *ngIf="form.controls.lastName.errors?.['nameInvalid']">Nazwisko może zawierać tylko litery (w tym
+                polskie znaki), spację i myślnik.</span>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Email <span class="required-mark">*</span></label>
+            <ion-input class="styled-input" type="email" formControlName="email"
+              placeholder="Np. jan.kowalski@ans.local"></ion-input>
+            <div class="field-errors" *ngIf="form.controls.email.invalid && form.controls.email.touched">
+              <span *ngIf="form.controls.email.errors?.['required']">Adres e-mail jest wymagany.</span>
+              <span *ngIf="form.controls.email.errors?.['email']">Podaj prawidłowy adres e-mail (np.
+                jan@domena.pl).</span>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Tytuł naukowy</label>
+            <ion-select class="styled-select" formControlName="titleId" interface="popover"
+              placeholder="Wybierz tytuł (opcjonalnie)">
               <ion-select-option [value]="null">Brak</ion-select-option>
               <ion-select-option *ngFor="let title of titles" [value]="title.id">
                 {{ title.name }}
               </ion-select-option>
             </ion-select>
-          </ion-item>
+          </div>
         </div>
 
-        <ion-note class="message" color="medium">
-          Login i numer albumu są generowane automatycznie po utworzeniu użytkownika.
-        </ion-note>
+        <!-- Prawa kolumna: uprawnienia i hasło -->
+        <div class="form-card">
+          <h3 class="section-heading">Uprawnienia i dostęp</h3>
 
-        <div class="password-block">
-          <ion-item>
-            <ion-label position="stacked">Hasło jednorazowe</ion-label>
-            <ion-input type="text" formControlName="oneTimePassword" placeholder="Minimum 8 znaków"></ion-input>
-          </ion-item>
-          <ion-button type="button" fill="outline" color="dark" (click)="generateOneTimePassword()">
-            Wygeneruj hasło
-          </ion-button>
+          <div class="field-group">
+            <label class="field-label">Wydziały <span class="required-mark">*</span></label>
+            <ion-select class="styled-select" formControlName="departmentIds" interface="alert" [multiple]="true"
+              placeholder="Wybierz wydziały">
+              <ion-select-option *ngFor="let department of departments" [value]="department.id">
+                {{ department.name }}
+              </ion-select-option>
+            </ion-select>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Role <span class="required-mark">*</span></label>
+            <ion-select class="styled-select" formControlName="roleIds" interface="alert" [multiple]="true"
+              placeholder="Wybierz role">
+              <ion-select-option *ngFor="let role of roles" [value]="role.id">
+                {{ role.name }}
+              </ion-select-option>
+            </ion-select>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Hasło jednorazowe <span class="required-mark">*</span></label>
+            <p class="field-hint">Użytkownik będzie zobowiązany do zmiany hasła przy pierwszym logowaniu.</p>
+            <div class="password-row">
+              <ion-input class="styled-input" type="text" formControlName="oneTimePassword"
+                placeholder="Minimum 8 znaków"></ion-input>
+              <ion-button type="button" fill="outline" class="btn-generate" (click)="generateOneTimePassword()">
+                <ion-icon slot="start" name="refresh-outline"></ion-icon>
+                Generuj
+              </ion-button>
+            </div>
+            <div class="field-errors"
+              *ngIf="form.controls.oneTimePassword.invalid && form.controls.oneTimePassword.touched">
+              <span *ngIf="form.controls.oneTimePassword.errors?.['required']">Hasło jednorazowe jest wymagane.</span>
+              <span *ngIf="form.controls.oneTimePassword.errors?.['minlength']">Hasło jednorazowe musi mieć minimum 8
+                znaków.</span>
+            </div>
+          </div>
+
+          <p class="info-note">
+            <ion-icon name="information-circle-outline"></ion-icon>
+            Login i numer albumu są generowane automatycznie po utworzeniu konta.
+          </p>
         </div>
 
-        <div class="actions">
-          <ion-button type="submit" [disabled]="isSaving" color="primary">
-            {{ isSaving ? 'Tworzenie...' : 'Utwórz użytkownika' }}
-          </ion-button>
-          <ion-button type="button" fill="clear" color="medium" (click)="resetForm()">Wyczyść</ion-button>
-        </div>
-      </form>
-
-      <ion-note class="message error" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
-      <ion-note class="message success" *ngIf="successMessage">{{ successMessage }}</ion-note>
-
-      <section class="credentials" *ngIf="createdCredentials">
-        <h2>Dane logowania do przekazania</h2>
-        <p><strong>Login:</strong> {{ createdCredentials.login }}</p>
-        <p><strong>Hasło jednorazowe:</strong> {{ createdCredentials.one_time_password }}</p>
-      </section>
-    </ion-card-content>
-  </ion-card>
-
-  <ion-card class="form-shell users-shell">
-    <ion-card-header>
-      <ion-card-title>Panel zarządzania użytkowniami</ion-card-title>
-      <ion-card-subtitle>Zarządzaj kontami: edycja, reset hasła jednorazowego, usuwanie</ion-card-subtitle>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-progress-bar type="indeterminate" *ngIf="isLoadingUsers"></ion-progress-bar>
-
-      <div class="table-toolbar" *ngIf="!isLoadingUsers">
-        <ion-item class="search-item">
-          <ion-label position="stacked">Wyszukiwanie</ion-label>
-          <ion-input
-            [value]="searchQuery"
-            (ionInput)="onSearchChange($any($event.target).value)"
-            placeholder="Szukaj po imieniu, nazwisku, loginie, email, roli lub wydziale">
-          </ion-input>
-        </ion-item>
-
-        <ion-item class="page-size-item">
-          <ion-label>Ilość</ion-label>
-          <ion-select [value]="pageSize" interface="popover" (ionChange)="onPageSizeChange($event.detail.value)">
-            <ion-select-option *ngFor="let option of pageSizeOptions" [value]="option">
-              {{ option }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
       </div>
 
-      <ion-list *ngIf="!isLoadingUsers && filteredUsers.length > 0">
-        <ion-item *ngFor="let user of paginatedUsers">
-          <ion-label>
-            <h2>{{ getUserDisplayName(user) }}</h2>
-            <p>Login: {{ user.login }} | Email: {{ user.email }}</p>
-            <p>Rola: {{ user.roles.join(', ') }} | Wydział: {{ user.departments.join(', ') }}</p>
-            <p *ngIf="user.must_change_password" class="must-change">Wymagana zmiana hasła</p>
-          </ion-label>
+      <!-- Akcje formularza -->
+      <div class="form-actions">
+        <ion-button type="submit" class="btn-save" [disabled]="isSaving">
+          <ion-icon slot="start" name="person-add-outline"></ion-icon>
+          {{ isSaving ? 'Tworzenie...' : 'Utwórz użytkownika' }}
+        </ion-button>
+        <ion-button type="button" fill="outline" (click)="resetForm()">
+          <ion-icon slot="start" name="refresh-outline"></ion-icon>
+          Wyczyść
+        </ion-button>
+      </div>
+    </form>
 
-          <ion-buttons slot="end" class="user-actions">
-            <ion-button fill="outline" color="primary" (click)="openEditModal(user)">Edytuj</ion-button>
-            <ion-button fill="outline" color="warning" (click)="openResetPasswordModal(user)">
-              Hasło jednorazowe
-            </ion-button>
-            <ion-button fill="clear" color="danger" (click)="confirmDeleteUser(user)">Usuń</ion-button>
-          </ion-buttons>
-        </ion-item>
-      </ion-list>
+    <!-- Panel powitalny: dane do przekazania -->
+    <div class="credentials-panel" *ngIf="createdCredentials">
+      <div class="credentials-header">
+        <ion-icon name="key-outline"></ion-icon>
+        <h3>Dane logowania do przekazania użytkownikowi</h3>
+      </div>
+      <div class="credentials-grid">
+        <div class="credential-row">
+          <span class="credential-label">Login:</span>
+          <span class="credential-value">{{ createdCredentials.login }}</span>
+        </div>
+        <div class="credential-row">
+          <span class="credential-label">Hasło jednorazowe:</span>
+          <span class="credential-value">{{ createdCredentials.one_time_password }}</span>
+        </div>
+      </div>
+    </div>
 
-      <div class="pagination-row" *ngIf="!isLoadingUsers && filteredUsers.length > 0">
-        <p class="pagination-summary">{{ pageRangeLabel }}</p>
-        <div class="pagination-actions">
-          <ion-button fill="outline" size="small" (click)="goToPreviousPage()" [disabled]="currentPage <= 1">
-            Poprzednia
+    <!-- Sekcja: Lista użytkowników -->
+    <div class="section-divider">
+      <h2 class="section-title">Panel zarządzania użytkownikami</h2>
+      <p class="page-subtitle">Edytuj konta, resetuj hasła jednorazowe lub usuń użytkowników.</p>
+    </div>
+
+    <ion-progress-bar type="indeterminate" *ngIf="isLoadingUsers" class="page-loader"></ion-progress-bar>
+
+    <div class="table-toolbar" *ngIf="!isLoadingUsers">
+      <div class="search-field">
+        <ion-icon name="search-outline" class="search-icon"></ion-icon>
+        <ion-input class="styled-input search-input" [value]="searchQuery"
+          (ionInput)="onSearchChange($any($event.target).value)"
+          placeholder="Szukaj po imieniu, nazwisku, loginie, email, roli lub wydziale">
+        </ion-input>
+      </div>
+      <ion-select class="styled-select page-size-select" [value]="pageSize" interface="popover"
+        (ionChange)="onPageSizeChange($event.detail.value)">
+        <ion-select-option *ngFor="let option of pageSizeOptions" [value]="option">
+          {{ option }} / stronę
+        </ion-select-option>
+      </ion-select>
+    </div>
+
+    <!-- Tabela użytkowników -->
+    <div class="users-grid" *ngIf="!isLoadingUsers && filteredUsers.length > 0">
+      <div class="user-card" *ngFor="let user of paginatedUsers">
+        <div class="user-card-main">
+          <span class="user-name">{{ getUserDisplayName(user) }}</span>
+          <span class="user-role-badge" *ngIf="user.roles.length > 0">{{ user.roles[0] }}</span>
+          <span class="user-must-change" *ngIf="user.must_change_password">
+            <ion-icon name="warning-outline"></ion-icon>
+            Zmiana hasła
+          </span>
+        </div>
+        <div class="user-card-details">
+          <div class="user-detail">
+            <span class="detail-label">Login:</span>
+            <span class="detail-value">{{ user.login }}</span>
+          </div>
+          <div class="user-detail">
+            <span class="detail-label">Email:</span>
+            <span class="detail-value">{{ user.email }}</span>
+          </div>
+          <div class="user-detail" *ngIf="user.departments.length > 0">
+            <span class="detail-label">Wydział:</span>
+            <span class="detail-value">{{ user.departments.join(', ') }}</span>
+          </div>
+          <div class="user-detail" *ngIf="user.roles.length > 1">
+            <span class="detail-label">Role:</span>
+            <span class="detail-value">{{ user.roles.join(', ') }}</span>
+          </div>
+        </div>
+        <div class="user-card-actions">
+          <ion-button fill="outline" size="small" class="btn-edit" (click)="openEditModal(user)">
+            <ion-icon slot="start" name="pencil-outline"></ion-icon>
+            Edytuj
           </ion-button>
-          <ion-chip color="medium" outline>
-            <ion-label>Strona {{ currentPage }} / {{ totalPages }}</ion-label>
-          </ion-chip>
-          <ion-button fill="outline" size="small" (click)="goToNextPage()" [disabled]="currentPage >= totalPages">
-            Następna
+          <ion-button fill="outline" size="small" class="btn-reset-pass" (click)="openResetPasswordModal(user)">
+            <ion-icon slot="start" name="key-outline"></ion-icon>
+            Hasło
+          </ion-button>
+          <ion-button fill="clear" size="small" class="btn-delete" (click)="confirmDeleteUser(user)">
+            <ion-icon slot="start" name="trash-outline"></ion-icon>
+            Usuń
           </ion-button>
         </div>
       </div>
+    </div>
 
-      <p class="empty-state" *ngIf="!isLoadingUsers && filteredUsers.length === 0">
-        Brak użytkowników do wyświetlenia.
-      </p>
-    </ion-card-content>
-  </ion-card>
+    <!-- Paginacja -->
+    <div class="pagination-row" *ngIf="!isLoadingUsers && filteredUsers.length > 0">
+      <p class="pagination-summary">{{ pageRangeLabel }}</p>
+      <div class="pagination-actions">
+        <ion-button fill="outline" size="small" class="btn-page" (click)="goToPreviousPage()"
+          [disabled]="currentPage <= 1">
+          <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
+          Poprzednia
+        </ion-button>
+        <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
+        <ion-button fill="outline" size="small" class="btn-page" (click)="goToNextPage()"
+          [disabled]="currentPage >= totalPages">
+          Następna
+          <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="!isLoadingUsers && filteredUsers.length === 0">
+      <ion-icon class="empty-icon" name="people-outline"></ion-icon>
+      <h3>Brak użytkowników</h3>
+      <p>Nie znaleziono użytkowników pasujących do filtrów.</p>
+    </div>
+
+  </div>
 
   <ion-modal [isOpen]="isEditModalOpen" (didDismiss)="closeEditModal()">
     <ng-template>
-      <ion-header>
-        <ion-toolbar>
+      <ion-header class="ion-no-border">
+        <ion-toolbar class="modal-toolbar">
           <ion-title>Edycja użytkownika</ion-title>
           <ion-buttons slot="end">
             <ion-button (click)="closeEditModal()">Zamknij</ion-button>
@@ -212,48 +298,71 @@
 
       <ion-content class="ion-padding modal-content">
         <form [formGroup]="editForm" (ngSubmit)="saveUserEdit()">
-          <div class="grid">
-            <ion-item>
-              <ion-label position="stacked">Imię</ion-label>
-              <ion-input formControlName="firstName"></ion-input>
-            </ion-item>
+          <div class="modal-form-grid">
+            <div class="field-group">
+              <label class="field-label">Imię <span class="required-mark">*</span></label>
+              <ion-input class="styled-input" formControlName="firstName"></ion-input>
+              <div class="field-errors"
+                *ngIf="editForm.controls.firstName.invalid && editForm.controls.firstName.touched">
+                <span *ngIf="editForm.controls.firstName.errors?.['required']">Imię jest wymagane.</span>
+                <span *ngIf="editForm.controls.firstName.errors?.['minlength']">Imię musi mieć minimum 2 znaki.</span>
+                <span *ngIf="editForm.controls.firstName.errors?.['nameInvalid']">Imię może zawierać tylko litery (w tym
+                  polskie znaki), spację i myślnik.</span>
+              </div>
+            </div>
 
-            <ion-item>
-              <ion-label position="stacked">Nazwisko</ion-label>
-              <ion-input formControlName="lastName"></ion-input>
-            </ion-item>
+            <div class="field-group">
+              <label class="field-label">Nazwisko <span class="required-mark">*</span></label>
+              <ion-input class="styled-input" formControlName="lastName"></ion-input>
+              <div class="field-errors"
+                *ngIf="editForm.controls.lastName.invalid && editForm.controls.lastName.touched">
+                <span *ngIf="editForm.controls.lastName.errors?.['required']">Nazwisko jest wymagane.</span>
+                <span *ngIf="editForm.controls.lastName.errors?.['minlength']">Nazwisko musi mieć minimum 2
+                  znaki.</span>
+                <span *ngIf="editForm.controls.lastName.errors?.['nameInvalid']">Nazwisko może zawierać tylko litery (w
+                  tym polskie znaki), spację i myślnik.</span>
+              </div>
+            </div>
 
-            <ion-item>
-              <ion-label position="stacked">Login</ion-label>
-              <ion-input formControlName="login"></ion-input>
-            </ion-item>
+            <div class="field-group">
+              <label class="field-label">Login</label>
+              <ion-input class="styled-input" formControlName="login"></ion-input>
+            </div>
 
-            <ion-item>
-              <ion-label position="stacked">Email</ion-label>
-              <ion-input formControlName="email" type="email"></ion-input>
-            </ion-item>
+            <div class="field-group">
+              <label class="field-label">Email <span class="required-mark">*</span></label>
+              <ion-input class="styled-input" formControlName="email" type="email"></ion-input>
+              <div class="field-errors" *ngIf="editForm.controls.email.invalid && editForm.controls.email.touched">
+                <span *ngIf="editForm.controls.email.errors?.['required']">Adres e-mail jest wymagany.</span>
+                <span *ngIf="editForm.controls.email.errors?.['email']">Podaj prawidłowy adres e-mail (np.
+                  jan@domena.pl).</span>
+              </div>
+            </div>
 
-            <ion-item>
-              <ion-label position="stacked">Wydziały</ion-label>
-              <ion-select formControlName="departmentIds" interface="alert" [multiple]="true">
+            <div class="field-group">
+              <label class="field-label">Wydziały</label>
+              <ion-select class="styled-select" formControlName="departmentIds" interface="alert" [multiple]="true">
                 <ion-select-option *ngFor="let department of departments" [value]="department.id">
                   {{ department.name }}
                 </ion-select-option>
               </ion-select>
-            </ion-item>
+            </div>
 
-            <ion-item>
-              <ion-label position="stacked">Role</ion-label>
-              <ion-select formControlName="roleIds" interface="alert" [multiple]="true">
+            <div class="field-group">
+              <label class="field-label">Role</label>
+              <ion-select class="styled-select" formControlName="roleIds" interface="alert" [multiple]="true">
                 <ion-select-option *ngFor="let role of roles" [value]="role.id">
                   {{ role.name }}
                 </ion-select-option>
               </ion-select>
-            </ion-item>
+            </div>
           </div>
 
-          <div class="actions">
-            <ion-button type="submit" [disabled]="isSavingEdit">{{ isSavingEdit ? 'Zapisywanie...' : 'Zapisz' }}</ion-button>
+          <div class="form-actions">
+            <ion-button type="submit" class="btn-save" [disabled]="isSavingEdit">
+              <ion-icon slot="start" name="save-outline"></ion-icon>
+              {{ isSavingEdit ? 'Zapisywanie...' : 'Zapisz zmiany' }}
+            </ion-button>
           </div>
         </form>
       </ion-content>
@@ -262,8 +371,8 @@
 
   <ion-modal [isOpen]="isResetPasswordModalOpen" (didDismiss)="closeResetPasswordModal()">
     <ng-template>
-      <ion-header>
-        <ion-toolbar>
+      <ion-header class="ion-no-border">
+        <ion-toolbar class="modal-toolbar">
           <ion-title>Ustaw hasło jednorazowe</ion-title>
           <ion-buttons slot="end">
             <ion-button (click)="closeResetPasswordModal()">Zamknij</ion-button>
@@ -273,35 +382,48 @@
 
       <ion-content class="ion-padding modal-content">
         <p *ngIf="selectedUser" class="modal-description">
-          Konto: {{ selectedUser.first_name }} {{ selectedUser.last_name }} ({{ selectedUser.login }})
+          Konto: <strong>{{ selectedUser.first_name }} {{ selectedUser.last_name }}</strong> ({{ selectedUser.login }})
         </p>
 
-        <div class="password-block">
-          <ion-item>
-            <ion-label position="stacked">Hasło jednorazowe</ion-label>
-            <ion-input
-              type="text"
-              [(ngModel)]="resetOneTimePassword"
-              name="resetOneTimePassword"
-              placeholder="Minimum 8 znaków">
+        <div class="field-group">
+          <label class="field-label">Hasło jednorazowe</label>
+          <div class="password-row">
+            <ion-input class="styled-input" type="text" [(ngModel)]="resetOneTimePassword" name="resetOneTimePassword"
+              placeholder="Min. 8 znaków, duża litera, cyfra, znak specjalny">
             </ion-input>
-          </ion-item>
-          <ion-button type="button" fill="outline" color="dark" (click)="generateOneTimePassword('reset')">
-            Wygeneruj hasło
-          </ion-button>
+            <ion-button type="button" fill="outline" class="btn-generate" (click)="generateOneTimePassword('reset')">
+              <ion-icon slot="start" name="refresh-outline"></ion-icon>
+              Generuj
+            </ion-button>
+          </div>
+          <div class="field-errors" *ngIf="resetPasswordError">
+            <span>{{ resetPasswordError }}</span>
+          </div>
         </div>
 
-        <div class="actions">
-          <ion-button type="button" color="warning" [disabled]="isResettingPassword" (click)="submitResetPassword()">
+        <div class="form-actions">
+          <ion-button type="button" class="btn-save" [disabled]="isResettingPassword" (click)="submitResetPassword()">
+            <ion-icon slot="start" name="key-outline"></ion-icon>
             {{ isResettingPassword ? 'Zapisywanie...' : 'Ustaw hasło jednorazowe' }}
           </ion-button>
         </div>
 
-        <section class="credentials" *ngIf="resetCredentials">
-          <h2>Dane logowania do przekazania</h2>
-          <p><strong>Login:</strong> {{ resetCredentials.login }}</p>
-          <p><strong>Hasło jednorazowe:</strong> {{ resetCredentials.one_time_password }}</p>
-        </section>
+        <div class="credentials-panel" *ngIf="resetCredentials">
+          <div class="credentials-header">
+            <ion-icon name="key-outline"></ion-icon>
+            <h3>Dane logowania do przekazania</h3>
+          </div>
+          <div class="credentials-grid">
+            <div class="credential-row">
+              <span class="credential-label">Login:</span>
+              <span class="credential-value">{{ resetCredentials.login }}</span>
+            </div>
+            <div class="credential-row">
+              <span class="credential-label">Hasło jednorazowe:</span>
+              <span class="credential-value">{{ resetCredentials.one_time_password }}</span>
+            </div>
+          </div>
+        </div>
       </ion-content>
     </ng-template>
   </ion-modal>

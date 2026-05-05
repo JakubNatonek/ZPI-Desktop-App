@@ -1,149 +1,237 @@
-<!-- Chat bubble trigger -->
-<div class="chat-bubble" (click)="toggle()" [class.open]="isOpen()" title="Czat">
-  <span class="chat-bubble__badge" *ngIf="hasUnreadMessages()"></span>
-  <svg *ngIf="!isOpen()" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
-  </svg>
-  <svg *ngIf="isOpen()" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-  </svg>
-</div>
-<div class="chat-unread-toast" *ngIf="showUnreadToast()">Masz nowe wiadomości</div>
+<!-- Chat bubble trigger (hidden in page mode) -->
+<ng-container *ngIf="!pageMode">
+  <div class="chat-bubble" (click)="toggle()" [class.open]="isOpen()" title="Czat">
+    <span class="chat-bubble__badge" *ngIf="hasUnreadMessages()"></span>
+    <svg *ngIf="!isOpen()" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+      <path
+        d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
+    </svg>
+    <svg *ngIf="isOpen()" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+    </svg>
+  </div>
+  <div class="chat-unread-toast" *ngIf="showUnreadToast()">Masz nowe wiadomości</div>
+</ng-container>
 
-<!-- Chat panel -->
-<div class="chat-panel" [class.chat-panel--open]="isOpen()">
-  <app-chat-panel-header
-    [view]="view()"
-    [selectedUser]="selectedUser()"
-    [selectedRoom]="selectedRoom()"
-    [getInitials]="getInitials.bind(this)"
-    (back)="goBack()"
-    (close)="close()"
-  ></app-chat-panel-header>
+<!-- ══════════════════════════════════════════════════════════════
+     PAGE MODE – dwukolumnowy layout desktopowy
+══════════════════════════════════════════════════════════════ -->
+<ng-container *ngIf="pageMode">
+  <div class="chat-panel chat-panel--open chat-panel--page">
 
-  <app-chat-panel-tabs
-    [view]="view()"
-    [activeTab]="activeTab()"
-    (tabChange)="setTab($event)"
-  ></app-chat-panel-tabs>
+    <!-- ── LEWA KOLUMNA: nagłówek + taby + lista ───────────── -->
+    <div class="chat-sidebar">
+      <app-chat-panel-header [view]="view()" [selectedUser]="selectedUser()" [selectedRoom]="selectedRoom()"
+        [getInitials]="getInitials.bind(this)" (back)="goBack()" (close)="close()"></app-chat-panel-header>
 
-  <!-- ─── CONTACTS VIEW ─────────────────────────────── -->
-  <app-chat-contacts-view
-    *ngIf="view() === 'contacts'"
-    [searchQuery]="searchQuery"
-    [searchResults]="searchResults()"
-    [isSearching]="isSearching()"
-    [directContacts]="directContacts"
-    [getInitials]="getInitials.bind(this)"
-    [getLastMessage]="getLastMessage.bind(this)"
-    [isLastMessageUnread]="isLastMessageUnread.bind(this)"
-    (searchQueryChange)="searchQuery = $event"
-    (search)="onSearch($event)"
-    (openConversation)="openConversation($event)"
-  ></app-chat-contacts-view>
+      <app-chat-panel-tabs [view]="view()" [activeTab]="activeTab()" (tabChange)="setTab($event)"></app-chat-panel-tabs>
 
+      <app-chat-contacts-view *ngIf="activeTab() === 'messages'" [searchQuery]="searchQuery"
+        [searchResults]="searchResults()" [isSearching]="isSearching()" [directContacts]="directContacts"
+        [getInitials]="getInitials.bind(this)" [getLastMessage]="getLastMessage.bind(this)"
+        [isLastMessageUnread]="isLastMessageUnread.bind(this)" (searchQueryChange)="searchQuery = $event"
+        (search)="onSearch($event)" (openConversation)="openConversation($event)"></app-chat-contacts-view>
 
-  <!-- ─── CONVERSATION VIEW ─────────────────────────── -->
-  <ng-container *ngIf="view() === 'conversation' && selectedUser() as user">
-    <div class="chat-panel__body chat-panel__body--messages" #messagesContainer (scroll)="onScroll($event)">
-      <div class="chat-messages">
-        <ng-container *ngIf="conversations[user.user_id] && conversations[user.user_id].length > 0; else noMessages">
-          <div
-            class="chat-message"
-            *ngFor="let msg of conversations[user.user_id]"
-            [class.chat-message--own]="msg.isOwn"
-          >
-            <div class="chat-message__bubble">{{ msg.content }}</div>
-            <div class="chat-message__time">{{ formatTime(msg.timestamp) }}</div>
+      <app-chat-rooms-view *ngIf="activeTab() === 'rooms' && view() !== 'create-room'" [rooms]="rooms"
+        [getLastRoomMessage]="getLastRoomMessage.bind(this)" (showCreateRoom)="showCreateRoom()"
+        (openRoom)="openRoom($event)"></app-chat-rooms-view>
+
+      <app-chat-create-room-view *ngIf="view() === 'create-room'" [newRoomName]="newRoomName"
+        [newRoomMembers]="newRoomMembers()" [availableUsers]="availableUsers"
+        [isMemberSelected]="isMemberSelected.bind(this)" [getInitials]="getInitials.bind(this)"
+        (newRoomNameChange)="newRoomName = $event" (toggleRoomMember)="toggleRoomMember($event)"
+        (createRoom)="createRoom()"></app-chat-create-room-view>
+    </div>
+
+    <!-- ── PRAWA KOLUMNA: aktywne rozmowy (obok siebie) ──── -->
+    <div class="chat-convo-area">
+
+      <!-- Placeholder – brak otwartych rozmów -->
+      <ng-container *ngIf="openChats().length === 0">
+        <div class="chat-conversation-placeholder">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
+          </svg>
+          <p>Wybierz rozmowę, aby zacząć</p>
+        </div>
+      </ng-container>
+
+      <!-- Kolumna dla każdego otwartego czatu -->
+      <div class="chat-column" *ngFor="let chat of openChats()">
+
+        <!-- Nagłówek kolumny -->
+        <div class="chat-column-header">
+          <span class="chat-column-header__initials" *ngIf="!chat.avatarUrl">{{ chat.initials }}</span>
+          <img *ngIf="chat.avatarUrl" [src]="chat.avatarUrl" alt="Avatar"
+            style="width:28px;height:28px;object-fit:cover;border-radius:50%;flex-shrink:0" />
+          <span class="chat-column-header__label">{{ chat.label }}</span>
+          <button class="chat-column-header__close" (click)="closeOpenChat(chat.id)" title="Zamknij">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+              <path
+                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Rozmowa prywatna -->
+        <ng-container *ngIf="chat.type === 'direct' && chat.userId != null">
+          <div class="chat-panel__body chat-panel__body--messages" #chatMsgContainer
+            (scroll)="onScrollForChat($event, chat)">
+            <div class="chat-messages">
+              <ng-container
+                *ngIf="conversations[chat.userId] && conversations[chat.userId].length > 0; else noMsgsDirect">
+                <div class="chat-message" *ngFor="let msg of conversations[chat.userId]"
+                  [class.chat-message--own]="msg.isOwn">
+                  <div class="chat-message__bubble">{{ msg.content }}</div>
+                  <div class="chat-message__time">{{ formatTime(msg.timestamp) }}</div>
+                </div>
+              </ng-container>
+              <ng-template #noMsgsDirect>
+                <div class="chat-empty">Napisz pierwszą wiadomość</div>
+              </ng-template>
+            </div>
+          </div>
+          <div class="chat-input-bar">
+            <textarea class="chat-input" [(ngModel)]="messageInputs[chat.id]"
+              (keydown)="handleKeydownForChat($event, chat.id)" placeholder="Napisz wiadomość…" rows="1"></textarea>
+            <button class="chat-send-btn" (click)="sendMessageForChat(chat.id)"
+              [disabled]="!messageInputs[chat.id]?.trim() || isEncrypting()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+              </svg>
+            </button>
           </div>
         </ng-container>
-        <ng-template #noMessages>
-          <div class="chat-empty">Napisz pierwszą wiadomość</div>
-        </ng-template>
-      </div>
-    </div>
-    <div class="chat-input-bar">
-      <textarea
-        class="chat-input"
-        [(ngModel)]="messageInput"
-        (keydown)="handleKeydown($event)"
-        placeholder="Napisz wiadomość…"
-        rows="1"
-      ></textarea>
-      <button class="chat-send-btn" (click)="sendMessage()" [disabled]="!messageInput.trim() || isEncrypting()">
-        <ng-container *ngIf="!isEncrypting(); else sending">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-          </svg>
-        </ng-container>
-        <ng-template #sending>
-          <div class="chat-search__spinner" aria-hidden="true"></div>
-        </ng-template>
-      </button>
-    </div>
-  </ng-container>
 
-  <!-- ─── ROOMS VIEW ────────────────────────────────── -->
-  <app-chat-rooms-view
-    *ngIf="view() === 'rooms'"
-    [rooms]="rooms"
-    [getLastRoomMessage]="getLastRoomMessage.bind(this)"
-    (showCreateRoom)="showCreateRoom()"
-    (openRoom)="openRoom($event)"
-  ></app-chat-rooms-view>
-
-  <!-- ─── ROOM CHAT VIEW ───────────────────────────── -->
-  <ng-container *ngIf="view() === 'room-chat' && selectedRoom() as room">
-    <div class="chat-panel__body chat-panel__body--messages" #messagesContainer (scroll)="onScroll($event)">
-      <div class="chat-messages">
-        <ng-container *ngIf="roomMessages[room.id] && roomMessages[room.id].length > 0; else noRoomMessages">
-          <div
-            class="chat-message"
-            *ngFor="let msg of roomMessages[room.id]"
-            [class.chat-message--own]="msg.isOwn"
-          >
-            <div class="chat-message__sender" *ngIf="!msg.isOwn">{{ msg.senderName }}</div>
-            <div class="chat-message__bubble">{{ msg.content }}</div>
-            <div class="chat-message__time">{{ formatTime(msg.timestamp) }}</div>
+        <!-- Pokój grupowy -->
+        <ng-container *ngIf="chat.type === 'room' && chat.roomId != null">
+          <div class="chat-panel__body chat-panel__body--messages" #chatMsgContainer
+            (scroll)="onScrollForChat($event, chat)">
+            <div class="chat-messages">
+              <ng-container *ngIf="roomMessages[chat.roomId] && roomMessages[chat.roomId].length > 0; else noMsgsRoom">
+                <div class="chat-message" *ngFor="let msg of roomMessages[chat.roomId]"
+                  [class.chat-message--own]="msg.isOwn">
+                  <div class="chat-message__sender" *ngIf="!msg.isOwn">{{ msg.senderName }}</div>
+                  <div class="chat-message__bubble">{{ msg.content }}</div>
+                  <div class="chat-message__time">{{ formatTime(msg.timestamp) }}</div>
+                </div>
+              </ng-container>
+              <ng-template #noMsgsRoom>
+                <div class="chat-empty">Brak wiadomości w tym pokoju</div>
+              </ng-template>
+            </div>
+          </div>
+          <div class="chat-input-bar">
+            <textarea class="chat-input" [(ngModel)]="messageInputs[chat.id]"
+              (keydown)="handleKeydownForChat($event, chat.id)" placeholder="Napisz wiadomość…" rows="1"></textarea>
+            <button class="chat-send-btn" (click)="sendMessageForChat(chat.id)"
+              [disabled]="!messageInputs[chat.id]?.trim() || isEncrypting()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+              </svg>
+            </button>
           </div>
         </ng-container>
-        <ng-template #noRoomMessages>
-          <div class="chat-empty">Brak wiadomości w tym pokoju</div>
-        </ng-template>
+
       </div>
-    </div>
-    <div class="chat-input-bar">
-      <textarea
-        class="chat-input"
-        [(ngModel)]="messageInput"
-        (keydown)="handleKeydown($event)"
-        placeholder="Napisz wiadomość…"
-        rows="1"
-      ></textarea>
-      <button class="chat-send-btn" (click)="sendMessage()" [disabled]="!messageInput.trim() || isEncrypting()">
-        <ng-container *ngIf="!isEncrypting(); else sendingRoom">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-          </svg>
-        </ng-container>
-        <ng-template #sendingRoom>
-          <div class="chat-search__spinner" aria-hidden="true"></div>
-        </ng-template>
-      </button>
-    </div>
-  </ng-container>
 
-  <!-- ─── CREATE ROOM VIEW ─────────────────────────── -->
-  <app-chat-create-room-view
-    *ngIf="view() === 'create-room'"
-    [newRoomName]="newRoomName"
-    [newRoomMembers]="newRoomMembers()"
-    [availableUsers]="availableUsers"
-    [isMemberSelected]="isMemberSelected.bind(this)"
-    [getInitials]="getInitials.bind(this)"
-    (newRoomNameChange)="newRoomName = $event"
-    (toggleRoomMember)="toggleRoomMember($event)"
-    (createRoom)="createRoom()"
-  ></app-chat-create-room-view>
+    </div>
+  </div>
+</ng-container>
 
-</div>
+<!-- ══════════════════════════════════════════════════════════════
+     WIDGET MODE – oryginalne zachowanie (floating bubble)
+══════════════════════════════════════════════════════════════ -->
+<ng-container *ngIf="!pageMode">
+  <div class="chat-panel" [class.chat-panel--open]="isOpen()">
+    <app-chat-panel-header [view]="view()" [selectedUser]="selectedUser()" [selectedRoom]="selectedRoom()"
+      [getInitials]="getInitials.bind(this)" (back)="goBack()" (close)="close()"></app-chat-panel-header>
+
+    <app-chat-panel-tabs [view]="view()" [activeTab]="activeTab()" (tabChange)="setTab($event)"></app-chat-panel-tabs>
+
+    <!-- ─── CONTACTS VIEW ─────────────────────────────── -->
+    <app-chat-contacts-view *ngIf="view() === 'contacts'" [searchQuery]="searchQuery" [searchResults]="searchResults()"
+      [isSearching]="isSearching()" [directContacts]="directContacts" [getInitials]="getInitials.bind(this)"
+      [getLastMessage]="getLastMessage.bind(this)" [isLastMessageUnread]="isLastMessageUnread.bind(this)"
+      (searchQueryChange)="searchQuery = $event" (search)="onSearch($event)"
+      (openConversation)="openConversation($event)"></app-chat-contacts-view>
+
+
+    <!-- ─── CONVERSATION VIEW ─────────────────────────── -->
+    <ng-container *ngIf="view() === 'conversation' && selectedUser() as user">
+      <div class="chat-panel__body chat-panel__body--messages" #messagesContainer (scroll)="onScroll($event)">
+        <div class="chat-messages">
+          <ng-container *ngIf="conversations[user.user_id] && conversations[user.user_id].length > 0; else noMessages">
+            <div class="chat-message" *ngFor="let msg of conversations[user.user_id]"
+              [class.chat-message--own]="msg.isOwn">
+              <div class="chat-message__bubble">{{ msg.content }}</div>
+              <div class="chat-message__time">{{ formatTime(msg.timestamp) }}</div>
+            </div>
+          </ng-container>
+          <ng-template #noMessages>
+            <div class="chat-empty">Napisz pierwszą wiadomość</div>
+          </ng-template>
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <textarea class="chat-input" [(ngModel)]="messageInput" (keydown)="handleKeydown($event)"
+          placeholder="Napisz wiadomość…" rows="1"></textarea>
+        <button class="chat-send-btn" (click)="sendMessage()" [disabled]="!messageInput.trim() || isEncrypting()">
+          <ng-container *ngIf="!isEncrypting(); else sending">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+            </svg>
+          </ng-container>
+          <ng-template #sending>
+            <div class="chat-search__spinner" aria-hidden="true"></div>
+          </ng-template>
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- ─── ROOMS VIEW ────────────────────────────────── -->
+    <app-chat-rooms-view *ngIf="view() === 'rooms'" [rooms]="rooms" [getLastRoomMessage]="getLastRoomMessage.bind(this)"
+      (showCreateRoom)="showCreateRoom()" (openRoom)="openRoom($event)"></app-chat-rooms-view>
+
+    <!-- ─── ROOM CHAT VIEW ───────────────────────────── -->
+    <ng-container *ngIf="view() === 'room-chat' && selectedRoom() as room">
+      <div class="chat-panel__body chat-panel__body--messages" #messagesContainer (scroll)="onScroll($event)">
+        <div class="chat-messages">
+          <ng-container *ngIf="roomMessages[room.id] && roomMessages[room.id].length > 0; else noRoomMessages">
+            <div class="chat-message" *ngFor="let msg of roomMessages[room.id]" [class.chat-message--own]="msg.isOwn">
+              <div class="chat-message__sender" *ngIf="!msg.isOwn">{{ msg.senderName }}</div>
+              <div class="chat-message__bubble">{{ msg.content }}</div>
+              <div class="chat-message__time">{{ formatTime(msg.timestamp) }}</div>
+            </div>
+          </ng-container>
+          <ng-template #noRoomMessages>
+            <div class="chat-empty">Brak wiadomości w tym pokoju</div>
+          </ng-template>
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <textarea class="chat-input" [(ngModel)]="messageInput" (keydown)="handleKeydown($event)"
+          placeholder="Napisz wiadomość…" rows="1"></textarea>
+        <button class="chat-send-btn" (click)="sendMessage()" [disabled]="!messageInput.trim() || isEncrypting()">
+          <ng-container *ngIf="!isEncrypting(); else sendingRoom">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+            </svg>
+          </ng-container>
+          <ng-template #sendingRoom>
+            <div class="chat-search__spinner" aria-hidden="true"></div>
+          </ng-template>
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- ─── CREATE ROOM VIEW ─────────────────────────── -->
+    <app-chat-create-room-view *ngIf="view() === 'create-room'" [newRoomName]="newRoomName"
+      [newRoomMembers]="newRoomMembers()" [availableUsers]="availableUsers"
+      [isMemberSelected]="isMemberSelected.bind(this)" [getInitials]="getInitials.bind(this)"
+      (newRoomNameChange)="newRoomName = $event" (toggleRoomMember)="toggleRoomMember($event)"
+      (createRoom)="createRoom()"></app-chat-create-room-view>
+
+  </div>
+</ng-container>

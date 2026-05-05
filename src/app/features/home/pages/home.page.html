@@ -3,9 +3,12 @@
   <div class="sidebar" [style.width.px]="sidebarWidth()">
     <ion-content class="ion-padding no-scroll">
       <div class="sidebar-inner" [class.hidden]="sidebarWidth() < 160">
+        <div class="sidebar-collapse-btn" (click)="toggleSidebar()" title="Zwiń panel">
+          <ion-icon name="chevron-back-outline"></ion-icon>
+        </div>
         <h3>Tryb pracy</h3>
-        <ion-button *ngIf="isLecturer || isAdminOrPlanner" class="rapla-file-btn" expand="block" fill="outline"
-          color="primary" [href]="raplaFileUrl" target="_blank" rel="noopener noreferrer">
+        <ion-button *ngIf="isAdminOrPlanner" class="rapla-file-btn" expand="block" fill="outline" color="primary"
+          [href]="raplaFileUrl" target="_blank" rel="noopener noreferrer">
           <ion-icon slot="start" name="cloud-download-outline"></ion-icon>
           Pobierz plik Rapla
         </ion-button>
@@ -37,20 +40,38 @@
             </ion-segment-button>
           </ion-segment>
 
-          <div class="hours-box">
-            <p>Semestr: <strong>{{ currentSemestrLabel }}</strong></p>
-            <p>Minimum dostępności: <strong>{{ requiredAvailabilityHours }} h</strong></p>
-            <p *ngIf="selectionStrategy">Tryb: <strong>{{ strategyLabel(selectionStrategy) }}</strong></p>
-            <p>Dostępnych: <strong>{{ availableHours }} h</strong></p>
-            <p>Niedostępnych (raport): <strong>{{ unavailableHours }} h</strong></p>
-            <p *ngIf="!canConfirmHours">Pozostało do minimum: <strong>{{ remainingAvailabilityHours }} h</strong></p>
+          <!-- Komunikat dla wykladowcy (ukryty podczas samouczka) -->
+          <div class="lecturer-banner lecturer-banner--info" *ngIf="lecturerMessage && !isSaving && !isTutorialActive">
+            <ion-icon name="information-circle-outline"></ion-icon>
+            <span>{{ lecturerMessage }}</span>
           </div>
 
-          <ion-button expand="block" fill="outline" color="medium" (click)="clearSelection()"
-            [disabled]="isHoursConfirmed" data-tour-step="clear-button"
-            [class.tutorial-target-active]="isTutorialStepTarget('clear-button')">
-            Wyczyść zaznaczenia
-          </ion-button>
+          <div class="hours-box">
+            <div class="stat-row">
+              <span class="stat-label">Semestr</span>
+              <span class="stat-value">{{ currentSemestrLabel }}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Minimum</span>
+              <span class="stat-value">{{ requiredAvailabilityHours }} h</span>
+            </div>
+            <div class="stat-row" *ngIf="selectionStrategy">
+              <span class="stat-label">Tryb</span>
+              <span class="stat-value">{{ strategyLabel(selectionStrategy) }}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Dostępnych</span>
+              <span class="stat-value stat-value--available">{{ availableHours }} h</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Niedostępnych</span>
+              <span class="stat-value stat-value--unavailable">{{ unavailableHours }} h</span>
+            </div>
+            <div class="stat-row" *ngIf="!canConfirmHours">
+              <span class="stat-label">Pozostało</span>
+              <span class="stat-value stat-value--warn">{{ remainingAvailabilityHours }} h</span>
+            </div>
+          </div>
 
           <!-- Przycisk historii dezyderat -->
           <ion-button expand="block" fill="outline" color="tertiary" (click)="openHistoryModal()"
@@ -60,12 +81,47 @@
           </ion-button>
 
           <!-- Przycisk zgłoszenia niedostępności -->
-          <ion-button expand="block" fill="outline" color="warning" (click)="openUnavailabilityModal()" class="unavailability-btn">
+          <ion-button expand="block" fill="outline" color="warning" (click)="openUnavailabilityModal()"
+            class="unavailability-btn">
             <ion-icon slot="start" name="alert-circle"></ion-icon>
             Zgłoś niedostępność
           </ion-button>
 
-          <p class="lecturer-message" *ngIf="lecturerMessage">{{ lecturerMessage }}</p>
+          <div class="sidebar-divider"></div>
+
+          <!-- Zatwierdzenie, edycja i czyszczenie godzin -->
+          <div class="sidebar-action-group">
+            <ion-button expand="block" fill="solid" color="success" (click)="confirmHours()"
+              [disabled]="isHoursConfirmed || isSaving" data-tour-step="confirm-button"
+              [class.tutorial-target-active]="isTutorialStepTarget('confirm-button')">
+              <ion-icon slot="start" name="checkmark-done-outline"></ion-icon>
+              {{ isSaving ? 'Zapisywanie...' : 'Zatwierdź godziny' }}
+            </ion-button>
+            <ion-button expand="block" fill="outline" color="warning" (click)="editHours()"
+              [disabled]="!isHoursConfirmed" data-tour-step="edit-button"
+              [class.tutorial-target-active]="isTutorialStepTarget('edit-button')">
+              <ion-icon slot="start" name="create-outline"></ion-icon>
+              Popraw godziny
+            </ion-button>
+            <ion-button expand="block" fill="outline" color="medium" (click)="clearSelection()"
+              [disabled]="isHoursConfirmed" data-tour-step="clear-button"
+              [class.tutorial-target-active]="isTutorialStepTarget('clear-button')">
+              <ion-icon slot="start" name="refresh-outline"></ion-icon>
+              Wyczyść zaznaczenia
+            </ion-button>
+          </div>
+
+          <!-- Samouczek -->
+          <ion-button expand="block" fill="clear" color="medium" *ngIf="!isTutorialDisabledPermanently"
+            (click)="disableTutorial()" class="tutorial-toggle-btn">
+            <ion-icon slot="start" name="help-circle-outline"></ion-icon>
+            Wyłącz samouczek
+          </ion-button>
+          <ion-button expand="block" fill="clear" color="medium" *ngIf="isTutorialDisabledPermanently"
+            (click)="enableTutorialGuarded()" class="tutorial-toggle-btn">
+            <ion-icon slot="start" name="help-circle-outline"></ion-icon>
+            Włącz samouczek
+          </ion-button>
 
           <div class="loading-indicator" *ngIf="isLoadingSemestry || isLoadingDezyderaty || isSaving">
             <ion-spinner name="crescent"></ion-spinner>
@@ -80,10 +136,7 @@
           <div class="sent-data" *ngIf="isAdmin; else plannerInfo">
             <div class="semestr-selector">
               <ion-label>Semestr</ion-label>
-              <ion-select
-                [value]="selectedSemestrId"
-                (ionChange)="onSemestrChange($event)"
-                interface="popover"
+              <ion-select [value]="selectedSemestrId" (ionChange)="onSemestrChange($event)" interface="popover"
                 [disabled]="semestry.length === 0 || isLoadingSemestry || isLoadingLecturerStatuses">
                 <ion-select-option *ngFor="let semestr of semestry" [value]="semestr.id">
                   {{ semestr.nazwa }}
@@ -102,34 +155,26 @@
               <span>Ładowanie listy wykładowców...</span>
             </div>
 
-            <div class="lecturer-list" *ngIf="!isLoadingLecturerStatuses && lecturerStatusList.length > 0; else emptyLecturerState">
-              <div
-                class="submission-card lecturer-status-card"
-                *ngFor="let lecturer of lecturerStatusList"
-                [class.is-active]="isLecturerStatusActive(lecturer)"
-                [class.is-clickable]="lecturer.isApproved"
-                [class.status-approved]="lecturer.isApproved"
-                [class.status-missing]="!lecturer.isApproved"
-                [attr.role]="lecturer.isApproved ? 'button' : null"
-                [attr.tabindex]="lecturer.isApproved ? '0' : null"
+            <div class="lecturer-list"
+              *ngIf="!isLoadingLecturerStatuses && lecturerStatusList.length > 0; else emptyLecturerState">
+              <div class="submission-card lecturer-status-card" *ngFor="let lecturer of lecturerStatusList"
+                [class.is-active]="isLecturerStatusActive(lecturer)" [class.is-clickable]="lecturer.isApproved"
+                [class.status-approved]="lecturer.isApproved" [class.status-missing]="!lecturer.isApproved"
+                [attr.role]="lecturer.isApproved ? 'button' : null" [attr.tabindex]="lecturer.isApproved ? '0' : null"
                 (click)="lecturer.isApproved && selectLecturerStatus(lecturer)">
                 <div class="submission-row">
                   <span class="submission-label">Wykładowca</span>
                   <div class="submission-value-with-icon">
                     <span class="submission-value">{{ lecturer.lecturerDisplayName }}</span>
-                    <ion-icon
-                      *ngIf="lecturer.hasActiveUnavailability"
-                      name="warning-outline"
-                      color="warning"
-                      class="unavailable-icon"
-                      title="Kliknij aby zobaczyć notatki o niedostępności"
-                      (click)="goToUnavailabilityNotes(); $event.stopPropagation()"
-                    ></ion-icon>
+                    <ion-icon *ngIf="lecturer.hasActiveUnavailability" name="warning-outline" color="warning"
+                      class="unavailable-icon" title="Kliknij aby zobaczyć notatki o niedostępności"
+                      (click)="goToUnavailabilityNotes(); $event.stopPropagation()"></ion-icon>
                   </div>
                 </div>
                 <div class="submission-row">
                   <span class="submission-label">Status</span>
-                  <span class="status-pill">{{ lecturer.isApproved ? 'Zatwierdzona dezyderata' : 'Brak zatwierdzonej dezyderaty' }}</span>
+                  <span class="status-pill">{{ lecturer.isApproved ? 'Zatwierdzona dezyderata' : 'Brak zatwierdzonej
+                    dezyderaty' }}</span>
                 </div>
                 <div class="submission-row" *ngIf="lecturer.isApproved && lecturer.submission">
                   <span class="submission-label">Tydzień wpisu</span>
@@ -138,7 +183,8 @@
 
                 <div class="submission-row submission-expand-row">
                   <span class="submission-label">Dane wykładowcy</span>
-                  <ion-button size="small" fill="outline" color="medium" (click)="toggleLecturerDetails(lecturer.userId, $event)">
+                  <ion-button size="small" fill="outline" color="medium"
+                    (click)="toggleLecturerDetails(lecturer.userId, $event)">
                     {{ isLecturerDetailsExpanded(lecturer.userId) ? 'Zwiń' : 'Rozwiń' }}
                   </ion-button>
                 </div>
@@ -146,7 +192,8 @@
                 <div class="lecturer-extra" *ngIf="isLecturerDetailsExpanded(lecturer.userId)">
                   <div class="submission-row">
                     <span class="submission-label">Wydziały</span>
-                    <span class="submission-value">{{ lecturer.departments.length > 0 ? lecturer.departments.join(', ') : 'Brak wydziałów' }}</span>
+                    <span class="submission-value">{{ lecturer.departments.length > 0 ? lecturer.departments.join(', ')
+                      : 'Brak wydziałów' }}</span>
                   </div>
                 </div>
               </div>
@@ -188,38 +235,20 @@
           <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
         </ion-buttons>
 
+        <ion-title class="toolbar-page-title">{{ isLecturer ? 'Dezyderaty' : 'Planowanie' }}</ion-title>
+
         <ion-buttons slot="end">
           <ion-chip color="primary" outline *ngIf="isLecturer && currentSemestr">
             <ion-label>{{ currentSemestr.nazwa }}</ion-label>
           </ion-chip>
-          <ion-chip color="medium" outline>
+          <ion-chip class="role-chip" outline>
             <ion-label>{{ userRoleLabel }}</ion-label>
           </ion-chip>
 
-          <ng-container *ngIf="isLecturer">
-            <ion-button fill="outline" color="medium" *ngIf="!isTutorialDisabledPermanently"
-              (click)="disableTutorial()">
-              Wyłącz tutorial
-            </ion-button>
-            <ion-button fill="outline" color="medium" *ngIf="isTutorialDisabledPermanently" (click)="enableTutorial()">
-              Włącz tutorial
-            </ion-button>
-
-            <ion-button fill="solid" color="success" (click)="confirmHours()" [disabled]="isHoursConfirmed || isSaving"
-              data-tour-step="confirm-button" [class.tutorial-target-active]="isTutorialStepTarget('confirm-button')">
-              <ion-icon slot="start" name="checkmark-done-outline"></ion-icon>
-              {{ isSaving ? 'Zapisywanie...' : 'Zatwierdź godziny' }}
-            </ion-button>
-            <ion-button fill="outline" color="warning" (click)="editHours()" [disabled]="!isHoursConfirmed"
-              data-tour-step="edit-button" [class.tutorial-target-active]="isTutorialStepTarget('edit-button')">
-              <ion-icon slot="start" name="create-outline"></ion-icon>
-              Popraw godziny
-            </ion-button>
-          </ng-container>
-
+          <span class="toolbar-username">{{ userDisplayName }}</span>
           <ion-avatar class="ion-margin-start user-avatar" role="button" tabindex="0"
             (click)="toggleProfileMenu($event)">
-            <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+            <img [src]="auth.avatarUrl" alt="Avatar" />
           </ion-avatar>
 
           <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
@@ -240,8 +269,9 @@
       <div class="google-calendar-grid">
         <div class="grid-header">
           <div class="time-spacer"></div>
-          <div class="day-col-header" *ngFor="let day of weekDays">
+          <div class="day-col-header" [class.today]="day.isToday" *ngFor="let day of weekDays">
             <span class="day-name">{{ day.name }}</span>
+            <span class="day-today-badge" *ngIf="day.isToday">Dziś</span>
           </div>
         </div>
 
@@ -249,7 +279,7 @@
           [class.tutorial-target-active]="isTutorialStepTarget('calendar-cell')">
           <div class="hour-row" *ngFor="let hour of hours24">
             <div class="hour-label">{{ hour }}:00</div>
-            <div class="day-cell" *ngFor="let day of weekDays">
+            <div class="day-cell" [class.today-col]="day.isToday" *ngFor="let day of weekDays">
               <button *ngIf="isLecturer" type="button" class="availability-slot"
                 [class.available]="getSlotState(day, hour) === 'available'"
                 [class.unavailable]="getSlotState(day, hour) === 'unavailable'"

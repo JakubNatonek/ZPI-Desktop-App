@@ -3,11 +3,54 @@
 }
 
 .menu-nav-btn {
-  --color: #000000;
-  color: #000000;
+  --color: #ffffff;
+  color: #ffffff;
 }
 
-ion-toolbar {
-  border-bottom: 1px solid #d1d5db;
+ion-header ion-toolbar {
+  --background: #1a3a5c;
+  --color: #ffffff;
+  --border-color: transparent;
+
+  ion-title {
+    color: #ffffff;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
 }
 
+.role-chip {
+  --color: #ffffff;
+  --border-color: rgba(255, 255, 255, 0.45);
+  color: #ffffff;
+}
+
+.toolbar-username {
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 0 6px;
+  white-space: nowrap;
+}
+
+.app-user-avatar {
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+}
+
+.logout-item {
+  --color: #c0392b;
+}
+
+/* Dark mode */
+:host-context(html.ion-palette-dark) {
+  ion-content {
+    --background: #0c1524;
+  }
+
+  .logout-item {
+    --background: #162336;
+    --color: #fca5a5;
+  }
+}

@@ -1,15 +1,17 @@
-﻿<ion-header>
+﻿<ion-header class="ion-no-border">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
     <ion-title>Profil</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
-      <ion-chip color="medium" outline>
+      <ion-chip class="role-chip" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
-      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
-        <img [src]="avatarUrl || 'https://ionicframework.com/docs/img/demos/avatar.svg'" alt="Avatar użytkownika">
+      <span class="toolbar-username">{{ userDisplayName }}</span>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0"
+        (click)="toggleProfileMenu($event)">
+        <img [src]="auth.avatarUrl" alt="Avatar użytkownika">
       </ion-avatar>
 
       <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
@@ -25,57 +27,78 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <div class="profile-layout">
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>Zdjęcie profilowe</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
+<ion-content class="profile-page-content">
+  <div class="profile-page-wrapper">
+
+    <div class="profile-page-header">
+      <h1 class="profile-page-title">Twój profil</h1>
+      <p class="profile-page-subtitle">Zarządzaj zdjęciem profilowym, hasłem i ustawieniami aplikacji.</p>
+    </div>
+
+    <div class="profile-grid">
+
+      <!-- Zdjęcie profilowe -->
+      <div class="profile-card">
+        <h3 class="section-heading">Zdjęcie profilowe</h3>
         <div class="avatar-section">
           <ion-avatar class="avatar-large">
-            <img [src]="avatarUrl || 'https://ionicframework.com/docs/img/demos/avatar.svg'"
-              alt="Aktualne zdjęcie profilowe">
+            <img [src]="auth.avatarUrl" alt="Aktualne zdjęcie profilowe">
           </ion-avatar>
-          <ion-button fill="outline" (click)="triggerAvatarUpload(avatarInput)">Zmień zdjęcie</ion-button>
-          <input #avatarInput type="file" accept="image/*" hidden (change)="onAvatarFileSelected($event)">
+          <div class="avatar-info">
+            <ion-button class="btn-avatar" fill="outline" size="small" (click)="triggerAvatarUpload(avatarInput)">
+              <ion-icon slot="start" name="camera-outline"></ion-icon>
+              Zmień zdjęcie
+            </ion-button>
+            <input #avatarInput type="file" accept="image/*" hidden (change)="onAvatarFileSelected($event)">
+            <p class="avatar-hint">Zalecany rozmiar: 200×200 px. Format JPG lub PNG.</p>
+          </div>
         </div>
-      </ion-card-content>
-    </ion-card>
+      </div>
 
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>Zmiana hasła</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <ion-item multiple-inputs="true">
-          <ion-label position="stacked">Aktualne hasło</ion-label>
-          <ion-input type="password" [(ngModel)]="currentPassword"></ion-input>
-        </ion-item>
-        <ion-item multiple-inputs="true">
-          <ion-label position="stacked">Nowe hasło</ion-label>
-          <ion-input type="password" [(ngModel)]="newPassword"></ion-input>
-        </ion-item>
-        <ion-item multiple-inputs="true">
-          <ion-label position="stacked">Powtórz nowe hasło</ion-label>
-          <ion-input type="password" [(ngModel)]="confirmPassword"></ion-input>
-        </ion-item>
-        <ion-button expand="block" class="ion-margin-top" (click)="submitPasswordChange()">Zapisz hasło</ion-button>
+      <!-- Zmiana hasła -->
+      <div class="profile-card">
+        <h3 class="section-heading">Zmiana hasła</h3>
+
+        <div class="field-group">
+          <label class="field-label">Aktualne hasło</label>
+          <ion-input class="styled-input" type="password" [(ngModel)]="currentPassword"
+            placeholder="••••••••"></ion-input>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Nowe hasło</label>
+          <ion-input class="styled-input" type="password" [(ngModel)]="newPassword" placeholder="••••••••"></ion-input>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Powtórz nowe hasło</label>
+          <ion-input class="styled-input" type="password" [(ngModel)]="confirmPassword"
+            placeholder="••••••••"></ion-input>
+        </div>
+
         <p class="password-message" *ngIf="passwordMessage">{{ passwordMessage }}</p>
-      </ion-card-content>
-    </ion-card>
 
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>Motyw aplikacji</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <ion-item lines="none">
-          <ion-label>Tryb ciemny</ion-label>
-          <ion-toggle slot="end" [checked]="selectedTheme === 'dark'"
+        <div class="form-actions">
+          <ion-button class="btn-save" (click)="submitPasswordChange()">
+            <ion-icon slot="start" name="save-outline"></ion-icon>
+            Zapisz hasło
+          </ion-button>
+        </div>
+      </div>
+
+      <!-- Motyw aplikacji -->
+      <div class="profile-card">
+        <h3 class="section-heading">Motyw aplikacji</h3>
+        <div class="theme-row">
+          <div class="theme-info">
+            <span class="theme-label">Tryb ciemny</span>
+            <span class="theme-desc">Przełącz między jasnym a ciemnym motywem</span>
+          </div>
+          <ion-toggle [checked]="selectedTheme === 'dark'"
             (ionChange)="onThemeChange($event.detail.checked)"></ion-toggle>
-        </ion-item>
-      </ion-card-content>
-    </ion-card>
+        </div>
+      </div>
+
+    </div>
   </div>
 </ion-content>

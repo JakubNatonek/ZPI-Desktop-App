@@ -36,11 +36,18 @@
 @import "@ionic/angular/css/palettes/dark.class.css";
 /* @import '@ionic/angular/css/palettes/dark.system.css'; */
 
+/* ── Global toolbar & nav button ────────────────────────────── */
+.menu-nav-btn {
+	--color: #ffffff;
+	color: #ffffff;
+}
+
 ion-item.logout-item {
 	--background: #ffffff;
 	--color: #000000;
 	color: #000000;
 }
+
 /* W razie przerabiania wyświetlania widoku profilu do usunięcia */
 ion-buttons.app-header-user-actions {
 	display: flex;
@@ -60,15 +67,16 @@ ion-buttons.app-header-user-actions {
 	object-fit: cover;
 }
 
-html.ion-palette-dark .menu-nav-btn {
-	--color: #ffffff !important;
-	color: #ffffff !important;
+/* Bold toolbar titles globally */
+ion-toolbar ion-title {
+	font-weight: 600;
+	letter-spacing: 0.02em;
 }
 
 html.ion-palette-dark ion-toolbar {
-	--background: #111827;
-	--color: #f9fafb;
-	border-bottom-color: #374151 !important;
+	--background: #1a3a5c !important;
+	--color: #ffffff !important;
+	border-bottom-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 html.ion-palette-dark ion-title,
@@ -80,72 +88,173 @@ html.ion-palette-dark h1,
 html.ion-palette-dark h2,
 html.ion-palette-dark h3,
 html.ion-palette-dark h4 {
-	color: #f9fafb;
+	color: #e8edf4;
 }
 
 html.ion-palette-dark ion-card,
 html.ion-palette-dark ion-content,
 html.ion-palette-dark ion-list,
 html.ion-palette-dark ion-item {
-	--background: #111827;
-	background: #111827;
+	--background: #162336;
 }
 
 html.ion-palette-dark ion-item.logout-item {
-	--background: #1f2937;
-	--color: #f9fafb;
-	color: #f9fafb;
+	--background: #162336;
+	--color: #e8edf4;
+	color: #e8edf4;
+}
+
+/* ─── Dark mode ion-toggle ─── */
+html.ion-palette-dark ion-toggle {
+	--background: #374151;
+	--background-checked: #1a3a5c;
+	--handle-background: #9ca3af;
+	--handle-background-checked: #e2e8f0;
+}
+
+/* ─── Dark mode ion-select ─── */
+html.ion-palette-dark ion-select {
+	--placeholder-color: #94a3b8;
+	color: #e8edf4;
+}
+
+/* ─── Dark mode ion-segment (global) ─── */
+html.ion-palette-dark ion-segment {
+	--background: #1a2c42;
+}
+
+html.ion-palette-dark ion-segment-button {
+	--color: #94a3b8;
+	--color-checked: #ffffff;
+	--background-checked: #1a3a5c;
+	--indicator-color: #1a3a5c;
+}
+
+/* ─── Global chat FAB (always on top, every page) ─── */
+.chat-fab {
+	position: fixed !important;
+	bottom: 28px;
+	right: 28px;
+	z-index: 99999;
+	width: 54px;
+	height: 54px;
+	border-radius: 50%;
+	background: #1a3a5c !important;
+	color: #ffffff !important;
+	border: none;
+	cursor: pointer;
+	display: flex !important;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 6px 20px rgba(26, 58, 92, 0.5);
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+	outline: none;
+	-webkit-appearance: none;
+	appearance: none;
+	padding: 0;
+}
+
+.chat-fab svg {
+	width: 26px;
+	height: 26px;
+	pointer-events: none;
+	flex-shrink: 0;
+}
+
+.chat-fab:hover {
+	transform: scale(1.09);
+	box-shadow: 0 8px 28px rgba(26, 58, 92, 0.6);
+	background: #234d80 !important;
+}
+
+.chat-fab:active {
+	transform: scale(0.95);
+}
+
+.chat-fab__badge {
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	min-width: 18px;
+	height: 18px;
+	padding: 0 4px;
+	border-radius: 9px;
+	background: #e74c3c;
+	border: 2px solid #ffffff;
+	color: #ffffff;
+	font-size: 10px;
+	font-weight: 700;
+	line-height: 14px;
+	text-align: center;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	animation: chat-badge-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes chat-badge-pulse {
+
+	0%,
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+
+	50% {
+		transform: scale(1.3);
+		opacity: 0.8;
+	}
 }
 
 /* Dark mode for ion-select popover */
 html.ion-palette-dark ion-select-popover {
-	--background: #1f2937;
+	--background: #162336;
 
 	ion-list {
-		--background: #1f2937;
-		background: #1f2937;
+		--background: #162336;
+		background: #162336;
 	}
 
 	ion-item {
-		--background: #1f2937;
-		--color: #f9fafb;
-		color: #f9fafb;
+		--background: #162336;
+		--color: #e8edf4;
+		color: #e8edf4;
 
 		ion-label {
-			color: #f9fafb !important;
+			color: #e8edf4 !important;
 		}
 
 		ion-radio {
-			--color: #9ca3af;
-			--color-checked: #3b82f6;
+			--color: #94a3b8;
+			--color-checked: #d4a843;
 		}
 	}
 
 	ion-item:hover {
-		--background: #374151;
+		--background: #1e3350;
 	}
 }
 
 html.ion-palette-dark ion-popover {
-	--background: #1f2937;
+	--background: #162336;
 
 	ion-content {
-		--background: #1f2937;
+		--background: #162336;
 	}
 
 	ion-list {
-		--background: #1f2937;
-		background: #1f2937;
+		--background: #162336;
+		background: #162336;
 	}
 
 	ion-item {
-		--background: #1f2937;
-		--color: #f9fafb;
-		color: #f9fafb;
+		--background: #162336;
+		--color: #e8edf4;
+		color: #e8edf4;
 	}
 
 	ion-item:hover {
-		--background: #374151;
+		--background: #1e3350;
 	}
 }
 
@@ -157,19 +266,210 @@ html.ion-palette-dark ion-select {
 
 /* Dark mode for ion-segment */
 html.ion-palette-dark ion-segment {
-	--background: #1f2937;
+	--background: #162336;
 
 	ion-segment-button {
 		--background: transparent;
-		--background-checked: #3b82f6;
-		--color: #9ca3af;
-		--color-checked: #ffffff;
-		--indicator-color: #3b82f6;
+		--background-checked: #1a3a5c;
+		--color: #94a3b8;
+		--color-checked: #e8edf4;
+		--indicator-color: #d4a843;
 	}
 }
 
 /* Dark mode for ion-chip */
 html.ion-palette-dark ion-chip {
-	--background: #374151;
-	--color: #f9fafb;
+	--background: #1e3350;
+	--color: #e8edf4;
+}
+
+/* ─── Dark mode – side menu ─── */
+html.ion-palette-dark ion-menu {
+	color-scheme: dark !important;
+	--background: #0f1c2e !important;
+	--ion-background-color: #0f1c2e !important;
+	--ion-background-color-rgb: 15, 28, 46 !important;
+	--ion-text-color: #e8edf4 !important;
+	--ion-text-color-rgb: 232, 237, 244 !important;
+	--ion-toolbar-background: #0f1c2e !important;
+	--ion-toolbar-color: #e8edf4 !important;
+	--ion-item-background: #0f1c2e !important;
+	--ion-item-color: #e8edf4 !important;
+	--backdrop-opacity: 0.45 !important;
+}
+
+html.ion-palette-dark ion-menu::part(container) {
+	background: #0f1c2e !important;
+}
+
+html.ion-palette-dark ion-menu::part(backdrop) {
+	background: rgba(0, 0, 0, 0.6) !important;
+}
+
+html.ion-palette-dark ion-menu ion-header {
+	background: #0f1c2e !important;
+}
+
+html.ion-palette-dark ion-menu ion-header ion-toolbar {
+	--background: #0f1c2e !important;
+	--color: #e8edf4 !important;
+	border-bottom: 1px solid #162336 !important;
+}
+
+html.ion-palette-dark ion-menu ion-header ion-toolbar.user-info-toolbar {
+	--background: #0b1525 !important;
+	border-bottom: 1px solid #162336 !important;
+}
+
+html.ion-palette-dark ion-menu ion-header ion-toolbar ion-title {
+	color: #e8edf4 !important;
+}
+
+html.ion-palette-dark ion-menu ion-header ion-toolbar ion-button {
+	--color: #e8edf4 !important;
+	color: #e8edf4 !important;
+}
+
+html.ion-palette-dark ion-menu ion-content {
+	--background: #0f1c2e !important;
+	background: #0f1c2e !important;
+}
+
+html.ion-palette-dark ion-menu ion-list {
+	background: #0f1c2e !important;
+	--background: #0f1c2e !important;
+}
+
+html.ion-palette-dark ion-menu ion-item {
+	--background: #0f1c2e !important;
+	--color: #e8edf4 !important;
+	--background-hover: #162336 !important;
+	--background-activated: #162336 !important;
+	--border-color: #162336 !important;
+}
+
+html.ion-palette-dark ion-menu ion-item::part(native) {
+	background: #0f1c2e !important;
+	color: #e8edf4 !important;
+}
+
+html.ion-palette-dark ion-menu ion-label {
+	color: #e8edf4 !important;
+}
+
+html.ion-palette-dark ion-menu ion-toggle {
+	--track-background: #334155;
+	--track-background-checked: #1a3a5c;
+}
+
+html.ion-palette-dark ion-menu .user-display-name {
+	color: #e8edf4 !important;
+}
+
+html.ion-palette-dark ion-menu .user-role-label {
+	color: #94a3b8 !important;
+}
+
+/* -- Dark mode - ion-modal content (rendered outside component host) -- */
+html.ion-palette-dark .modal-content {
+	--background: #0c1524;
+}
+
+html.ion-palette-dark .modal-content .field-label {
+	color: #e8edf4;
+}
+
+html.ion-palette-dark .modal-content .styled-input,
+html.ion-palette-dark .modal-content .styled-select {
+	--background: #1a2c42;
+	background: #1a2c42;
+	border-color: rgba(255, 255, 255, 0.08);
+	--color: #e8edf4;
+	color: #e8edf4;
+}
+
+html.ion-palette-dark .modal-content .modal-description {
+	color: #94a3b8;
+}
+
+html.ion-palette-dark .modal-content .modal-description strong {
+	color: #e8edf4;
+}
+
+html.ion-palette-dark .modal-content .credentials-panel {
+	background: rgba(22, 163, 74, 0.1);
+	border-color: rgba(134, 239, 172, 0.25);
+}
+
+html.ion-palette-dark .modal-content .credentials-header ion-icon {
+	color: #86efac;
+}
+
+html.ion-palette-dark .modal-content .credentials-header h3 {
+	color: #86efac;
+}
+
+html.ion-palette-dark .modal-content .credential-label {
+	color: #86efac;
+}
+
+html.ion-palette-dark .modal-content .credential-value {
+	color: #e8edf4;
+}
+
+html.ion-palette-dark .modal-content .btn-generate {
+	--border-color: rgba(212, 168, 67, 0.5);
+	--color: #d4a843;
+}
+
+/* -- Dark mode - ion-modal content (rendered outside component host) -- */
+html.ion-palette-dark .modal-content {
+	--background: #0c1524;
+}
+
+html.ion-palette-dark .modal-content .field-label {
+	color: #e8edf4;
+}
+
+html.ion-palette-dark .modal-content .styled-input,
+html.ion-palette-dark .modal-content .styled-select {
+	--background: #1a2c42;
+	background: #1a2c42;
+	border-color: rgba(255, 255, 255, 0.08);
+	--color: #e8edf4;
+	color: #e8edf4;
+}
+
+html.ion-palette-dark .modal-content .modal-description {
+	color: #94a3b8;
+}
+
+html.ion-palette-dark .modal-content .modal-description strong {
+	color: #e8edf4;
+}
+
+html.ion-palette-dark .modal-content .credentials-panel {
+	background: rgba(22, 163, 74, 0.1);
+	border-color: rgba(134, 239, 172, 0.25);
+}
+
+html.ion-palette-dark .modal-content .credentials-header ion-icon {
+	color: #86efac;
+}
+
+html.ion-palette-dark .modal-content .credentials-header h3 {
+	color: #86efac;
+}
+
+html.ion-palette-dark .modal-content .credential-label {
+	color: #86efac;
+}
+
+html.ion-palette-dark .modal-content .credential-value {
+	color: #e8edf4;
+}
+
+html.ion-palette-dark .modal-content .btn-generate {
+	--border-color: rgba(212, 168, 67, 0.5);
+	--color: #d4a843;
 }

@@ -3,6 +3,7 @@ export interface ChatUser {
   first_name: string;
   last_name: string;
   public_key?: string | null;
+  avatarUrl?: string | null;
 }
 
 export interface ChatRoom {
@@ -91,3 +92,13 @@ export interface CreateGroupResponse {
 export type ActiveTab = 'messages' | 'rooms';
 
 export type ChatView = 'contacts' | 'conversation' | 'rooms' | 'room-chat' | 'create-room';
+
+export interface OpenChat {
+  id: string;          // 'direct-{userId}' or 'room-{roomId}'
+  type: 'direct' | 'room';
+  userId?: number;
+  roomId?: number;
+  label: string;
+  initials: string;
+  avatarUrl?: string | null;
+}

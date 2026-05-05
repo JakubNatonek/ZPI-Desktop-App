@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { ModalController, IonButton, IonContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonTextarea, IonSpinner, IonIcon, IonList } from '@ionic/angular/standalone';
+import { ModalController, IonButton, IonContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonTextarea, IonSpinner, IonIcon, IonList, IonHeader, IonToolbar, IonTitle, IonButtons, IonSegment, IonSegmentButton, IonFooter } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { addIcons } from 'ionicons';
-import { close } from 'ionicons/icons';
+import { close, calendarOutline, medicalOutline } from 'ionicons/icons';
 import { CreateUnavailabilityNoteRequest, NoteType, UnavailabilityNotesApiService } from '../../../../core/services/unavailability-notes-api.service';
 
 @Component({
@@ -25,6 +25,13 @@ import { CreateUnavailabilityNoteRequest, NoteType, UnavailabilityNotesApiServic
     IonSpinner,
     IonIcon,
     IonList,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonButtons,
+    IonSegment,
+    IonSegmentButton,
+    IonFooter,
   ],
 })
 export class UnavailabilityNoteModalComponent implements OnInit {
@@ -38,7 +45,7 @@ export class UnavailabilityNoteModalComponent implements OnInit {
     private fb: FormBuilder,
     private unavailabilityService: UnavailabilityNotesApiService,
   ) {
-    addIcons({ close });
+    addIcons({ close, calendarOutline, medicalOutline });
   }
 
   ngOnInit(): void {
@@ -76,6 +83,23 @@ export class UnavailabilityNoteModalComponent implements OnInit {
     if (!this.isDateRange) {
       this.form.patchValue({ endDate: '' });
     }
+  }
+
+  /**
+   * Obsługa ion-segment dla trybu daty
+   */
+  onDateModeChange(event: any): void {
+    const isRange = event.detail.value === 'range';
+    if (isRange !== this.isDateRange) {
+      this.toggleDateType();
+    }
+  }
+
+  /**
+   * Dzisiejsza data w formacie YYYY-MM-DD (dla atrybutu min)
+   */
+  get todayString(): string {
+    return this.getTodayDateString();
   }
 
   /**
