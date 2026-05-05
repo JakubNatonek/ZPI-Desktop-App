@@ -39,8 +39,8 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
     type_id: 'ID Typu',
     activity_id: 'ID Aktywności',
     activity_name: 'Nazwa Aktywności',
-    type_display: 'Typ wyświetlany',
-    room_properties: 'Właściwości sali',
+    type_display: 'Skrót typu',
+    room_properties: 'Wymagania sali',
     blocked: 'Zablokowane',
     periodic: 'Cykliczne',
     first_name: 'Imię',
@@ -56,6 +56,7 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
     capacity: 'Pojemność',
     building: 'Budynek',
     room_type: 'Typ sali',
+    room_type_id: 'ID Typu sali',
     properties: 'Właściwości',
     abbreviation: 'Skrót',
     semester: 'Semestr',
@@ -63,7 +64,21 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
     color: 'Kolor',
     is_active: 'Aktywny',
     created_at: 'Utworzono',
-    updated_at: 'Zaktualizowano'
+    updated_at: 'Zaktualizowano',
+    user_id: 'ID Użytkownika',
+    department_id: 'ID Wydziału',
+    title_id: 'ID Tytułu',
+    password: 'Hasło (zakodowane)',
+    password_hash: 'Hasło (zakodowane)',
+    room_number: 'Numer sali',
+    seats_count: 'Liczba miejsc',
+    special_equipment: 'Sprzęt specjalny (ID)',
+    activities: 'Aktywności (ID)',
+    departments: 'Wydziały (ID)',
+    special_equipment_names: 'Sprzęt specjalny',
+    activity_names: 'Aktywności',
+    department_names: 'Wydziały',
+    title: 'Tytuł'
   };
 
   constructor(private auditApi: AuditApiService) {
@@ -125,7 +140,7 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
     if (!values) return `#${log.entity_id}`;
     
     // Potencjalne klucze przechowujące nazwę
-    const nameKeys = ['name', 'short_name', 'email', 'title', 'description', 'activity_name'];
+    const nameKeys = ['name', 'short_name', 'email', 'title', 'room_number', 'description', 'activity_name'];
     for (const key of nameKeys) {
       if (values[key]) {
         let val = values[key];
@@ -142,7 +157,23 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
 
   getDisplayValue(val: any): string {
     if (val === null || val === undefined) return 'Brak';
-    if (typeof val === 'boolean') return val ? 'Tak' : 'Nie';
+    if (typeof val === 'boolean') {
+      return val ? 'Tak' : 'Nie';
+    }
+    if (typeof val === 'object') {
+      if (Array.isArray(val)) {
+        return val.length > 0 ? val.join(', ') : 'Brak danych';
+      }
+      return JSON.stringify(val);
+    }
+    // Specjalne mapowanie dla statusów dezyderat
+    if (val === 'pending') return 'Oczekujące';
+    if (val === 'accepted') return 'Zaakceptowane';
+    if (val === 'rejected') return 'Odrzucone';
+    if (val === 'acknowledged') return 'Zapoznano się';
+    if (val === 'request') return 'Wniosek';
+    if (val === 'forced') return 'Przymus';
+    
     return String(val);
   }
 }

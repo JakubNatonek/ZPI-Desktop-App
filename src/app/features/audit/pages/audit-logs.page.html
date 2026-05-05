@@ -39,15 +39,17 @@
                   <div class="changes-col nowa-wartosc">Jest</div>
                 </div>
                 <div class="changes-row" *ngFor="let key of getParsedKeys(log.new_values)">
-                  <div class="changes-col pole">
-                    <strong>{{ getTranslatedKey(key) }}</strong>
-                  </div>
-                  <div class="changes-col stara-wartosc changes-old" [class.changed-val]="log.old_values[key] !== log.new_values[key]">
-                    {{ getDisplayValue(log.old_values[key]) }}
-                  </div>
-                  <div class="changes-col nowa-wartosc changes-new" [class.changed-val]="log.old_values[key] !== log.new_values[key]">
-                    {{ getDisplayValue(log.new_values[key]) }}
-                  </div>
+                  <ng-container *ngIf="log.old_values[key] !== log.new_values[key]">
+                    <div class="changes-col pole">
+                      <strong>{{ getTranslatedKey(key) }}</strong>
+                    </div>
+                    <div class="changes-col stara-wartosc changes-old changed-val">
+                      {{ getDisplayValue(log.old_values[key]) }}
+                    </div>
+                    <div class="changes-col nowa-wartosc changes-new changed-val">
+                      {{ getDisplayValue(log.new_values[key]) }}
+                    </div>
+                  </ng-container>
                 </div>
               </div>
 
