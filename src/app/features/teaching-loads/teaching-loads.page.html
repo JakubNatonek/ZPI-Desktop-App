@@ -1,0 +1,360 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Panel administratora</ion-title>
+    <ion-buttons slot="end" class="app-header-user-actions">
+      <ion-chip color="medium" outline>
+        <ion-label>{{ userRoleLabel }}</ion-label>
+      </ion-chip>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0" (click)="toggleProfileMenu($event)">
+        <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+      </ion-avatar>
+
+      <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
+        alignment="end" (didDismiss)="closeProfileMenu()">
+        <ng-template>
+          <ion-list lines="none">
+            <ion-item button detail="false" (click)="openSettings()">Ustawienia</ion-item>
+            <ion-item button detail="false" class="logout-item" (click)="logout()">Wyloguj</ion-item>
+          </ion-list>
+        </ng-template>
+      </ion-popover>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="teaching-loads-content">
+  <div class="canvas-bg" aria-hidden="true"></div>
+
+  <section class="hero">
+    <p class="eyebrow">Administracja obciążeniem</p>
+    <h1>Przydział godzin dydaktycznych</h1>
+    <p>
+      Zarządzaj przydziałami godzin w stylu arkusza. Kliknij w komórkę, aby edytować,
+      a następnie potwierdź zmiany zielonym znacznikiem.
+    </p>
+  </section>
+
+  <ion-card class="form-shell table-shell">
+    <ion-card-content>
+      <div class="actions-row">
+        <ion-button color="primary" (click)="startCreating()" [disabled]="isCreating || isSaving || isLoading">
+          Dodaj przydział
+        </ion-button>
+        <ion-searchbar
+          class="searchbar"
+          placeholder="Szukaj według dydaktyka, przedmiotu, typu zajęć..."
+          [(ngModel)]="searchQuery"
+          (ionInput)="applyFilters()">
+        </ion-searchbar>
+        <ion-button fill="outline" color="dark" (click)="reload()">Odśwież dane</ion-button>
+        <ion-button fill="clear" color="medium" (click)="clearFilters()">Wyczyść filtry</ion-button>
+      </div>
+
+      <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
+
+      <ion-note color="danger" *ngIf="errorMessage" class="list-message">
+        {{ errorMessage }}
+      </ion-note>
+
+      <ion-note color="danger" *ngIf="rowErrorMessage" class="list-message">
+        {{ rowErrorMessage }}
+      </ion-note>
+
+      <ion-note color="warning" *ngIf="historyErrorMessage" class="list-message">
+        {{ historyErrorMessage }}
+      </ion-note>
+
+      <div *ngIf="!isLoading && (filteredAssignments.length > 0 || isCreating)" class="table-wrapper">
+        <table class="excel-table">
+          <thead>
+            <tr>
+              <th>Dydaktyk</th>
+              <th>Przedmiot</th>
+              <th>Typ zajęć</th>
+              <th class="hours-col">Godziny</th>
+              <th>Semestr</th>
+              <th class="history-col">Historia</th>
+              <th class="actions-col"></th>
+            </tr>
+            <tr class="filters-row">
+              <th>
+                <ion-select
+                  interface="popover"
+                  class="filter-select"
+                  [(ngModel)]="filters.teacher_id"
+                  (ionChange)="applyFilters()">
+                  <ion-select-option [value]="null">Wszyscy</ion-select-option>
+                  <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.user_id">
+                    {{ getTeacherOptionLabel(teacher) }}
+                  </ion-select-option>
+                </ion-select>
+              </th>
+              <th>
+                <ion-select
+                  interface="popover"
+                  class="filter-select"
+                  [(ngModel)]="filters.subject_id"
+                  (ionChange)="applyFilters()">
+                  <ion-select-option [value]="null">Wszystkie</ion-select-option>
+                  <ion-select-option *ngFor="let subject of subjects" [value]="subject.id">
+                    {{ subject.name }}
+                  </ion-select-option>
+                </ion-select>
+              </th>
+              <th>
+                <ion-select
+                  interface="popover"
+                  class="filter-select"
+                  [(ngModel)]="filters.activity_id"
+                  (ionChange)="applyFilters()">
+                  <ion-select-option [value]="null">Wszystkie</ion-select-option>
+                  <ion-select-option *ngFor="let activity of activities" [value]="activity.id">
+                    {{ activity.name }}
+                  </ion-select-option>
+                </ion-select>
+              </th>
+              <th>
+                <div class="hours-filter">
+                  <input
+                    class="filter-input"
+                    type="number"
+                    min="0"
+                    placeholder="Min"
+                    [(ngModel)]="filters.hours_min"
+                    (input)="applyFilters()" />
+                  <input
+                    class="filter-input"
+                    type="number"
+                    min="0"
+                    placeholder="Max"
+                    [(ngModel)]="filters.hours_max"
+                    (input)="applyFilters()" />
+                </div>
+              </th>
+              <th>
+                <ion-select
+                  interface="popover"
+                  class="filter-select"
+                  [(ngModel)]="filters.semester_id"
+                  (ionChange)="applyFilters()">
+                  <ion-select-option [value]="null">Wszystkie</ion-select-option>
+                  <ion-select-option *ngFor="let semester of semesters" [value]="semester.id">
+                    {{ semester.nazwa }}
+                  </ion-select-option>
+                </ion-select>
+              </th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="isCreating && newRowDraft" class="is-new">
+              <td class="cell">
+                <ion-select
+                  interface="popover"
+                  class="cell-select"
+                  [(ngModel)]="newRowDraft.teacher_id">
+                  <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.user_id">
+                    {{ getTeacherOptionLabel(teacher) }}
+                  </ion-select-option>
+                </ion-select>
+              </td>
+              <td class="cell">
+                <ion-select
+                  interface="popover"
+                  class="cell-select"
+                  [(ngModel)]="newRowDraft.subject_id"
+                  (ionChange)="onNewSubjectChange()">
+                  <ion-select-option *ngFor="let subject of subjects" [value]="subject.id">
+                    {{ subject.name }}
+                  </ion-select-option>
+                </ion-select>
+              </td>
+              <td class="cell">
+                <ion-select
+                  interface="popover"
+                  class="cell-select"
+                  [(ngModel)]="newRowDraft.activity_id">
+                  <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(newRowDraft.subject_id)" [value]="activity.id">
+                    {{ activity.name }}
+                  </ion-select-option>
+                </ion-select>
+              </td>
+              <td class="cell hours-cell">
+                <ion-input
+                  type="number"
+                  min="1"
+                  class="cell-input"
+                  [(ngModel)]="newRowDraft.hours">
+                </ion-input>
+              </td>
+              <td class="cell">
+                <ion-select
+                  interface="popover"
+                  class="cell-select"
+                  [(ngModel)]="newRowDraft.semester_id">
+                  <ion-select-option *ngFor="let semester of semesters" [value]="semester.id">
+                    {{ semester.nazwa }}
+                  </ion-select-option>
+                </ion-select>
+              </td>
+              <td class="cell history-cell">
+                <span class="history-empty">--</span>
+              </td>
+              <td class="cell actions-cell">
+                <div class="edit-actions">
+                  <ion-button size="small" color="success" fill="clear" (click)="saveCreating()">
+                    <ion-icon name="checkmark-circle"></ion-icon>
+                  </ion-button>
+                  <ion-button size="small" color="danger" fill="clear" (click)="cancelCreating()">
+                    <ion-icon name="close-circle"></ion-icon>
+                  </ion-button>
+                </div>
+              </td>
+            </tr>
+            <ng-container *ngFor="let row of filteredAssignments; trackBy: trackByAssignmentId">
+              <tr [class.is-editing]="editingRowId === row.id">
+                <td class="cell editable" (click)="startEditing(row, $event)">
+                  <ng-container *ngIf="editingRowId === row.id && draftRow; else teacherDisplay">
+                    <ion-select
+                      interface="popover"
+                      class="cell-select"
+                      [(ngModel)]="draftRow.teacher_id"
+                      (click)="$event.stopPropagation()">
+                      <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.user_id">
+                        {{ getTeacherOptionLabel(teacher) }}
+                      </ion-select-option>
+                    </ion-select>
+                  </ng-container>
+                  <ng-template #teacherDisplay>
+                    <div class="cell-display">{{ getTeacherLabel(row) }}</div>
+                  </ng-template>
+                </td>
+                <td class="cell editable" (click)="startEditing(row, $event)">
+                  <ng-container *ngIf="editingRowId === row.id && draftRow; else subjectDisplay">
+                    <ion-select
+                      interface="popover"
+                      class="cell-select"
+                      [(ngModel)]="draftRow.subject_id"
+                      (ionChange)="onEditSubjectChange()"
+                      (click)="$event.stopPropagation()">
+                      <ion-select-option *ngFor="let subject of subjects" [value]="subject.id">
+                        {{ subject.name }}
+                      </ion-select-option>
+                    </ion-select>
+                  </ng-container>
+                  <ng-template #subjectDisplay>
+                    <div class="cell-display">{{ getSubjectLabel(row) }}</div>
+                  </ng-template>
+                </td>
+                <td class="cell editable" (click)="startEditing(row, $event)">
+                  <ng-container *ngIf="editingRowId === row.id && draftRow; else activityDisplay">
+                    <ion-select
+                      interface="popover"
+                      class="cell-select"
+                      [(ngModel)]="draftRow.activity_id"
+                      (click)="$event.stopPropagation()">
+                      <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(draftRow.subject_id)" [value]="activity.id">
+                        {{ activity.name }}
+                      </ion-select-option>
+                    </ion-select>
+                  </ng-container>
+                  <ng-template #activityDisplay>
+                    <div class="cell-display">{{ getActivityLabel(row) }}</div>
+                  </ng-template>
+                </td>
+                <td class="cell editable hours-cell" (click)="startEditing(row, $event)">
+                  <ng-container *ngIf="editingRowId === row.id && draftRow; else hoursDisplay">
+                    <ion-input
+                      type="number"
+                      min="1"
+                      class="cell-input"
+                      [(ngModel)]="draftRow.hours"
+                      (click)="$event.stopPropagation()">
+                    </ion-input>
+                  </ng-container>
+                  <ng-template #hoursDisplay>
+                    <div class="cell-display">{{ row.hours }}</div>
+                  </ng-template>
+                </td>
+                <td class="cell editable" (click)="startEditing(row, $event)">
+                  <ng-container *ngIf="editingRowId === row.id && draftRow; else semesterDisplay">
+                    <ion-select
+                      interface="popover"
+                      class="cell-select"
+                      [(ngModel)]="draftRow.semester_id"
+                      (click)="$event.stopPropagation()">
+                      <ion-select-option *ngFor="let semester of semesters" [value]="semester.id">
+                        {{ semester.nazwa }}
+                      </ion-select-option>
+                    </ion-select>
+                  </ng-container>
+                  <ng-template #semesterDisplay>
+                    <div class="cell-display">{{ getSemesterLabel(row) }}</div>
+                  </ng-template>
+                </td>
+                <td class="cell history-cell">
+                  <ion-button
+                    fill="clear"
+                    size="small"
+                    class="history-button"
+                    [class.is-new]="isHistoryNew(row.id)"
+                    [title]="isHistoryNew(row.id) ? 'Nowe zmiany' : 'Historia zmian'"
+                    (click)="toggleHistory(row, $event)">
+                    <ion-icon [name]="isHistoryNew(row.id) ? 'alert-circle-outline' : 'time-outline'"></ion-icon>
+                  </ion-button>
+                  <span class="history-count" *ngIf="getHistoryCount(row.id) > 0">
+                    {{ getHistoryCount(row.id) }}
+                  </span>
+                </td>
+                <td class="cell actions-cell">
+                  <div class="edit-actions" *ngIf="editingRowId === row.id">
+                    <ion-button size="small" color="success" fill="clear" (click)="saveEditing()">
+                      <ion-icon name="checkmark-circle"></ion-icon>
+                    </ion-button>
+                    <ion-button size="small" color="danger" fill="clear" (click)="cancelEditing()">
+                      <ion-icon name="close-circle"></ion-icon>
+                    </ion-button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="historyOpenRowId === row.id" class="history-row">
+                <td colspan="7">
+                  <div class="history-panel">
+                    <ng-container *ngIf="getHistoryForRow(row.id).length > 0; else emptyHistory">
+                      <div class="history-entry" *ngFor="let log of getHistoryForRow(row.id)">
+                        <div class="history-meta">
+                          <span class="history-action" [class.is-create]="log.action === 'CREATE'"
+                            [class.is-update]="log.action === 'UPDATE'"
+                            [class.is-delete]="log.action === 'DELETE'">
+                            {{ getActionLabel(log.action) }}
+                          </span>
+                          <span class="history-author">{{ log.modified_by_name || 'System' }}</span>
+                          <span class="history-time">{{ log.timestamp | date:'dd.MM.yyyy HH:mm' }}</span>
+                        </div>
+                        <div class="history-summary" *ngIf="log.action === 'UPDATE'">
+                          {{ getHistorySummary(log) }}
+                        </div>
+                      </div>
+                    </ng-container>
+                    <ng-template #emptyHistory>
+                      <div class="history-empty">Brak wpisów historii.</div>
+                    </ng-template>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" *ngIf="!isLoading && filteredAssignments.length === 0 && !isCreating">
+        <h3>Brak danych do wyświetlenia</h3>
+        <p>Sprawdź filtry albo zaczekaj na wprowadzenie przydziałów.</p>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</ion-content>
