@@ -7,8 +7,14 @@
           <ion-icon name="chevron-back-outline"></ion-icon>
         </div>
         <h3>Tryb pracy</h3>
-        <ion-button *ngIf="isAdminOrPlanner" class="rapla-file-btn" expand="block" fill="outline" color="primary"
-          [href]="raplaFileUrl" target="_blank" rel="noopener noreferrer">
+
+        <ion-button *ngIf="hasNewAuditLogs" expand="block" color="warning" class="audit-btn" (click)="goToAuditLogs()">
+          <ion-icon slot="start" name="notifications-outline"></ion-icon>
+          Nowe zmiany w systemie
+        </ion-button>
+
+        <ion-button *ngIf="isLecturer || isAdminOrPlanner" class="rapla-file-btn" expand="block" fill="outline"
+          color="primary" [href]="raplaFileUrl" target="_blank" rel="noopener noreferrer">
           <ion-icon slot="start" name="cloud-download-outline"></ion-icon>
           Pobierz plik Rapla
         </ion-button>
@@ -150,6 +156,20 @@
             <h4>Lista wykładowców</h4>
             <p class="lecturer-message" *ngIf="adminPanelMessage">{{ adminPanelMessage }}</p>
 
+            <!-- Filtry dezyderat -->
+            <div class="lecturer-filters" *ngIf="!isLoadingLecturerStatuses && lecturerStatusList.length > 0">
+              <input class="lf-search" type="text" [(ngModel)]="lecturerSearchQuery"
+                placeholder="Szukaj po nazwisku lub e-mailu..." />
+              <select class="lf-select" [(ngModel)]="lecturerStatusFilter">
+                <option value="all">Wszystkie statusy</option>
+                <option value="approved">Zatwierdzona dezyderata</option>
+                <option value="missing">Brak zatwierdzonej dezyderaty</option>
+              </select>
+              <span class="lf-count">
+                {{ filteredLecturerStatusList.length }} / {{ lecturerStatusList.length }}
+              </span>
+            </div>
+
             <div class="loading-indicator" *ngIf="isLoadingLecturerStatuses">
               <ion-spinner name="crescent"></ion-spinner>
               <span>Ładowanie listy wykładowców...</span>
@@ -157,7 +177,7 @@
 
             <div class="lecturer-list"
               *ngIf="!isLoadingLecturerStatuses && lecturerStatusList.length > 0; else emptyLecturerState">
-              <div class="submission-card lecturer-status-card" *ngFor="let lecturer of lecturerStatusList"
+              <div class="submission-card lecturer-status-card" *ngFor="let lecturer of filteredLecturerStatusList"
                 [class.is-active]="isLecturerStatusActive(lecturer)" [class.is-clickable]="lecturer.isApproved"
                 [class.status-approved]="lecturer.isApproved" [class.status-missing]="!lecturer.isApproved"
                 [attr.role]="lecturer.isApproved ? 'button' : null" [attr.tabindex]="lecturer.isApproved ? '0' : null"

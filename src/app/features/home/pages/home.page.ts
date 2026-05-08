@@ -8,10 +8,11 @@ import {
   chevronBackOutline, chevronForwardOutline, cloudDownloadOutline,
   cloudUploadOutline, addOutline, peopleOutline, menuOutline,
   checkmarkDoneOutline, createOutline, swapHorizontalOutline,
-  timeOutline, calendarOutline, warningOutline
+  timeOutline, calendarOutline, warningOutline, alertCircleOutline, notificationsOutline
 } from 'ionicons/icons';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { AuditApiService, AuditLogDto } from '../../../core/services/audit-api.service';
 import { DezyderataService, Semestr, Dezyderata, DezyderataCreate, DezyderataCreateEntry } from '../../../core/services/dezyderata.service';
 import { UsersAdminApiService, AdminUserRow } from '../../../core/services/users-admin-api.service';
 import { UnavailabilityNotesApiService } from '../../../core/services/unavailability-notes-api.service';
@@ -97,6 +98,18 @@ export class HomePage implements OnInit {
   adminPanelMessage = '';
   allSubmissions: LecturerSubmission[] = [];
   lecturerStatusList: LecturerStatusItem[] = [];
+  lecturerSearchQuery: string = '';
+  lecturerStatusFilter: 'all' | 'approved' | 'missing' = 'all';
+
+  get filteredLecturerStatusList(): LecturerStatusItem[] {
+    const q = this.lecturerSearchQuery.toLowerCase().trim();
+    return this.lecturerStatusList.filter(l => {
+      if (this.lecturerStatusFilter === 'approved' && !l.isApproved) return false;
+      if (this.lecturerStatusFilter === 'missing' && l.isApproved) return false;
+      if (q && !l.lecturerDisplayName.toLowerCase().includes(q) && !l.lecturerEmail.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }
   expandedLecturerIds = new Set<number>();
   activePlannerSubmissionId: string | null = null;
   selectedSubmissionPreview: LecturerSubmission | null = null;
@@ -148,6 +161,7 @@ export class HomePage implements OnInit {
   isLoadingSemestry = false;
   isLoadingDezyderaty = false;
   isSaving = false;
+  hasNewAuditLogs = false;
 
   get isLecturer(): boolean {
     return this.auth.role === 'lecturer';
@@ -270,6 +284,7 @@ export class HomePage implements OnInit {
     private dezyderataService: DezyderataService,
     private usersAdminApi: UsersAdminApiService,
     private unavailabilityNotesApi: UnavailabilityNotesApiService,
+    private auditApi: AuditApiService,
     private modalController: ModalController
   ) {
     addIcons({
@@ -286,6 +301,8 @@ export class HomePage implements OnInit {
       timeOutline,
       calendarOutline,
       warningOutline,
+      alertCircleOutline,
+      notificationsOutline
     });
   }
 
@@ -293,6 +310,23 @@ export class HomePage implements OnInit {
     this.updateView();
     this.loadSemestry();
     this.maybeStartLecturerTutorial();
+    this.checkAuditLogs();
+  }
+
+  checkAuditLogs() {
+    if (this.isAdminOrPlanner || this.auth.role === 'rapla_editor') {
+      this.auditApi.getLogs().subscribe({
+        next: (res) => {
+          const lastViewed = res.last_changes_viewed_at ? new Date(res.last_changes_viewed_at).getTime() : 0;
+          this.hasNewAuditLogs = res.logs.some(log => new Date(log.timestamp).getTime() > lastViewed);
+        },
+        error: (err) => console.error('Błąd pobierania logów autytu', err)
+      });
+    }
+  }
+
+  goToAuditLogs() {
+    this.router.navigate(['/audit-logs']);
   }
 
   ionViewWillEnter() {
@@ -1348,7 +1382,7 @@ export class HomePage implements OnInit {
   }
 
   private completeTutorial() {
-    this.isTutorialActive = false;
+    this.disableTutorial();
   }
 
   private refreshTutorialSpotlight() {
@@ -1453,6 +1487,8 @@ export class HomePage implements OnInit {
       // Przeładuj informacje o niedostępności (aby zaktualizować ikonkę w admin view)
       if (this.auth.role === 'admin') {
         this.loadUnavailabilityInfoForLecturers();
+      } else {
+        this.lecturerMessage = 'Zgłoszenie niedostępności zostało wysłane.';
       }
     }
   }

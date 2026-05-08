@@ -54,6 +54,27 @@
       margin: 0 0 10px;
     }
 
+    .audit-btn {
+      margin-top: 10px;
+      margin-bottom: 12px;
+      animation: pulse-badge 2s infinite;
+      font-weight: 600;
+    }
+
+    @keyframes pulse-badge {
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.02);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
     .role-label {
       color: #4b5563;
       margin-top: 0;
@@ -144,6 +165,54 @@
       margin-top: 10px;
       font-size: 0.86rem;
       color: #065f46;
+    }
+
+    .lecturer-filters {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 8px 0 10px;
+
+      .lf-search {
+        flex: 1 1 150px;
+        min-width: 120px;
+        height: 32px;
+        padding: 0 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        background: #f8fafc;
+        color: #1e293b;
+        outline: none;
+
+        &:focus {
+          border-color: #0f766e;
+        }
+      }
+
+      .lf-select {
+        height: 32px;
+        padding: 0 8px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        background: #f8fafc;
+        color: #1e293b;
+        cursor: pointer;
+        outline: none;
+
+        &:focus {
+          border-color: #0f766e;
+        }
+      }
+
+      .lf-count {
+        font-size: 0.75rem;
+        color: #64748b;
+        white-space: nowrap;
+        font-weight: 600;
+      }
     }
 
     .sent-data {

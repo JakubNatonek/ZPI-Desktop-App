@@ -32,10 +32,13 @@
         <ion-item button *ngIf="auth.role !== 'lecturer'" (click)="navigate('/konflikty')">Konflikty</ion-item>
         <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/sale')">Sale</ion-item>
         <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/subjects')">Przedmioty</ion-item>
+        <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/teaching-loads')">Przydzial godzin</ion-item>
         <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/admin/users/new')">Dodaj
           użytkownika</ion-item>
         <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/admin/unavailability-notes')">Notatki o
           niedostępności</ion-item>
+        <ion-item button *ngIf="auth.role === 'admin' || auth.role === 'rapla_editor'"
+          (click)="navigate('/audit-logs')">Historia zmian</ion-item>
         <ion-item button (click)="navigate('/profile')">Profil</ion-item>
         <ion-item button (click)="navigate('/chat')">Czat</ion-item>
       </ion-list>

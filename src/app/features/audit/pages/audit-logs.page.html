@@ -1,0 +1,180 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Historia zmian</ion-title>
+    <ion-buttons slot="end" class="app-header-user-actions">
+      <ion-button color="success" fill="solid" size="small" *ngIf="hasNew" (click)="acknowledgeChanges()">
+        <ion-icon name="checkmark-done" slot="start"></ion-icon>
+        Oznacz jako przejrzane
+      </ion-button>
+      <ion-chip class="role-chip" outline>
+        <ion-label>{{ userRoleLabel }}</ion-label>
+      </ion-chip>
+      <span class="toolbar-username">{{ auth.displayName }}</span>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0"
+        (click)="toggleProfileMenu($event)">
+        <img [src]="auth.avatarUrl" alt="Avatar" />
+      </ion-avatar>
+      <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
+        alignment="end" (didDismiss)="closeProfileMenu()">
+        <ng-template>
+          <ion-list lines="none">
+            <ion-item>
+              <ion-label>
+                <strong>{{ auth.displayName }}</strong>
+              </ion-label>
+            </ion-item>
+            <ion-item button detail="false" (click)="openSettings()">Ustawienia</ion-item>
+            <ion-item button detail="false" class="logout-item" (click)="logout()">Wyloguj</ion-item>
+          </ion-list>
+        </ng-template>
+      </ion-popover>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="audit-content">
+  <div class="audit-shell">
+
+    <!-- Header hero -->
+    <div class="audit-hero">
+      <p class="eyebrow">System</p>
+      <h1>Historia zmian</h1>
+      <p class="subtitle">Łańcuch wszystkich modyfikacji w systemie — posortowany od najnowszych.</p>
+      <div class="hero-actions" *ngIf="hasNew">
+        <ion-button color="success" fill="outline" size="small" (click)="acknowledgeChanges()">
+          <ion-icon name="checkmark-done" slot="start"></ion-icon>
+          Oznacz jako przejrzane
+        </ion-button>
+        <span class="new-badge-count">{{ newCount }} nowych zmian</span>
+      </div>
+    </div>
+
+    <!-- Filters bar -->
+    <div class="filters-bar" *ngIf="logs.length > 0">
+      <div class="filter-row">
+        <div class="filter-field filter-search">
+          <ion-searchbar [(ngModel)]="filterSearch" placeholder="Szukaj po użytkowniku lub encji..." [debounce]="200"
+            class="compact-searchbar">
+          </ion-searchbar>
+        </div>
+        <div class="filter-field">
+          <label class="filter-label">Typ obiektu</label>
+          <ion-select [(ngModel)]="filterEntity" placeholder="Wszystkie" interface="popover" class="filter-select">
+            <ion-select-option value="">Wszystkie</ion-select-option>
+            <ion-select-option *ngFor="let ent of entityTypes" [value]="ent">
+              {{ getTranslatedEntity(ent) }}
+            </ion-select-option>
+          </ion-select>
+        </div>
+        <div class="filter-field">
+          <label class="filter-label">Akcja</label>
+          <ion-select [(ngModel)]="filterAction" placeholder="Wszystkie" interface="popover" class="filter-select">
+            <ion-select-option value="">Wszystkie</ion-select-option>
+            <ion-select-option value="create">Utworzono</ion-select-option>
+            <ion-select-option value="update">Zaktualizowano</ion-select-option>
+            <ion-select-option value="delete">Usunięto</ion-select-option>
+          </ion-select>
+        </div>
+        <button class="clear-btn" *ngIf="isFiltered" (click)="clearFilters()">
+          <ion-icon name="close-circle-outline"></ion-icon>
+          Wyczyść
+        </button>
+      </div>
+      <div class="filter-summary" *ngIf="isFiltered">
+        Wyświetlono {{ filteredCount }} z {{ logs.length }} wpisów
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" *ngIf="logs.length === 0">
+      <ion-icon name="document-text-outline"></ion-icon>
+      <p>Brak wpisów w historii zmian.</p>
+    </div>
+    <div class="empty-state" *ngIf="logs.length > 0 && filteredGroups.length === 0">
+      <ion-icon name="document-text-outline"></ion-icon>
+      <p>Brak wyników dla wybranych filtrów.</p>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline" *ngIf="filteredGroups.length > 0">
+      <ng-container *ngFor="let group of filteredGroups">
+        <!-- Date separator -->
+        <div class="date-separator">
+          <span>{{ group.date }}</span>
+        </div>
+
+        <!-- Log entries for this date -->
+        <div class="timeline-entry" *ngFor="let log of group.logs; let last = last" [class.is-new]="log.isNew"
+          [class.last-in-group]="last">
+
+          <!-- Dot + line -->
+          <div class="tl-rail">
+            <div class="tl-dot" [class.dot-create]="log.action === 'create'"
+              [class.dot-update]="log.action === 'update'" [class.dot-delete]="log.action === 'delete'">
+            </div>
+            <div class="tl-line" *ngIf="!last"></div>
+          </div>
+
+          <!-- Card -->
+          <div class="tl-card" [class.tl-card-new]="log.isNew" (click)="markRead(log)">
+            <div class="tl-card-header">
+              <div class="tl-card-title">
+                <span class="entity-chip" [class.chip-create]="log.action === 'create'"
+                  [class.chip-update]="log.action === 'update'" [class.chip-delete]="log.action === 'delete'">
+                  {{ actionLabel(log.action) }}
+                </span>
+                <strong>{{ getTranslatedEntity(log.entity_name) }}</strong>
+                <span class="entity-id">{{ getEntityDisplayName(log) }}</span>
+                <span class="new-pill" *ngIf="log.isNew">NOWE</span>
+              </div>
+              <div class="tl-card-meta">
+                <ion-icon name="person-outline"></ion-icon>
+                {{ log.modified_by_name || 'System' }}
+                <span class="dot-sep">·</span>
+                <ion-icon name="time-outline"></ion-icon>
+                {{ log.timestamp | date:'HH:mm' }}
+              </div>
+            </div>
+
+            <!-- UPDATE diff table -->
+            <div class="diff-table" *ngIf="log.action === 'update' && log.old_values && log.new_values">
+              <div class="diff-header">
+                <div class="diff-col col-field">Pole</div>
+                <div class="diff-col col-old">Było</div>
+                <div class="diff-col col-arrow"></div>
+                <div class="diff-col col-new">Jest</div>
+              </div>
+              <ng-container *ngFor="let key of getParsedKeys(log.new_values)">
+                <div class="diff-row diff-row--changed" *ngIf="hasChanged(log.old_values[key], log.new_values[key])">
+                  <div class="diff-col col-field">{{ getTranslatedKey(key) }}</div>
+                  <div class="diff-col col-old">{{ getDisplayValue(log.old_values[key]) }}</div>
+                  <div class="diff-col col-arrow">→</div>
+                  <div class="diff-col col-new">{{ getDisplayValue(log.new_values[key]) }}</div>
+                </div>
+              </ng-container>
+            </div>
+
+            <!-- CREATE / DELETE value list -->
+            <div class="diff-table single" *ngIf="log.action === 'create' || log.action === 'delete'">
+              <div class="diff-header">
+                <div class="diff-col col-field">Pole</div>
+                <div class="diff-col col-single">Wartość</div>
+              </div>
+              <div class="diff-row"
+                *ngFor="let key of getParsedKeys(log.action === 'create' ? log.new_values : log.old_values)">
+                <div class="diff-col col-field">{{ getTranslatedKey(key) }}</div>
+                <div class="diff-col col-single">{{ getDisplayValue((log.action === 'create' ? log.new_values :
+                  log.old_values)[key]) }}</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+  </div>
+</ion-content>
