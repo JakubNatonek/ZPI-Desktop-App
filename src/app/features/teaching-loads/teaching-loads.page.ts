@@ -1,4 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,6 +8,7 @@ import { addIcons } from 'ionicons';
 import { alertCircleOutline, checkmarkCircle, closeCircle, timeOutline } from 'ionicons/icons';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/services/auth.service';
 import { AuditApiService, AuditLogDto } from '../../core/services/audit-api.service';
 import {
@@ -25,9 +26,19 @@ type TeachingLoadFilterState = {
   subject_id?: number | null;
   activity_id?: number | null;
   semester_id?: number | null;
+  group_id?: number | null;
   hours_min?: number | null;
   hours_max?: number | null;
 };
+
+export interface GroupOption {
+  id: number;
+  specialization?: string;
+  code?: string;
+  year?: number;
+  studies_type?: string;
+  name?: string;
+}
 
 @Component({
   selector: 'app-teaching-loads',
@@ -49,14 +60,17 @@ export class TeachingLoadsPage implements OnInit {
   filteredAssignments: TeachingLoadAssignmentDto[] = [];
   teachers: TeacherOption[] = [];
   subjects: SubjectDto[] = [];
+  private subjectGroups: Map<string, SubjectDto[]> = new Map();
   activities: ActivityOption[] = [];
   semesters: Semestr[] = [];
+  groups: GroupOption[] = [];
 
   filters: TeachingLoadFilterState = {
     teacher_id: null,
     subject_id: null,
     activity_id: null,
     semester_id: null,
+    group_id: null,
     hours_min: null,
     hours_max: null,
   };
@@ -79,19 +93,20 @@ export class TeachingLoadsPage implements OnInit {
     private readonly teachingLoadsApi: TeachingLoadsApiService,
     private readonly dezyderataService: DezyderataService,
     private readonly auditApi: AuditApiService,
+    private readonly http: HttpClient,
   ) {
     addIcons({ alertCircleOutline, checkmarkCircle, closeCircle, timeOutline });
   }
 
   ngOnInit(): void {
-    if (this.auth.role !== 'admin') {
+    if (this.auth.role !== 'admin' && this.auth.role !== 'rapla_editor') {
       this.router.navigateByUrl('/home');
       return;
     }
   }
 
   ionViewWillEnter(): void {
-    if (this.auth.role !== 'admin') {
+    if (this.auth.role !== 'admin' && this.auth.role !== 'rapla_editor') {
       return;
     }
 
@@ -131,6 +146,7 @@ export class TeachingLoadsPage implements OnInit {
       subject_id: null,
       activity_id: null,
       semester_id: null,
+      group_id: null,
       hours_min: null,
       hours_max: null,
     };
@@ -143,21 +159,28 @@ export class TeachingLoadsPage implements OnInit {
     const subjectId = this.toNumber(this.filters.subject_id);
     const activityId = this.toNumber(this.filters.activity_id);
     const semesterId = this.toNumber(this.filters.semester_id);
+    const groupId = this.toNumber(this.filters.group_id);
     const hoursMin = this.toNumber(this.filters.hours_min);
     const hoursMax = this.toNumber(this.filters.hours_max);
     const query = this.normalizeSearch(this.searchQuery);
 
-    this.filteredAssignments = this.assignments.filter((item) => {
+    const filtered = this.assignments.filter((item) => {
       if (teacherId !== null && item.teacher_id !== teacherId) {
         return false;
       }
-      if (subjectId !== null && item.subject_id !== subjectId) {
-        return false;
+      if (subjectId !== null) {
+        const allowed = this.getSubjectEntriesById(subjectId).map((s) => s.id);
+        if (!allowed.includes(item.subject_id)) {
+          return false;
+        }
       }
       if (activityId !== null && item.activity_id !== activityId) {
         return false;
       }
       if (semesterId !== null && item.semester_id !== semesterId) {
+        return false;
+      }
+      if (groupId !== null && item.group_id !== groupId) {
         return false;
       }
       if (hoursMin !== null && item.hours < hoursMin) {
@@ -171,6 +194,22 @@ export class TeachingLoadsPage implements OnInit {
       }
       return true;
     });
+
+    filtered.sort((a, b) => {
+      const subjectA = this.normalizeSearch(this.getSubjectLabel(a));
+      const subjectB = this.normalizeSearch(this.getSubjectLabel(b));
+      if (subjectA < subjectB) return -1;
+      if (subjectA > subjectB) return 1;
+
+      const activityA = this.normalizeSearch(this.getActivityLabel(a));
+      const activityB = this.normalizeSearch(this.getActivityLabel(b));
+      if (activityA < activityB) return -1;
+      if (activityA > activityB) return 1;
+
+      return 0;
+    });
+
+    this.filteredAssignments = filtered;
   }
 
   startCreating(): void {
@@ -217,7 +256,8 @@ export class TeachingLoadsPage implements OnInit {
       .pipe(finalize(() => (this.isSaving = false)))
       .subscribe({
         next: (created) => {
-          this.assignments = [created, ...this.assignments];
+          const enriched = this.enrichAssignment(created);
+          this.assignments = [enriched, ...this.assignments];
           this.applyFilters();
           this.cancelCreating();
           this.refreshAuditIndex();
@@ -244,8 +284,12 @@ export class TeachingLoadsPage implements OnInit {
     }
 
     this.editingRowId = row.id;
-    this.originalRow = { ...row };
-    this.draftRow = { ...row };
+    const editableRow = {
+      ...row,
+      subject_id: this.getRepresentativeSubjectId(row.subject_id) ?? row.subject_id,
+    };
+    this.originalRow = { ...editableRow };
+    this.draftRow = { ...editableRow };
     this.rowErrorMessage = '';
   }
 
@@ -281,7 +325,8 @@ export class TeachingLoadsPage implements OnInit {
       .pipe(finalize(() => (this.isSaving = false)))
       .subscribe({
         next: (updated) => {
-          this.assignments = this.replaceById(this.assignments, updated, (item) => item.id);
+          const enriched = this.enrichAssignment(updated);
+          this.assignments = this.replaceById(this.assignments, enriched, (item) => item.id);
           this.applyFilters();
           this.cancelEditing();
           this.refreshAuditIndex();
@@ -356,6 +401,24 @@ export class TeachingLoadsPage implements OnInit {
     return fallback?.nazwa ?? `#${row.semester_id}`;
   }
 
+  getGroupOptionLabel(group: GroupOption): string {
+    if (group.specialization && group.code && group.year && group.studies_type) {
+      return `${group.specialization}/${group.code}/${group.year}/${group.studies_type}`;
+    }
+    return group.name ?? `#${group.id}`;
+  }
+
+  getGroupLabel(row: TeachingLoadAssignmentDto): string {
+    if (row.group_label) {
+      return row.group_label;
+    }
+    if (!row.group_id) {
+      return '-';
+    }
+    const fallback = this.groups.find((g) => g.id === row.group_id);
+    return fallback ? this.getGroupOptionLabel(fallback) : `#${row.group_id}`;
+  }
+
   getTeacherOptionLabel(teacher: TeacherOption): string {
     return [teacher.title || teacher.titles[0], `${teacher.first_name} ${teacher.last_name}`.trim()]
       .filter(Boolean)
@@ -363,34 +426,52 @@ export class TeachingLoadsPage implements OnInit {
   }
 
   getActivityOptionsForSubject(subjectId: number | null | undefined): ActivityOption[] {
-    const resolvedId = this.resolveSubjectActivityId(subjectId);
-    if (!resolvedId) {
+    if (!subjectId) {
       return this.activities;
     }
 
-    const match = this.activities.find((activity) => activity.id === resolvedId);
-    return match ? [match] : this.activities;
+    const entries = this.getSubjectEntriesById(subjectId);
+    const activityIds = Array.from(new Set(entries.map((e) => Number(e.activity_id)).filter(Boolean)));
+    if (!activityIds.length) {
+      return this.activities;
+    }
+
+    return this.activities.filter((a) => activityIds.includes(a.id));
   }
 
   onNewSubjectChange(): void {
-    if (!this.newRowDraft) {
+    const draft = this.newRowDraft;
+    if (!draft) {
       return;
     }
+    const options = this.getActivityOptionsForSubject(draft.subject_id);
+    if (options.length && !options.some((o) => o.id === draft.activity_id)) {
+      draft.activity_id = options[0].id;
+    }
+  }
 
-    const resolvedId = this.resolveSubjectActivityId(this.newRowDraft.subject_id);
-    if (resolvedId) {
-      this.newRowDraft.activity_id = resolvedId;
+  onNewActivityChange(): void {
+    const draft = this.newRowDraft;
+    if (!draft) {
+      return;
     }
   }
 
   onEditSubjectChange(): void {
-    if (!this.draftRow) {
+    const draft = this.draftRow;
+    if (!draft) {
       return;
     }
+    const options = this.getActivityOptionsForSubject(draft.subject_id);
+    if (options.length && !options.some((o) => o.id === draft.activity_id)) {
+      draft.activity_id = options[0].id;
+    }
+  }
 
-    const resolvedId = this.resolveSubjectActivityId(this.draftRow.subject_id);
-    if (resolvedId) {
-      this.draftRow.activity_id = resolvedId;
+  onEditActivityChange(): void {
+    const draft = this.draftRow;
+    if (!draft) {
+      return;
     }
   }
 
@@ -432,6 +513,33 @@ export class TeachingLoadsPage implements OnInit {
     return action;
   }
 
+  private buildSubjectGroups(): void {
+    this.subjectGroups = new Map();
+    for (const s of this.subjects) {
+      const name = s.name ?? `#${s.id}`;
+      const list = this.subjectGroups.get(name) ?? [];
+      list.push(s);
+      this.subjectGroups.set(name, list);
+    }
+  }
+
+  getSubjectOptions(): { id: number; name: string; entries: SubjectDto[] }[] {
+    const out: { id: number; name: string; entries: SubjectDto[] }[] = [];
+    for (const [name, entries] of this.subjectGroups.entries()) {
+      out.push({ id: entries[0].id, name, entries });
+    }
+    out.sort((a, b) => a.name.localeCompare(b.name));
+    return out;
+  }
+
+  private getSubjectEntriesById(subjectId: number | null | undefined): SubjectDto[] {
+    if (!subjectId) return [];
+    const subject = this.subjects.find((s) => s.id === subjectId);
+    if (!subject) return [];
+    const name = subject.name ?? `#${subject.id}`;
+    return this.subjectGroups.get(name) ?? [subject];
+  }
+
   trackByAssignmentId(_: number, item: TeachingLoadAssignmentDto): number {
     return item.id;
   }
@@ -454,19 +562,30 @@ export class TeachingLoadsPage implements OnInit {
       subjects: this.teachingLoadsApi.getSubjects(),
       activities: this.teachingLoadsApi.getActivities(),
       semesters: this.dezyderataService.getSemestry(),
+      groups: this.http.get<GroupOption[]>(`${environment.apiBaseUrl}/groups/list`).pipe(
+        catchError(() => of([]))
+      ),
       audit: this.auditApi.getLogs().pipe(
         catchError(() => of({ last_changes_viewed_at: null, logs: [] })),
       ),
     })
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
-        next: ({ assignments, teachers, subjects, activities, semesters, audit }) => {
+        next: ({ assignments, teachers, subjects, activities, semesters, groups, audit }) => {
           this.assignments = assignments;
-          this.filteredAssignments = assignments;
           this.teachers = teachers;
           this.subjects = subjects;
+          this.buildSubjectGroups();
           this.activities = activities;
           this.semesters = semesters.items ?? [];
+          this.groups = groups;
+          // Prefill resolved labels so sorting is stable on first render
+          this.assignments = this.assignments.map((a) => ({
+            ...a,
+            subject_name: this.getSubjectLabel(a),
+            activity_name: this.getActivityLabel(a),
+            group_label: this.getGroupLabel(a),
+          }));
           this.buildAuditIndex(audit.last_changes_viewed_at, audit.logs ?? []);
           this.applyFilters();
         },
@@ -534,6 +653,9 @@ export class TeachingLoadsPage implements OnInit {
     if (normalizedDraft.semester_id !== normalizedOriginal.semester_id) {
       payload.semester_id = normalizedDraft.semester_id;
     }
+    if (normalizedDraft.group_id !== normalizedOriginal.group_id) {
+      payload.group_id = normalizedDraft.group_id;
+    }
     if (normalizedDraft.hours !== normalizedOriginal.hours) {
       payload.hours = normalizedDraft.hours;
     }
@@ -562,11 +684,13 @@ export class TeachingLoadsPage implements OnInit {
   }
 
   private buildCreatePayload(draft: TeachingLoadAssignmentDto): TeachingLoadAssignmentCreatePayload {
+    const subjectId = this.resolveSubjectIdForActivity(draft.subject_id, draft.activity_id);
     return {
       teacher_id: Number(draft.teacher_id),
-      subject_id: Number(draft.subject_id),
+      subject_id: Number(subjectId ?? draft.subject_id),
       activity_id: Number(draft.activity_id),
       semester_id: Number(draft.semester_id),
+      group_id: Number(draft.group_id),
       hours: Number(draft.hours),
     };
   }
@@ -584,6 +708,9 @@ export class TeachingLoadsPage implements OnInit {
     if (!payload.semester_id || payload.semester_id <= 0) {
       return 'Wybierz poprawny semestr.';
     }
+    if (!payload.group_id || payload.group_id <= 0) {
+      return 'Wybierz poprawną grupę.';
+    }
     if (!Number.isFinite(payload.hours) || payload.hours <= 0) {
       return 'Podaj poprawną liczbę godzin.';
     }
@@ -595,11 +722,47 @@ export class TeachingLoadsPage implements OnInit {
     return {
       ...row,
       teacher_id: Number(row.teacher_id),
-      subject_id: Number(row.subject_id),
+      subject_id: Number(this.getRepresentativeSubjectId(row.subject_id) ?? row.subject_id),
       activity_id: Number(row.activity_id),
       semester_id: Number(row.semester_id),
+      group_id: row.group_id ? Number(row.group_id) : null,
       hours: Number(row.hours),
     };
+  }
+
+  private getRepresentativeSubjectId(subjectId: number | null | undefined): number | null {
+    if (!subjectId) {
+      return null;
+    }
+
+    const subject = this.subjects.find((item) => item.id === subjectId);
+    if (!subject) {
+      return subjectId;
+    }
+
+    const groupName = subject.name ?? `#${subject.id}`;
+    const candidates = this.subjectGroups.get(groupName) ?? [subject];
+    return candidates[0]?.id ?? subjectId;
+  }
+
+  private resolveSubjectIdForActivity(
+    subjectId: number | null | undefined,
+    activityId: number | null | undefined,
+  ): number | null {
+    const representativeSubjectId = this.getRepresentativeSubjectId(subjectId);
+    if (!representativeSubjectId || !activityId) {
+      return representativeSubjectId;
+    }
+
+    const subject = this.subjects.find((item) => item.id === representativeSubjectId);
+    if (!subject) {
+      return representativeSubjectId;
+    }
+
+    const groupName = subject.name ?? `#${subject.id}`;
+    const candidates = this.subjectGroups.get(groupName) ?? [subject];
+    const exact = candidates.find((item) => Number(item.activity_id) === Number(activityId));
+    return exact?.id ?? representativeSubjectId;
   }
 
   private translateAuditKey(key: string): string {
@@ -614,6 +777,8 @@ export class TeachingLoadsPage implements OnInit {
       activity_name: 'Typ zajęć',
       semester_id: 'Semestr',
       semester_name: 'Semestr',
+      group_id: 'Grupa',
+      group_label: 'Grupa',
       hours: 'Godziny',
     };
 
@@ -688,6 +853,8 @@ export class TeachingLoadsPage implements OnInit {
       activity_name: activity?.name ?? null,
       semester_id: semester?.id ?? 0,
       semester_name: semester?.nazwa ?? null,
+      group_id: null,
+      group_label: null,
       hours: 1,
     };
   }
@@ -720,8 +887,18 @@ export class TeachingLoadsPage implements OnInit {
       this.getSubjectLabel(item),
       this.getActivityLabel(item),
       this.getSemesterLabel(item),
+      this.getGroupLabel(item),
       String(item.hours),
     ];
     return this.normalizeSearch(parts.join(' '));
+  }
+
+  private enrichAssignment(a: TeachingLoadAssignmentDto): TeachingLoadAssignmentDto {
+    return {
+      ...a,
+      subject_name: this.getSubjectLabel(a),
+      activity_name: this.getActivityLabel(a),
+      group_label: this.getGroupLabel(a),
+    };
   }
 }

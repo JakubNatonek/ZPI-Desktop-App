@@ -19,6 +19,8 @@ export interface TeachingLoadAssignmentDto {
   activity_name: string | null;
   semester_id: number;
   semester_name: string | null;
+  group_id?: number | null;
+  group_label?: string | null;
   hours: number;
 }
 
@@ -28,6 +30,7 @@ export interface TeachingLoadAssignmentPatchPayload {
   activity_id?: number;
   semester_id?: number;
   hours?: number;
+  group_id?: number | null;
 }
 
 export interface TeachingLoadAssignmentCreatePayload {
@@ -36,6 +39,7 @@ export interface TeachingLoadAssignmentCreatePayload {
   activity_id: number;
   semester_id: number;
   hours: number;
+  group_id?: number | null;
 }
 
 export interface TeachingLoadFilters {
@@ -145,6 +149,8 @@ export class TeachingLoadsApiService {
       activity_name: item.activity_name ? String(item.activity_name) : null,
       semester_id: Number(item.semester_id),
       semester_name: item.semester_name ? String(item.semester_name) : null,
+      group_id: typeof item.group_id === 'number' ? Number(item.group_id) : null,
+      group_label: item.group_label ? String(item.group_label) : null,
       hours: Number(item.hours),
     };
   }

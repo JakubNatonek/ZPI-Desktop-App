@@ -74,6 +74,7 @@
               <th>Dydaktyk</th>
               <th>Przedmiot</th>
               <th>Typ zajęć</th>
+              <th>Grupa / Rocznik</th>
               <th class="hours-col">Godziny</th>
               <th>Semestr</th>
               <th class="history-col">Historia</th>
@@ -99,8 +100,8 @@
                   [(ngModel)]="filters.subject_id"
                   (ionChange)="applyFilters()">
                   <ion-select-option [value]="null">Wszystkie</ion-select-option>
-                  <ion-select-option *ngFor="let subject of subjects" [value]="subject.id">
-                    {{ subject.name }}
+                  <ion-select-option *ngFor="let subj of getSubjectOptions()" [value]="subj.id">
+                    {{ subj.name }}
                   </ion-select-option>
                 </ion-select>
               </th>
@@ -113,6 +114,18 @@
                   <ion-select-option [value]="null">Wszystkie</ion-select-option>
                   <ion-select-option *ngFor="let activity of activities" [value]="activity.id">
                     {{ activity.name }}
+                  </ion-select-option>
+                </ion-select>
+              </th>
+              <th>
+                <ion-select
+                  interface="popover"
+                  class="filter-select"
+                  [(ngModel)]="filters.group_id"
+                  (ionChange)="applyFilters()">
+                  <ion-select-option [value]="null">Wszystkie</ion-select-option>
+                  <ion-select-option *ngFor="let group of groups" [value]="group.id">
+                    {{ getGroupOptionLabel(group) }}
                   </ion-select-option>
                 </ion-select>
               </th>
@@ -168,8 +181,8 @@
                   class="cell-select"
                   [(ngModel)]="newRowDraft.subject_id"
                   (ionChange)="onNewSubjectChange()">
-                  <ion-select-option *ngFor="let subject of subjects" [value]="subject.id">
-                    {{ subject.name }}
+                  <ion-select-option *ngFor="let subj of getSubjectOptions()" [value]="subj.id">
+                    {{ subj.name }}
                   </ion-select-option>
                 </ion-select>
               </td>
@@ -177,9 +190,21 @@
                 <ion-select
                   interface="popover"
                   class="cell-select"
-                  [(ngModel)]="newRowDraft.activity_id">
+                  [(ngModel)]="newRowDraft.activity_id"
+                  (ionChange)="onNewActivityChange()">
                   <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(newRowDraft.subject_id)" [value]="activity.id">
                     {{ activity.name }}
+                  </ion-select-option>
+                </ion-select>
+              </td>
+              <td class="cell">
+                <ion-select
+                  interface="popover"
+                  class="cell-select"
+                  [(ngModel)]="newRowDraft.group_id">
+                  <ion-select-option [value]="null">Brak</ion-select-option>
+                  <ion-select-option *ngFor="let group of groups" [value]="group.id">
+                    {{ getGroupOptionLabel(group) }}
                   </ion-select-option>
                 </ion-select>
               </td>
@@ -241,8 +266,8 @@
                       [(ngModel)]="draftRow.subject_id"
                       (ionChange)="onEditSubjectChange()"
                       (click)="$event.stopPropagation()">
-                      <ion-select-option *ngFor="let subject of subjects" [value]="subject.id">
-                        {{ subject.name }}
+                      <ion-select-option *ngFor="let subj of getSubjectOptions()" [value]="subj.id">
+                        {{ subj.name }}
                       </ion-select-option>
                     </ion-select>
                   </ng-container>
@@ -256,6 +281,7 @@
                       interface="popover"
                       class="cell-select"
                       [(ngModel)]="draftRow.activity_id"
+                      (ionChange)="onEditActivityChange()"
                       (click)="$event.stopPropagation()">
                       <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(draftRow.subject_id)" [value]="activity.id">
                         {{ activity.name }}
@@ -264,6 +290,23 @@
                   </ng-container>
                   <ng-template #activityDisplay>
                     <div class="cell-display">{{ getActivityLabel(row) }}</div>
+                  </ng-template>
+                </td>
+                <td class="cell editable" (click)="startEditing(row, $event)">
+                  <ng-container *ngIf="editingRowId === row.id && draftRow; else groupDisplay">
+                    <ion-select
+                      interface="popover"
+                      class="cell-select"
+                      [(ngModel)]="draftRow.group_id"
+                      (click)="$event.stopPropagation()">
+                      <ion-select-option [value]="null">Brak</ion-select-option>
+                      <ion-select-option *ngFor="let group of groups" [value]="group.id">
+                        {{ getGroupOptionLabel(group) }}
+                      </ion-select-option>
+                    </ion-select>
+                  </ng-container>
+                  <ng-template #groupDisplay>
+                    <div class="cell-display">{{ getGroupLabel(row) }}</div>
                   </ng-template>
                 </td>
                 <td class="cell editable hours-cell" (click)="startEditing(row, $event)">
@@ -322,7 +365,7 @@
                 </td>
               </tr>
               <tr *ngIf="historyOpenRowId === row.id" class="history-row">
-                <td colspan="7">
+                <td colspan="8">
                   <div class="history-panel">
                     <ng-container *ngIf="getHistoryForRow(row.id).length > 0; else emptyHistory">
                       <div class="history-entry" *ngFor="let log of getHistoryForRow(row.id)">
