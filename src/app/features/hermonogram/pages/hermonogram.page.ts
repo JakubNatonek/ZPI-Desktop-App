@@ -1,10 +1,14 @@
 ﻿import { Component, OnInit } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
-import { chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
+import { chevronBackOutline, chevronForwardOutline, cloudUploadOutline } from 'ionicons/icons';
+import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../core/services/auth.service';
+import { RaplaApiService, RaplaReservationDto } from '../../../core/services/rapla-api.service';
 import { Router } from '@angular/router';
+import { environment } from '../../../../environments/environment';
 
 interface WeekDay {
   name: string;
@@ -35,6 +39,12 @@ interface RaplyImportedFileInfo {
   importedAt: string;
 }
 
+interface RaplaRenderedItem {
+  reservation: RaplaReservationDto;
+  topOffsetMinutes: number;
+  durationMinutes: number;
+}
+
 type Delimiter = ',' | ';' | '\t' | '|';
 
 @Component({
@@ -42,7 +52,7 @@ type Delimiter = ',' | ';' | '\t' | '|';
   templateUrl: 'hermonogram.page.html',
   styleUrls: ['hermonogram.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule],
+  imports: [IonicModule, CommonModule, FormsModule],
 })
 export class HermonogramPage implements OnInit {
   private readonly importedPlansStorageKey = 'harmonogramImportedPlans';
@@ -51,23 +61,43 @@ export class HermonogramPage implements OnInit {
   isProfileMenuOpen = false;
   profileMenuEvent?: Event;
 
-  hours24 = Array.from({ length: 14 }, (_, i) => i + 7);
+  hours24 = Array.from({ length: 15 }, (_, i) => i + 7);
   selectedDate: Date = new Date();
   currentMonthName = '';
   currentYear = 0;
   weekDays: WeekDay[] = [];
+
+  // Mini calendar data
+  miniCalendarDays: { date: Date; dateStr: string; isCurrentMonth: boolean; isToday: boolean; isSelected: boolean }[] = [];
+  miniCalendarMonth: number = new Date().getMonth();
+  miniCalendarYear: number = new Date().getFullYear();
 
   importedPlans: ImportedPlanEntry[] = [];
   activePlanId: string | null = null;
   importedRaplyFiles: RaplyImportedFileInfo[] = [];
   raplyImportMessage = '';
 
-  constructor(public auth: AuthService, private router: Router) {
-    addIcons({ chevronBackOutline, chevronForwardOutline });
+  // Rapla XML (backend) layer
+  raplaReservations: RaplaReservationDto[] = [];
+  showRaplaLayer = true;
+  isImportingRapla = false;
+  raplaXmlMessage = '';
+  raplaXmlError = false;
+
+  selectedPlanEvent: ImportedPlanEvent | null = null;
+  selectedRaplaReservation: RaplaReservationDto | null = null;
+  isDetailsOpen = false;
+
+  constructor(public auth: AuthService, private router: Router, private raplaApi: RaplaApiService) {
+    addIcons({ chevronBackOutline, chevronForwardOutline, cloudUploadOutline });
   }
 
   get canAccessHarmonogram(): boolean {
     return this.auth.role === 'admin' || this.auth.role === 'planner';
+  }
+
+  get isAdminOrRaplaEditor(): boolean {
+    return this.auth.role === 'admin' || this.auth.role === 'rapla_editor';
   }
 
   get userRoleLabel(): string {
@@ -104,6 +134,7 @@ export class HermonogramPage implements OnInit {
 
     this.updateView();
     this.reloadData();
+    this.loadRaplaReservations();
   }
 
   ionViewWillEnter() {
@@ -112,6 +143,7 @@ export class HermonogramPage implements OnInit {
     }
 
     this.reloadData();
+    this.loadRaplaReservations();
   }
 
   prevWeek() {
@@ -150,9 +182,84 @@ export class HermonogramPage implements OnInit {
 
   updateView() {
     this.generateWeek(this.selectedDate);
+    this.updateMiniCalendar();
     const months = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
     this.currentMonthName = months[this.selectedDate.getMonth()];
     this.currentYear = this.selectedDate.getFullYear();
+  }
+
+  updateMiniCalendar() {
+    const firstDay = new Date(this.miniCalendarYear, this.miniCalendarMonth, 1);
+    const lastDay = new Date(this.miniCalendarYear, this.miniCalendarMonth + 1, 0);
+    const prevMonthDays = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+
+    const days: typeof this.miniCalendarDays = [];
+    const today = new Date();
+    const selectedIso = this.formatLocalIsoDate(this.selectedDate);
+
+    // Previous month days
+    for (let i = prevMonthDays - 1; i >= 0; i--) {
+      const d = new Date(firstDay);
+      d.setDate(d.getDate() - (i + 1));
+      days.push({
+        date: d,
+        dateStr: this.formatLocalIsoDate(d),
+        isCurrentMonth: false,
+        isToday: d.toDateString() === today.toDateString(),
+        isSelected: false,
+      });
+    }
+
+    // Current month days
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      const d = new Date(this.miniCalendarYear, this.miniCalendarMonth, i);
+      days.push({
+        date: d,
+        dateStr: this.formatLocalIsoDate(d),
+        isCurrentMonth: true,
+        isToday: d.toDateString() === today.toDateString(),
+        isSelected: selectedIso === this.formatLocalIsoDate(d),
+      });
+    }
+
+    // Next month days
+    const remaining = 42 - days.length;
+    for (let i = 1; i <= remaining; i++) {
+      const d = new Date(lastDay);
+      d.setDate(d.getDate() + i);
+      days.push({
+        date: d,
+        dateStr: this.formatLocalIsoDate(d),
+        isCurrentMonth: false,
+        isToday: d.toDateString() === today.toDateString(),
+        isSelected: false,
+      });
+    }
+
+    this.miniCalendarDays = days;
+  }
+
+  selectDateInMiniCalendar(dayObj: { date: Date }) {
+    this.selectedDate = new Date(dayObj.date);
+    this.updateView();
+  }
+
+  prevMiniCalendarMonth() {
+    this.miniCalendarMonth--;
+    if (this.miniCalendarMonth < 0) {
+      this.miniCalendarMonth = 11;
+      this.miniCalendarYear--;
+    }
+    this.updateMiniCalendar();
+  }
+
+  nextMiniCalendarMonth() {
+    this.miniCalendarMonth++;
+    if (this.miniCalendarMonth > 11) {
+      this.miniCalendarMonth = 0;
+      this.miniCalendarYear++;
+    }
+    this.updateMiniCalendar();
   }
 
   generateWeek(baseDate: Date) {
@@ -231,6 +338,270 @@ export class HermonogramPage implements OnInit {
 
   importRaply(fileInput: HTMLInputElement) {
     fileInput.click();
+  }
+
+  loadRaplaReservations(): void {
+    this.raplaApi.getReservations().subscribe({
+      next: (data) => { this.raplaReservations = data; },
+      error: (err) => console.error('Błąd pobierania rezerwacji Rapla', err),
+    });
+  }
+
+  onRaplaXmlSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    input.value = '';
+
+    this.isImportingRapla = true;
+    this.raplaXmlMessage = '';
+    this.raplaXmlError = false;
+
+    this.raplaApi.importFile(file).subscribe({
+      next: (res) => {
+        const s = res.summary ?? {};
+        const deletedCount = (s as { deleted?: number }).deleted ?? 0;
+        this.raplaXmlMessage =
+          `Import zakończony: ${s.created ?? 0} nowych, ${s.updated ?? 0} zmienionych, ${s.unchanged ?? 0} bez zmian, ${deletedCount} usuniętych.`;
+        this.raplaXmlError = false;
+        this.isImportingRapla = false;
+        this.loadRaplaReservations();
+      },
+      error: (err) => {
+        const detail = err?.error?.detail || err?.message || 'Nieznany błąd';
+        this.raplaXmlMessage = `Import nie powiódł się: ${detail}`;
+        this.raplaXmlError = true;
+        this.isImportingRapla = false;
+      },
+    });
+  }
+
+  /**
+   * Returns Rapla reservations that overlap with a given calendar cell (day + hour).
+   * A reservation appears in every hour slot it covers on its start_date.
+   * For weekly repeating entries, it also appears on the matching weekday within the repeat range.
+   */
+  getRaplaItems(day: WeekDay, hour: number): RaplaReservationDto[] {
+    if (!this.showRaplaLayer || !this.raplaReservations.length) return [];
+
+    const cellDate = new Date(`${day.iso}T00:00:00`);
+    const cellDow = cellDate.getDay(); // 0=Sun … 6=Sat
+
+    return this.raplaReservations.filter(r => {
+      if (!r.start_date || !r.start_time || !r.end_time) return false;
+
+      const startDate = new Date(`${r.start_date}T00:00:00`);
+      const repeatEnd = r.repeating_end_date ? new Date(`${r.repeating_end_date}T23:59:59`) : startDate;
+      const startDow = startDate.getDay();
+
+      // Check this cell's date falls within the reservation's date range on the correct weekday
+      const dateMatches = r.repeating_type === 'weekly'
+        ? cellDow === startDow && cellDate >= startDate && cellDate <= repeatEnd
+        : day.iso === r.start_date;
+
+      if (!dateMatches) return false;
+
+      // Check the hour overlaps with start_time..end_time
+      const startH = parseInt(r.start_time.split(':')[0], 10);
+      const endH = parseInt(r.end_time.split(':')[0], 10);
+      return hour >= startH && hour < endH;
+    });
+  }
+
+  getRaplaItemsStartingAt(day: WeekDay, hour: number): RaplaRenderedItem[] {
+    if (!this.showRaplaLayer || !this.raplaReservations.length) {
+      return [];
+    }
+
+    return this.raplaReservations
+      .filter((r) => this.isReservationOnDay(r, day))
+      .filter((r) => {
+        const startMinutes = this.parseTimeToMinutes(r.start_time);
+        if (startMinutes === null) {
+          return false;
+        }
+
+        const startHour = Math.floor(startMinutes / 60);
+        return startHour === hour;
+      })
+      .map((r) => {
+        const startMinutes = this.parseTimeToMinutes(r.start_time) ?? hour * 60;
+        const endMinutes = this.parseTimeToMinutes(r.end_time) ?? (startMinutes + 60);
+
+        return {
+          reservation: r,
+          topOffsetMinutes: Math.max(startMinutes - (hour * 60), 0),
+          durationMinutes: Math.max(endMinutes - startMinutes, 30),
+        };
+      });
+  }
+
+  getRaplaItemStyle(item: RaplaRenderedItem): Record<string, string> {
+    const topPercent = (item.topOffsetMinutes / 60) * 100;
+    const durationInHours = item.durationMinutes / 60;
+
+    return {
+      top: `${topPercent}%`,
+      height: `calc(var(--hour-row-height) * ${durationInHours})`,
+    };
+  }
+
+  getRaplaItemNgStyle(item: RaplaRenderedItem): Record<string, string> {
+    return {
+      ...this.getRaplaItemStyle(item),
+      borderLeftColor: item.reservation.color || '#eab308',
+    };
+  }
+
+  getRaplaSummaryLine(reservation: RaplaReservationDto): string {
+    if (reservation.teacher_names?.length) {
+      return reservation.teacher_names.join(', ');
+    }
+    if (reservation.room_names?.length) {
+      return reservation.room_names.join(', ');
+    }
+    if (reservation.semester_names?.length) {
+      return reservation.semester_names.join(', ');
+    }
+    return '';
+  }
+
+  formatRaplaList(values: string[] | null | undefined): string {
+    return values?.length ? values.join(', ') : '—';
+  }
+
+  formatRaplaRepeat(reservation: RaplaReservationDto): string {
+    if (!reservation.repeating_type) {
+      return '—';
+    }
+
+    return reservation.repeating_end_date
+      ? `${reservation.repeating_type} do ${reservation.repeating_end_date}`
+      : reservation.repeating_type;
+  }
+
+  formatRaplaTeachers(values: string[] | null | undefined): string {
+    if (!values?.length) {
+      return '—';
+    }
+
+    const knownTitles = [
+      'prof. dr hab. inż.',
+      'prof. dr hab.',
+      'dr hab inż.',
+      'dr hab.',
+      'dr inż.',
+      'mgr. inż.',
+      'mgr.',
+      'dr',
+    ];
+
+    const formatted = values.map((raw) => {
+      const teacher = raw.trim();
+      if (!teacher) {
+        return raw;
+      }
+
+      const lower = teacher.toLowerCase();
+      const title = knownTitles.find((t) => lower.includes(t.toLowerCase())) ?? '';
+      const withoutTitle = title
+        ? teacher.replace(new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '').replace(/\s+/g, ' ').trim()
+        : teacher;
+
+      const parts = withoutTitle.split(' ').filter(Boolean);
+      if (parts.length < 2 || !title) {
+        return teacher;
+      }
+
+      const surname = parts[0];
+      const firstName = parts[1];
+      const suffix = parts.slice(2).join(' '); // optional department or extra info
+      return `${title} ${firstName} ${surname}${suffix ? ` ${suffix}` : ''}`.trim();
+    });
+
+    return formatted.join(', ');
+  }
+
+  getRaplaTeacherTitles(reservation: RaplaReservationDto): string {
+    const knownTitles = [
+      'prof. dr hab. inż.',
+      'prof. dr hab.',
+      'dr hab inż.',
+      'dr hab.',
+      'dr inż.',
+      'mgr. inż.',
+      'mgr.',
+      'dr',
+    ];
+
+    const found = new Set<string>();
+    for (const teacher of reservation.teacher_names ?? []) {
+      const lower = teacher.toLowerCase();
+      for (const title of knownTitles) {
+        if (lower.includes(title.toLowerCase())) {
+          found.add(title);
+          break;
+        }
+      }
+    }
+
+    return found.size ? Array.from(found).join(', ') : '—';
+  }
+
+  getRaplaEstablishedFrom(reservation: RaplaReservationDto): string {
+    return reservation.start_date || '—';
+  }
+
+  private parseTimeToMinutes(value: string | null): number | null {
+    if (!value) {
+      return null;
+    }
+
+    const [hRaw, mRaw] = value.split(':');
+    const h = Number(hRaw);
+    const m = Number(mRaw);
+
+    if (!Number.isFinite(h) || !Number.isFinite(m)) {
+      return null;
+    }
+
+    return (h * 60) + m;
+  }
+
+  private isReservationOnDay(reservation: RaplaReservationDto, day: WeekDay): boolean {
+    if (!reservation.start_date || !reservation.start_time || !reservation.end_time) {
+      return false;
+    }
+
+    const cellDate = new Date(`${day.iso}T00:00:00`);
+    const cellDow = cellDate.getDay();
+    const startDate = new Date(`${reservation.start_date}T00:00:00`);
+    const startDow = startDate.getDay();
+    const repeatEnd = reservation.repeating_end_date
+      ? new Date(`${reservation.repeating_end_date}T23:59:59`)
+      : startDate;
+
+    if (reservation.repeating_type === 'weekly') {
+      return cellDow === startDow && cellDate >= startDate && cellDate <= repeatEnd;
+    }
+
+    return day.iso === reservation.start_date;
+  }
+
+  openPlanDetails(event: ImportedPlanEvent) {
+    this.selectedPlanEvent = event;
+    this.selectedRaplaReservation = null;
+    this.isDetailsOpen = true;
+  }
+
+  openRaplaDetails(reservation: RaplaReservationDto) {
+    this.selectedRaplaReservation = reservation;
+    this.selectedPlanEvent = null;
+    this.isDetailsOpen = true;
+  }
+
+  closeDetails() {
+    this.isDetailsOpen = false;
   }
 
   async onRaplyFileSelected(event: Event) {

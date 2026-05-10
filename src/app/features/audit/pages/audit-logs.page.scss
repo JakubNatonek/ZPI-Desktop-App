@@ -219,6 +219,69 @@
     flex-direction: column;
 }
 
+// ── Batches (collapsible) ─────────────────────────────────────────
+.log-batch {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.log-batch__summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.log-batch__summary::-webkit-details-marker {
+    display: none;
+}
+
+.log-batch__summary::marker {
+    display: none;
+}
+
+.log-batch__meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: #475569;
+
+    ion-icon {
+        font-size: 0.9rem;
+        color: #64748b;
+    }
+}
+
+.log-batch__sep {
+    opacity: 0.4;
+}
+
+.log-batch__stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.log-batch__count {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.log-batch__body {
+    padding: 12px 0 4px;
+}
+
 .timeline-entry {
     display: flex;
     gap: 0;

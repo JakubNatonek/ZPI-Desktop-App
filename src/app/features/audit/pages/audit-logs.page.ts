@@ -12,9 +12,17 @@ import { Router } from '@angular/router';
 import { addIcons } from 'ionicons';
 import { checkmarkDone, documentTextOutline, personOutline, timeOutline, funnelOutline, closeCircleOutline } from 'ionicons/icons';
 
+interface LogBatch {
+  key: string;
+  userName: string;
+  timeLabel: string;
+  logs: AuditLogDto[];
+  hasNew: boolean;
+}
+
 interface LogGroup {
   date: string;
-  logs: AuditLogDto[];
+  batches: LogBatch[];
 }
 
 @Component({
@@ -206,7 +214,10 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
   }
 
   get filteredCount(): number {
-    return this.filteredGroups.reduce((sum, g) => sum + g.logs.length, 0);
+    return this.filteredGroups.reduce(
+      (sum, group) => sum + group.batches.reduce((inner, batch) => inner + batch.logs.length, 0),
+      0,
+    );
   }
 
   clearFilters(): void {
@@ -273,14 +284,38 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
   }
 
   private _buildGroups(logs: AuditLogDto[]): LogGroup[] {
-    const map = new Map<string, AuditLogDto[]>();
+    const dateMap = new Map<string, Map<string, LogBatch>>();
+
     for (const log of logs) {
       const d = new Date(log.timestamp);
-      const key = d.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(log);
+      const dateKey = d.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      const timeLabel = d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+      const userName = log.modified_by_name || 'System';
+      const timeKey = `${d.getHours()}-${d.getMinutes()}`;
+      const batchKey = `${userName}__${timeKey}`;
+
+      if (!dateMap.has(dateKey)) dateMap.set(dateKey, new Map());
+      const batchMap = dateMap.get(dateKey)!;
+
+      if (!batchMap.has(batchKey)) {
+        batchMap.set(batchKey, {
+          key: batchKey,
+          userName,
+          timeLabel,
+          logs: [],
+          hasNew: false,
+        });
+      }
+
+      const batch = batchMap.get(batchKey)!;
+      batch.logs.push(log);
+      if (log.isNew) batch.hasNew = true;
     }
-    return Array.from(map.entries()).map(([date, logs]) => ({ date, logs }));
+
+    return Array.from(dateMap.entries()).map(([date, batches]) => ({
+      date,
+      batches: Array.from(batches.values()),
+    }));
   }
 
   actionLabel(action: string): string {

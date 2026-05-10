@@ -2,16 +2,63 @@
   <ng-container *ngIf="canAccessHarmonogram; else noAccessState">
     <div class="sidebar">
       <ion-content class="ion-padding sidebar-content">
-        <h3>Podgląd planu</h3>
-        <div class="import-row">
-          <ion-button fill="outline" color="primary" (click)="importRaply(raplyImportInput)">
-            Import Raply
-          </ion-button>
-          <p class="plan-summary">{{ activePlanSummary }}</p>
+        <h3>Harmonogram</h3>
+
+        <!-- Mini Calendar -->
+        <div class="mini-calendar">
+          <div class="mini-calendar-header">
+            <ion-button fill="clear" size="small" (click)="prevMiniCalendarMonth()">
+              <ion-icon name="chevron-back-outline"></ion-icon>
+            </ion-button>
+            <span class="mini-calendar-month">
+              {{ ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień',
+              'Październik', 'Listopad', 'Grudzień'][miniCalendarMonth] }}
+              {{ miniCalendarYear }}
+            </span>
+            <ion-button fill="clear" size="small" (click)="nextMiniCalendarMonth()">
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </ion-button>
+          </div>
+
+          <div class="mini-calendar-weekdays">
+            <div>PN</div>
+            <div>WT</div>
+            <div>ŚR</div>
+            <div>CZ</div>
+            <div>PT</div>
+            <div>SO</div>
+            <div>ND</div>
+          </div>
+
+          <div class="mini-calendar-days">
+            <button *ngFor="let day of miniCalendarDays" class="mini-day" [class.other-month]="!day.isCurrentMonth"
+              [class.today]="day.isToday" [class.selected]="day.isSelected" (click)="selectDateInMiniCalendar(day)">
+              {{ day.date.getDate() }}
+            </button>
+          </div>
         </div>
-        <input #raplyImportInput type="file" accept=".json,.csv,.raply" multiple hidden
-          (change)="onRaplyFileSelected($event)">
-        <p class="import-msg" *ngIf="raplyImportMessage">{{ raplyImportMessage }}</p>
+
+        <div class="rapla-import-section">
+          <ng-container *ngIf="isAdminOrRaplaEditor">
+            <ion-button expand="block" fill="outline" color="secondary" [disabled]="isImportingRapla"
+              (click)="raplaXmlInput.click()">
+              <ion-icon slot="start" name="cloud-upload-outline"></ion-icon>
+              {{ isImportingRapla ? 'Importowanie…' : 'Wgraj plik Rapla (.xml)' }}
+            </ion-button>
+            <input #raplaXmlInput type="file" accept=".xml,application/xml,text/xml" hidden
+              (change)="onRaplaXmlSelected($event)" />
+            <p *ngIf="raplaXmlMessage" class="import-msg" [class.import-msg--error]="raplaXmlError">{{ raplaXmlMessage
+              }}</p>
+          </ng-container>
+
+          <div *ngIf="raplaReservations.length > 0" class="rapla-toggle">
+            <ion-item lines="none">
+              <ion-label>Pokaż rezerwacje z Rapli</ion-label>
+              <ion-toggle slot="end" [(ngModel)]="showRaplaLayer"></ion-toggle>
+            </ion-item>
+            <p class="rapla-count">{{ raplaReservations.length }} rezerwacji w bazie</p>
+          </div>
+        </div>
       </ion-content>
     </div>
 
@@ -66,25 +113,118 @@
               <div class="hour-label">{{ hour }}:00</div>
               <div class="day-cell" *ngFor="let day of weekDays">
                 <div class="plan-cell">
-                  <ng-container *ngIf="getCellScheduleItems(day, hour).length > 0; else legacySlotView">
-                    <div class="plan-item" *ngFor="let event of getCellScheduleItems(day, hour)">
+                  <ng-container *ngIf="getCellScheduleItems(day, hour).length > 0">
+                    <div class="plan-item plan-item--clickable" *ngFor="let event of getCellScheduleItems(day, hour)"
+                      (click)="openPlanDetails(event)">
                       <p class="plan-subject">{{ event.subject }}</p>
                       <p class="plan-meta" *ngIf="event.location">{{ event.location }}</p>
                       <p class="plan-meta" *ngIf="event.instructor">{{ event.instructor }}</p>
                     </div>
                   </ng-container>
 
-                  <ng-template #legacySlotView>
-                    <div class="plan-item legacy" *ngIf="isPlanSlotImported(day, hour)">
-                      <p class="plan-subject">Zajęcia</p>
+                  <!-- Rapla reservations layer -->
+                  <ng-container *ngIf="showRaplaLayer">
+                    <div class="plan-item rapla-item plan-item--clickable"
+                      *ngFor="let item of getRaplaItemsStartingAt(day, hour)" [ngStyle]="getRaplaItemNgStyle(item)"
+                      (click)="openRaplaDetails(item.reservation)">
+                      <p class="plan-meta rapla-time">{{ item.reservation.start_time | slice:0:5 }}–{{
+                        item.reservation.end_time | slice:0:5 }}</p>
+                      <p class="plan-subject">{{ item.reservation.name || '—' }}</p>
+                      <p class="plan-meta" *ngIf="item.reservation.teacher_names?.length">
+                        {{ formatRaplaTeachers(item.reservation.teacher_names) }}
+                      </p>
+                      <p class="plan-meta" *ngIf="item.reservation.room_names?.length">
+                        Sala: {{ formatRaplaList(item.reservation.room_names) }}
+                      </p>
+                      <p class="plan-meta" *ngIf="item.reservation.semester_names?.length">
+                        Semestr: {{ formatRaplaList(item.reservation.semester_names) }}
+                      </p>
+                      <p class="plan-meta rapla-repeat" *ngIf="item.reservation.repeating_type">
+                        {{ formatRaplaRepeat(item.reservation) }}
+                      </p>
                     </div>
-                  </ng-template>
+                  </ng-container>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </ion-content>
+
+      <ion-modal [isOpen]="isDetailsOpen" (didDismiss)="closeDetails()">
+        <ng-template>
+          <ion-header class="ion-no-border">
+            <ion-toolbar>
+              <ion-title>Szczegóły</ion-title>
+              <ion-buttons slot="end">
+                <ion-button fill="clear" (click)="closeDetails()">Zamknij</ion-button>
+              </ion-buttons>
+            </ion-toolbar>
+          </ion-header>
+          <ion-content class="ion-padding details-modal">
+            <ng-container *ngIf="selectedPlanEvent as ev">
+              <h2 class="details-title">{{ ev.subject }}</h2>
+              <div class="details-row">
+                <span class="details-label">Od</span>
+                <span class="details-value">{{ ev.startIso | date:'yyyy-MM-dd' }} {{ ev.startIso | date:'HH:mm'
+                  }}</span>
+              </div>
+              <div class="details-row">
+                <span class="details-label">Do</span>
+                <span class="details-value">{{ ev.endIso | date:'yyyy-MM-dd' }} {{ ev.endIso | date:'HH:mm' }}</span>
+              </div>
+              <div class="details-row">
+                <span class="details-label">Sala</span>
+                <span class="details-value">{{ ev.location || '—' }}</span>
+              </div>
+              <div class="details-row">
+                <span class="details-label">Prowadzący</span>
+                <span class="details-value">{{ ev.instructor || '—' }}</span>
+              </div>
+              <div class="details-row">
+                <span class="details-label">Opis</span>
+                <span class="details-value">{{ ev.description || '—' }}</span>
+              </div>
+            </ng-container>
+
+            <ng-container *ngIf="selectedRaplaReservation as r">
+              <h2 class="details-title">{{ r.name || 'Rezerwacja z Rapli' }}</h2>
+              <div class="details-row">
+                <span class="details-label">Start</span>
+                <span class="details-value">{{ r.start_date || '—' }} {{ r.start_time | slice:0:5 }}</span>
+              </div>
+              <div class="details-row">
+                <span class="details-label">Koniec</span>
+                <span class="details-value">{{ r.end_date || r.start_date || '—' }} {{ r.end_time | slice:0:5 }}</span>
+              </div>
+              <div class="details-row">
+                <span class="details-label">Nauczyciele</span>
+                <span class="details-value">{{ formatRaplaTeachers(r.teacher_names) }}</span>
+              </div>
+              <div class="details-row">
+                <span class="details-label">Sale</span>
+                <span class="details-value">{{ formatRaplaList(r.room_names) }}</span>
+              </div>
+              <div class="details-row">
+                <span class="details-label">Semestry</span>
+                <span class="details-value">{{ formatRaplaList(r.semester_names) }}</span>
+              </div>
+              <div class="details-row">
+                <span class="details-label">Tytuł</span>
+                <span class="details-value">{{ getRaplaTeacherTitles(r) }}</span>
+              </div>
+              <div class="details-row">
+                <span class="details-label">Powtarzanie</span>
+                <span class="details-value">{{ formatRaplaRepeat(r) }}</span>
+              </div>
+              <div class="details-row">
+                <span class="details-label">Ustalona od</span>
+                <span class="details-value">{{ getRaplaEstablishedFrom(r) }}</span>
+              </div>
+            </ng-container>
+          </ion-content>
+        </ng-template>
+      </ion-modal>
     </div>
   </ng-container>
 

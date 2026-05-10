@@ -3,6 +3,7 @@ import { IonicModule, ModalController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { addIcons } from 'ionicons';
 import {
   chevronBackOutline, chevronForwardOutline, cloudDownloadOutline,
@@ -147,7 +148,7 @@ export class HomePage implements OnInit {
       description: 'Na koniec kliknij Wyczyść zaznaczenia, aby zresetować swój wybór.',
     },
   ];
-  hours24 = Array.from({ length: 14 }, (_, i) => i + 7);
+  hours24 = Array.from({ length: 15 }, (_, i) => i + 7);
   selectedDate: Date = new Date();
   weekDays: WeekDay[] = [];
 
@@ -162,6 +163,9 @@ export class HomePage implements OnInit {
   isLoadingDezyderaty = false;
   isSaving = false;
   hasNewAuditLogs = false;
+  isImportingRapla = false;
+  raplaImportMessage = '';
+  raplaImportError = false;
 
   get isLecturer(): boolean {
     return this.auth.role === 'lecturer';
@@ -285,7 +289,8 @@ export class HomePage implements OnInit {
     private usersAdminApi: UsersAdminApiService,
     private unavailabilityNotesApi: UnavailabilityNotesApiService,
     private auditApi: AuditApiService,
-    private modalController: ModalController
+    private modalController: ModalController,
+    private http: HttpClient
   ) {
     addIcons({
       chevronBackOutline,
@@ -327,6 +332,41 @@ export class HomePage implements OnInit {
 
   goToAuditLogs() {
     this.router.navigate(['/audit-logs']);
+  }
+
+  onRaplaFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    input.value = '';
+
+    this.isImportingRapla = true;
+    this.raplaImportMessage = '';
+    this.raplaImportError = false;
+
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+
+    this.http.post<{ status: string; summary: { created: number; updated: number; unchanged: number } }>(
+      `${environment.apiBaseUrl}/rapla/file/import`,
+      formData,
+      { withCredentials: true }
+    ).subscribe({
+      next: (res) => {
+        const s = res.summary ?? {};
+        this.raplaImportMessage =
+          `Import zakończony: ${s.created ?? 0} nowych, ${s.updated ?? 0} zmienionych, ${s.unchanged ?? 0} bez zmian.`;
+        this.raplaImportError = false;
+        this.isImportingRapla = false;
+        this.checkAuditLogs();
+      },
+      error: (err) => {
+        const detail = err?.error?.detail || err?.message || 'Nieznany błąd';
+        this.raplaImportMessage = `Import nie powiódł się: ${detail}`;
+        this.raplaImportError = true;
+        this.isImportingRapla = false;
+      },
+    });
   }
 
   ionViewWillEnter() {

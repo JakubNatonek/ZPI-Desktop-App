@@ -5,10 +5,6 @@
     </ion-buttons>
     <ion-title>Historia zmian</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
-      <ion-button color="success" fill="solid" size="small" *ngIf="hasNew" (click)="acknowledgeChanges()">
-        <ion-icon name="checkmark-done" slot="start"></ion-icon>
-        Oznacz jako przejrzane
-      </ion-button>
       <ion-chip class="role-chip" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
@@ -106,73 +102,92 @@
           <span>{{ group.date }}</span>
         </div>
 
-        <!-- Log entries for this date -->
-        <div class="timeline-entry" *ngFor="let log of group.logs; let last = last" [class.is-new]="log.isNew"
-          [class.last-in-group]="last">
-
-          <!-- Dot + line -->
-          <div class="tl-rail">
-            <div class="tl-dot" [class.dot-create]="log.action === 'create'"
-              [class.dot-update]="log.action === 'update'" [class.dot-delete]="log.action === 'delete'">
+        <!-- Log entries for this date (grouped by user + time) -->
+        <details class="log-batch" *ngFor="let batch of group.batches" [open]="batch.hasNew">
+          <summary class="log-batch__summary">
+            <div class="log-batch__meta">
+              <ion-icon name="person-outline"></ion-icon>
+              <span class="log-batch__user">{{ batch.userName }}</span>
+              <span class="log-batch__sep">·</span>
+              <ion-icon name="time-outline"></ion-icon>
+              <span class="log-batch__time">{{ batch.timeLabel }}</span>
             </div>
-            <div class="tl-line" *ngIf="!last"></div>
-          </div>
-
-          <!-- Card -->
-          <div class="tl-card" [class.tl-card-new]="log.isNew" (click)="markRead(log)">
-            <div class="tl-card-header">
-              <div class="tl-card-title">
-                <span class="entity-chip" [class.chip-create]="log.action === 'create'"
-                  [class.chip-update]="log.action === 'update'" [class.chip-delete]="log.action === 'delete'">
-                  {{ actionLabel(log.action) }}
-                </span>
-                <strong>{{ getTranslatedEntity(log.entity_name) }}</strong>
-                <span class="entity-id">{{ getEntityDisplayName(log) }}</span>
-                <span class="new-pill" *ngIf="log.isNew">NOWE</span>
-              </div>
-              <div class="tl-card-meta">
-                <ion-icon name="person-outline"></ion-icon>
-                {{ log.modified_by_name || 'System' }}
-                <span class="dot-sep">·</span>
-                <ion-icon name="time-outline"></ion-icon>
-                {{ log.timestamp | date:'HH:mm' }}
-              </div>
+            <div class="log-batch__stats">
+              <span class="log-batch__count">{{ batch.logs.length }} zmian</span>
+              <span class="new-pill" *ngIf="batch.hasNew">NOWE</span>
             </div>
+          </summary>
 
-            <!-- UPDATE diff table -->
-            <div class="diff-table" *ngIf="log.action === 'update' && log.old_values && log.new_values">
-              <div class="diff-header">
-                <div class="diff-col col-field">Pole</div>
-                <div class="diff-col col-old">Było</div>
-                <div class="diff-col col-arrow"></div>
-                <div class="diff-col col-new">Jest</div>
-              </div>
-              <ng-container *ngFor="let key of getParsedKeys(log.new_values)">
-                <div class="diff-row diff-row--changed" *ngIf="hasChanged(log.old_values[key], log.new_values[key])">
-                  <div class="diff-col col-field">{{ getTranslatedKey(key) }}</div>
-                  <div class="diff-col col-old">{{ getDisplayValue(log.old_values[key]) }}</div>
-                  <div class="diff-col col-arrow">→</div>
-                  <div class="diff-col col-new">{{ getDisplayValue(log.new_values[key]) }}</div>
+          <div class="log-batch__body">
+            <div class="timeline-entry" *ngFor="let log of batch.logs; let last = last" [class.is-new]="log.isNew"
+              [class.last-in-group]="last">
+
+              <!-- Dot + line -->
+              <div class="tl-rail">
+                <div class="tl-dot" [class.dot-create]="log.action === 'create'"
+                  [class.dot-update]="log.action === 'update'" [class.dot-delete]="log.action === 'delete'">
                 </div>
-              </ng-container>
-            </div>
-
-            <!-- CREATE / DELETE value list -->
-            <div class="diff-table single" *ngIf="log.action === 'create' || log.action === 'delete'">
-              <div class="diff-header">
-                <div class="diff-col col-field">Pole</div>
-                <div class="diff-col col-single">Wartość</div>
+                <div class="tl-line" *ngIf="!last"></div>
               </div>
-              <div class="diff-row"
-                *ngFor="let key of getParsedKeys(log.action === 'create' ? log.new_values : log.old_values)">
-                <div class="diff-col col-field">{{ getTranslatedKey(key) }}</div>
-                <div class="diff-col col-single">{{ getDisplayValue((log.action === 'create' ? log.new_values :
-                  log.old_values)[key]) }}</div>
+
+              <!-- Card -->
+              <div class="tl-card" [class.tl-card-new]="log.isNew" (click)="markRead(log)">
+                <div class="tl-card-header">
+                  <div class="tl-card-title">
+                    <span class="entity-chip" [class.chip-create]="log.action === 'create'"
+                      [class.chip-update]="log.action === 'update'" [class.chip-delete]="log.action === 'delete'">
+                      {{ actionLabel(log.action) }}
+                    </span>
+                    <strong>{{ getTranslatedEntity(log.entity_name) }}</strong>
+                    <span class="entity-id">{{ getEntityDisplayName(log) }}</span>
+                    <span class="new-pill" *ngIf="log.isNew">NOWE</span>
+                  </div>
+                  <div class="tl-card-meta">
+                    <ion-icon name="person-outline"></ion-icon>
+                    {{ log.modified_by_name || 'System' }}
+                    <span class="dot-sep">·</span>
+                    <ion-icon name="time-outline"></ion-icon>
+                    {{ log.timestamp | date:'HH:mm' }}
+                  </div>
+                </div>
+
+                <!-- UPDATE diff table -->
+                <div class="diff-table" *ngIf="log.action === 'update' && log.old_values && log.new_values">
+                  <div class="diff-header">
+                    <div class="diff-col col-field">Pole</div>
+                    <div class="diff-col col-old">Było</div>
+                    <div class="diff-col col-arrow"></div>
+                    <div class="diff-col col-new">Jest</div>
+                  </div>
+                  <ng-container *ngFor="let key of getParsedKeys(log.new_values)">
+                    <div class="diff-row diff-row--changed"
+                      *ngIf="hasChanged(log.old_values[key], log.new_values[key])">
+                      <div class="diff-col col-field">{{ getTranslatedKey(key) }}</div>
+                      <div class="diff-col col-old">{{ getDisplayValue(log.old_values[key]) }}</div>
+                      <div class="diff-col col-arrow">→</div>
+                      <div class="diff-col col-new">{{ getDisplayValue(log.new_values[key]) }}</div>
+                    </div>
+                  </ng-container>
+                </div>
+
+                <!-- CREATE / DELETE value list -->
+                <div class="diff-table single" *ngIf="log.action === 'create' || log.action === 'delete'">
+                  <div class="diff-header">
+                    <div class="diff-col col-field">Pole</div>
+                    <div class="diff-col col-single">Wartość</div>
+                  </div>
+                  <div class="diff-row"
+                    *ngFor="let key of getParsedKeys(log.action === 'create' ? log.new_values : log.old_values)">
+                    <div class="diff-col col-field">{{ getTranslatedKey(key) }}</div>
+                    <div class="diff-col col-single">{{ getDisplayValue((log.action === 'create' ? log.new_values :
+                      log.old_values)[key]) }}</div>
+                  </div>
+                </div>
+
               </div>
             </div>
-
           </div>
-        </div>
+        </details>
       </ng-container>
     </div>
 
