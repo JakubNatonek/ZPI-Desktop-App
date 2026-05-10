@@ -19,6 +19,8 @@ export interface TeachingLoadAssignmentDto {
   activity_name: string | null;
   semester_id: number;
   semester_name: string | null;
+  field_of_study_id?: number | null;
+  field_of_study_label?: string | null;
   group_id?: number | null;
   group_label?: string | null;
   hours: number;
@@ -30,7 +32,7 @@ export interface TeachingLoadAssignmentPatchPayload {
   activity_id?: number;
   semester_id?: number;
   hours?: number;
-  group_id?: number | null;
+  field_of_study_id?: number | null;
 }
 
 export interface TeachingLoadAssignmentCreatePayload {
@@ -39,7 +41,15 @@ export interface TeachingLoadAssignmentCreatePayload {
   activity_id: number;
   semester_id: number;
   hours: number;
-  group_id?: number | null;
+  field_of_study_id: number;
+}
+
+export interface FieldOfStudyOption {
+  id: number;
+  name: string;
+  abbreviation: string;
+  year: number;
+  label: string;
 }
 
 export interface TeachingLoadFilters {
@@ -136,6 +146,26 @@ export class TeachingLoadsApiService {
     return this.subjectsApi.getActivities().pipe(catchError((error: HttpErrorResponse) => this.handleError(error)));
   }
 
+  getFieldOfStudies(): Observable<FieldOfStudyOption[]> {
+    return this.http
+      .get<FieldOfStudyOption[]>(`${environment.apiBaseUrl}/field-of-studies/list`)
+      .pipe(
+        map((items) =>
+          items.map((item) => {
+            const rawAbbrev = (item as any).abbrevation ?? (item as any).abbreviation ?? '';
+            return {
+              id: Number(item.id),
+              name: String(item.name),
+              abbreviation: String(rawAbbrev),
+              year: Number(item.year),
+              label: String(item.label ?? `${item.name} / ${rawAbbrev} / ${item.year}`),
+            };
+          })
+        ),
+        catchError((error: HttpErrorResponse) => this.handleError(error)),
+      );
+  }
+
   private normalizeTeachingLoad(item: Partial<TeachingLoadAssignmentDto>): TeachingLoadAssignmentDto {
     return {
       id: Number(item.id),
@@ -149,6 +179,8 @@ export class TeachingLoadsApiService {
       activity_name: item.activity_name ? String(item.activity_name) : null,
       semester_id: Number(item.semester_id),
       semester_name: item.semester_name ? String(item.semester_name) : null,
+      field_of_study_id: typeof item.field_of_study_id === 'number' ? Number(item.field_of_study_id) : null,
+      field_of_study_label: item.field_of_study_label ? String(item.field_of_study_label) : null,
       group_id: typeof item.group_id === 'number' ? Number(item.group_id) : null,
       group_label: item.group_label ? String(item.group_label) : null,
       hours: Number(item.hours),
@@ -191,7 +223,11 @@ export class TeachingLoadsApiService {
 
   private isTeacherUser(user: AdminUserRow): boolean {
     const roles = (user.roles ?? []).map((role) => String(role).toLowerCase());
-    return roles.some((role) => ['wykladowca', 'lecturer', 'cwiczenia', 'laboratorium', 'seminarium'].includes(role));
+    // Consider role names that indicate teaching position. Use substring
+    // matching to be tolerant to different role naming conventions.
+    return roles.some((role) =>
+      ['wykladowca', 'wykł', 'lecturer', 'teacher'].some((k) => role.includes(k)),
+    );
   }
 
   private mapTeacher(user: AdminUserRow): TeacherOption {

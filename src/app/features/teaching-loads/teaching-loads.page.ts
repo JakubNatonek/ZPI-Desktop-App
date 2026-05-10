@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,7 +8,6 @@ import { addIcons } from 'ionicons';
 import { alertCircleOutline, checkmarkCircle, closeCircle, timeOutline } from 'ionicons/icons';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 
-import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/services/auth.service';
 import { AuditApiService, AuditLogDto } from '../../core/services/audit-api.service';
 import {
@@ -17,6 +16,7 @@ import {
   TeachingLoadAssignmentCreatePayload,
   TeachingLoadAssignmentPatchPayload,
   TeacherOption,
+  FieldOfStudyOption,
 } from '../../core/services/teaching-loads-api.service';
 import { ActivityOption, SubjectDto } from '../../core/services/subjects-api.service';
 import { DezyderataService, Semestr } from '../../core/services/dezyderata.service';
@@ -26,19 +26,10 @@ type TeachingLoadFilterState = {
   subject_id?: number | null;
   activity_id?: number | null;
   semester_id?: number | null;
-  group_id?: number | null;
+  field_of_study_id?: number | null;
   hours_min?: number | null;
   hours_max?: number | null;
 };
-
-export interface GroupOption {
-  id: number;
-  specialization?: string;
-  code?: string;
-  year?: number;
-  studies_type?: string;
-  name?: string;
-}
 
 @Component({
   selector: 'app-teaching-loads',
@@ -63,14 +54,14 @@ export class TeachingLoadsPage implements OnInit {
   private subjectGroups: Map<string, SubjectDto[]> = new Map();
   activities: ActivityOption[] = [];
   semesters: Semestr[] = [];
-  groups: GroupOption[] = [];
+  fieldOfStudies: FieldOfStudyOption[] = [];
 
   filters: TeachingLoadFilterState = {
     teacher_id: null,
     subject_id: null,
     activity_id: null,
     semester_id: null,
-    group_id: null,
+    field_of_study_id: null,
     hours_min: null,
     hours_max: null,
   };
@@ -93,7 +84,6 @@ export class TeachingLoadsPage implements OnInit {
     private readonly teachingLoadsApi: TeachingLoadsApiService,
     private readonly dezyderataService: DezyderataService,
     private readonly auditApi: AuditApiService,
-    private readonly http: HttpClient,
   ) {
     addIcons({ alertCircleOutline, checkmarkCircle, closeCircle, timeOutline });
   }
@@ -146,7 +136,7 @@ export class TeachingLoadsPage implements OnInit {
       subject_id: null,
       activity_id: null,
       semester_id: null,
-      group_id: null,
+      field_of_study_id: null,
       hours_min: null,
       hours_max: null,
     };
@@ -159,7 +149,7 @@ export class TeachingLoadsPage implements OnInit {
     const subjectId = this.toNumber(this.filters.subject_id);
     const activityId = this.toNumber(this.filters.activity_id);
     const semesterId = this.toNumber(this.filters.semester_id);
-    const groupId = this.toNumber(this.filters.group_id);
+    const fieldOfStudyId = this.toNumber(this.filters.field_of_study_id);
     const hoursMin = this.toNumber(this.filters.hours_min);
     const hoursMax = this.toNumber(this.filters.hours_max);
     const query = this.normalizeSearch(this.searchQuery);
@@ -180,7 +170,7 @@ export class TeachingLoadsPage implements OnInit {
       if (semesterId !== null && item.semester_id !== semesterId) {
         return false;
       }
-      if (groupId !== null && item.group_id !== groupId) {
+      if (fieldOfStudyId !== null && item.field_of_study_id !== fieldOfStudyId) {
         return false;
       }
       if (hoursMin !== null && item.hours < hoursMin) {
@@ -401,22 +391,19 @@ export class TeachingLoadsPage implements OnInit {
     return fallback?.nazwa ?? `#${row.semester_id}`;
   }
 
-  getGroupOptionLabel(group: GroupOption): string {
-    if (group.specialization && group.code && group.year && group.studies_type) {
-      return `${group.specialization}/${group.code}/${group.year}/${group.studies_type}`;
-    }
-    return group.name ?? `#${group.id}`;
+  getFieldOfStudyOptionLabel(fieldOfStudy: FieldOfStudyOption): string {
+    return fieldOfStudy.label ?? `${fieldOfStudy.name} / ${fieldOfStudy.abbreviation} / ${fieldOfStudy.year}`;
   }
 
-  getGroupLabel(row: TeachingLoadAssignmentDto): string {
-    if (row.group_label) {
-      return row.group_label;
+  getFieldOfStudyLabel(row: TeachingLoadAssignmentDto): string {
+    if (row.field_of_study_label) {
+      return row.field_of_study_label;
     }
-    if (!row.group_id) {
+    if (!row.field_of_study_id) {
       return '-';
     }
-    const fallback = this.groups.find((g) => g.id === row.group_id);
-    return fallback ? this.getGroupOptionLabel(fallback) : `#${row.group_id}`;
+    const fallback = this.fieldOfStudies.find((item) => item.id === row.field_of_study_id);
+    return fallback ? this.getFieldOfStudyOptionLabel(fallback) : `#${row.field_of_study_id}`;
   }
 
   getTeacherOptionLabel(teacher: TeacherOption): string {
@@ -561,30 +548,28 @@ export class TeachingLoadsPage implements OnInit {
       teachers: this.teachingLoadsApi.getTeachers(),
       subjects: this.teachingLoadsApi.getSubjects(),
       activities: this.teachingLoadsApi.getActivities(),
+      fieldOfStudies: this.teachingLoadsApi.getFieldOfStudies(),
       semesters: this.dezyderataService.getSemestry(),
-      groups: this.http.get<GroupOption[]>(`${environment.apiBaseUrl}/groups/list`).pipe(
-        catchError(() => of([]))
-      ),
       audit: this.auditApi.getLogs().pipe(
         catchError(() => of({ last_changes_viewed_at: null, logs: [] })),
       ),
     })
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
-        next: ({ assignments, teachers, subjects, activities, semesters, groups, audit }) => {
+        next: ({ assignments, teachers, subjects, activities, fieldOfStudies, semesters, audit }) => {
           this.assignments = assignments;
           this.teachers = teachers;
           this.subjects = subjects;
           this.buildSubjectGroups();
           this.activities = activities;
+          this.fieldOfStudies = fieldOfStudies;
           this.semesters = semesters.items ?? [];
-          this.groups = groups;
           // Prefill resolved labels so sorting is stable on first render
           this.assignments = this.assignments.map((a) => ({
             ...a,
             subject_name: this.getSubjectLabel(a),
             activity_name: this.getActivityLabel(a),
-            group_label: this.getGroupLabel(a),
+            field_of_study_label: this.getFieldOfStudyLabel(a),
           }));
           this.buildAuditIndex(audit.last_changes_viewed_at, audit.logs ?? []);
           this.applyFilters();
@@ -639,13 +624,24 @@ export class TeachingLoadsPage implements OnInit {
     const normalizedOriginal = this.normalizeRow(original);
     const normalizedDraft = this.normalizeRow(draft);
 
+    // Resolve subject ids taking activity into account so switching between
+    // subject variants (same name, different activity) is detected.
+    const resolvedOriginalSubject = this.resolveSubjectIdForActivity(
+      normalizedOriginal.subject_id,
+      normalizedOriginal.activity_id,
+    );
+    const resolvedDraftSubject = this.resolveSubjectIdForActivity(
+      normalizedDraft.subject_id,
+      normalizedDraft.activity_id,
+    );
+
     const payload: TeachingLoadAssignmentPatchPayload = {};
 
     if (normalizedDraft.teacher_id !== normalizedOriginal.teacher_id) {
       payload.teacher_id = normalizedDraft.teacher_id;
     }
-    if (normalizedDraft.subject_id !== normalizedOriginal.subject_id) {
-      payload.subject_id = normalizedDraft.subject_id;
+    if (resolvedDraftSubject !== resolvedOriginalSubject) {
+      payload.subject_id = Number(resolvedDraftSubject ?? normalizedDraft.subject_id);
     }
     if (normalizedDraft.activity_id !== normalizedOriginal.activity_id) {
       payload.activity_id = normalizedDraft.activity_id;
@@ -653,8 +649,8 @@ export class TeachingLoadsPage implements OnInit {
     if (normalizedDraft.semester_id !== normalizedOriginal.semester_id) {
       payload.semester_id = normalizedDraft.semester_id;
     }
-    if (normalizedDraft.group_id !== normalizedOriginal.group_id) {
-      payload.group_id = normalizedDraft.group_id;
+    if (normalizedDraft.field_of_study_id !== normalizedOriginal.field_of_study_id) {
+      payload.field_of_study_id = normalizedDraft.field_of_study_id;
     }
     if (normalizedDraft.hours !== normalizedOriginal.hours) {
       payload.hours = normalizedDraft.hours;
@@ -676,6 +672,9 @@ export class TeachingLoadsPage implements OnInit {
     if (payload.semester_id !== undefined && payload.semester_id <= 0) {
       return 'Wybierz poprawny semestr.';
     }
+    if (payload.field_of_study_id != null && payload.field_of_study_id <= 0) {
+      return 'Wybierz poprawny rocznik.';
+    }
     if (payload.hours !== undefined && (!Number.isFinite(payload.hours) || payload.hours <= 0)) {
       return 'Podaj poprawną liczbę godzin.';
     }
@@ -690,7 +689,7 @@ export class TeachingLoadsPage implements OnInit {
       subject_id: Number(subjectId ?? draft.subject_id),
       activity_id: Number(draft.activity_id),
       semester_id: Number(draft.semester_id),
-      group_id: Number(draft.group_id),
+      field_of_study_id: Number(draft.field_of_study_id),
       hours: Number(draft.hours),
     };
   }
@@ -708,8 +707,8 @@ export class TeachingLoadsPage implements OnInit {
     if (!payload.semester_id || payload.semester_id <= 0) {
       return 'Wybierz poprawny semestr.';
     }
-    if (!payload.group_id || payload.group_id <= 0) {
-      return 'Wybierz poprawną grupę.';
+    if (!payload.field_of_study_id || payload.field_of_study_id <= 0) {
+      return 'Wybierz poprawny rocznik.';
     }
     if (!Number.isFinite(payload.hours) || payload.hours <= 0) {
       return 'Podaj poprawną liczbę godzin.';
@@ -725,7 +724,7 @@ export class TeachingLoadsPage implements OnInit {
       subject_id: Number(this.getRepresentativeSubjectId(row.subject_id) ?? row.subject_id),
       activity_id: Number(row.activity_id),
       semester_id: Number(row.semester_id),
-      group_id: row.group_id ? Number(row.group_id) : null,
+      field_of_study_id: row.field_of_study_id ? Number(row.field_of_study_id) : null,
       hours: Number(row.hours),
     };
   }
@@ -777,8 +776,9 @@ export class TeachingLoadsPage implements OnInit {
       activity_name: 'Typ zajęć',
       semester_id: 'Semestr',
       semester_name: 'Semestr',
-      group_id: 'Grupa',
-      group_label: 'Grupa',
+      group_id: 'Grupa (legacy)',
+      field_of_study_id: 'Rocznik',
+      field_of_study_label: 'Rocznik',
       hours: 'Godziny',
     };
 
@@ -817,7 +817,8 @@ export class TeachingLoadsPage implements OnInit {
 
   private mapRowError(error: unknown, fallback: string): string {
     if (error instanceof HttpErrorResponse) {
-      const detail = error.error?.detail;
+      const errBody = error.error ?? {};
+      const detail = errBody.detail ?? errBody.message ?? (errBody.detail?.message ?? null);
       if (typeof detail === 'string' && detail.trim()) {
         return detail;
       }
@@ -827,7 +828,13 @@ export class TeachingLoadsPage implements OnInit {
   }
 
   private ensureDictionariesReady(): boolean {
-    if (!this.teachers.length || !this.subjects.length || !this.activities.length || !this.semesters.length) {
+    if (
+      !this.teachers.length ||
+      !this.subjects.length ||
+      !this.activities.length ||
+      !this.semesters.length ||
+      !this.fieldOfStudies.length
+    ) {
       this.rowErrorMessage = 'Brak słowników do dodania przydziału.';
       return false;
     }
@@ -853,8 +860,8 @@ export class TeachingLoadsPage implements OnInit {
       activity_name: activity?.name ?? null,
       semester_id: semester?.id ?? 0,
       semester_name: semester?.nazwa ?? null,
-      group_id: null,
-      group_label: null,
+      field_of_study_id: this.fieldOfStudies[0]?.id ?? 0,
+      field_of_study_label: this.fieldOfStudies[0]?.label ?? null,
       hours: 1,
     };
   }
@@ -887,7 +894,7 @@ export class TeachingLoadsPage implements OnInit {
       this.getSubjectLabel(item),
       this.getActivityLabel(item),
       this.getSemesterLabel(item),
-      this.getGroupLabel(item),
+      this.getFieldOfStudyLabel(item),
       String(item.hours),
     ];
     return this.normalizeSearch(parts.join(' '));
@@ -898,7 +905,7 @@ export class TeachingLoadsPage implements OnInit {
       ...a,
       subject_name: this.getSubjectLabel(a),
       activity_name: this.getActivityLabel(a),
-      group_label: this.getGroupLabel(a),
+      field_of_study_label: this.getFieldOfStudyLabel(a),
     };
   }
 }
