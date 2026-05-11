@@ -130,20 +130,37 @@ ion-toolbar {
   margin-bottom: 6px;
 }
 
-.styled-input {
-  width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  --padding-start: 12px;
-  --padding-end: 12px;
-  background: #f9fafb;
-  --background: #f9fafb;
-  color: #1f2937;
-  --color: #1f2937;
-  --placeholder-color: #9ca3af;
-  min-height: 40px;
-  font-size: 0.9rem;
-  transition: border-color 0.15s;
+/* ── Styl input-shella (jak w forced change-password) ── */
+.input-shell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f4f6fb;
+  border: 1.5px solid #dce3ef;
+  border-radius: 10px;
+  padding: 0 14px;
+  height: 50px;
+  transition: border-color 0.2s;
+
+  &:focus-within {
+    border-color: #1a3a5c;
+    background: #ffffff;
+  }
+
+  ion-icon {
+    font-size: 18px;
+    color: #6b7a90;
+    flex-shrink: 0;
+  }
+
+  ion-input {
+    --padding-start: 0;
+    --padding-end: 0;
+    --color: #1a1a2e;
+    --placeholder-color: #6b7a90;
+    font-size: 14px;
+    flex: 1;
+  }
 }
 
 .password-message {
@@ -162,6 +179,106 @@ ion-toolbar {
   --background-activated: #122946;
   --background-hover: #122946;
   --color: #ffffff;
+}
+
+/* ── Inline validation errors ── */
+.field-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 5px;
+
+  span {
+    font-size: 12px;
+    color: #e74c3c;
+
+    &::before {
+      content: '⚠ ';
+    }
+  }
+}
+
+/* ── Password strength bar ── */
+.password-strength {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  background: #e5e7eb;
+
+  &.strength-weak {
+    background: #ef4444;
+  }
+
+  &.strength-fair {
+    background: #f59e0b;
+  }
+
+  &.strength-strong {
+    background: #10b981;
+  }
+
+  &.strength-very-strong {
+    background: #059669;
+  }
+}
+
+.strength-label {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #9ca3af;
+
+  &.strength-weak {
+    color: #ef4444;
+  }
+
+  &.strength-fair {
+    color: #f59e0b;
+  }
+
+  &.strength-strong {
+    color: #10b981;
+  }
+
+  &.strength-very-strong {
+    color: #059669;
+  }
+}
+
+/* ── Error / Success message boxes ── */
+.error-message {
+  background: rgba(231, 76, 60, 0.08);
+  border: 1px solid rgba(231, 76, 60, 0.25);
+  border-radius: 10px;
+  color: #e74c3c;
+  font-size: 13px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+.success-message {
+  background: rgba(45, 211, 111, 0.08);
+  border: 1px solid rgba(45, 211, 111, 0.3);
+  border-radius: 10px;
+  color: #0f766e;
+  font-size: 13px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
 }
 
 /* ── Theme toggle row ── */
@@ -231,16 +348,38 @@ ion-toolbar {
     color: #e8edf4;
   }
 
-  .styled-input {
-    border-color: rgba(255, 255, 255, 0.08);
+  .input-shell {
     background: #1a2c42;
-    --background: #1a2c42;
-    color: #e8edf4;
-    --color: #e8edf4;
-    --placeholder-color: #64748b;
+    border-color: rgba(255, 255, 255, 0.08);
+
+    &:focus-within {
+      border-color: rgba(212, 168, 67, 0.4);
+      background: #1a2c42;
+    }
+
+    ion-icon {
+      color: #64748b;
+    }
+
+    ion-input {
+      --color: #e8edf4;
+      --placeholder-color: #64748b;
+    }
   }
 
   .password-message {
+    color: #6ee7b7;
+  }
+
+  .error-message {
+    background: rgba(231, 76, 60, 0.1);
+    border-color: rgba(231, 76, 60, 0.3);
+    color: #fca5a5;
+  }
+
+  .success-message {
+    background: rgba(45, 211, 111, 0.1);
+    border-color: rgba(45, 211, 111, 0.3);
     color: #6ee7b7;
   }
 

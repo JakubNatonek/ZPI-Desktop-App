@@ -63,8 +63,11 @@
 
           <div class="field-group">
             <label class="field-label">Aktualne hasło</label>
-            <ion-input class="styled-input" type="password" formControlName="currentPassword"
-              placeholder="••••••••"></ion-input>
+            <div class="input-shell">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              <ion-input type="password" formControlName="currentPassword"
+                placeholder="••••••••"></ion-input>
+            </div>
             <div class="field-errors" *ngIf="form.controls.currentPassword.invalid && form.controls.currentPassword.touched">
               <span *ngIf="form.controls.currentPassword.errors?.['required']">Aktualne hasło jest wymagane.</span>
             </div>
@@ -72,7 +75,10 @@
 
           <div class="field-group">
             <label class="field-label">Nowe hasło</label>
-            <ion-input class="styled-input" type="password" formControlName="newPassword" placeholder="••••••••"></ion-input>
+            <div class="input-shell">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              <ion-input type="password" formControlName="newPassword" placeholder="••••••••"></ion-input>
+            </div>
             <!-- Pasek siły hasła -->
             <div class="password-strength" *ngIf="form.controls.newPassword.value">
               <div class="strength-bar">
@@ -93,8 +99,11 @@
 
           <div class="field-group">
             <label class="field-label">Powtórz nowe hasło</label>
-            <ion-input class="styled-input" type="password" formControlName="confirmPassword"
-              placeholder="••••••••"></ion-input>
+            <div class="input-shell">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              <ion-input type="password" formControlName="confirmPassword"
+                placeholder="••••••••"></ion-input>
+            </div>
             <div class="field-errors"
               *ngIf="(form.controls.confirmPassword.invalid && form.controls.confirmPassword.touched) || (form.errors?.['passwordMismatch'] && form.controls.confirmPassword.touched)">
               <span *ngIf="form.controls.confirmPassword.errors?.['required']">Potwierdzenie hasła jest wymagane.</span>
@@ -102,8 +111,8 @@
             </div>
           </div>
 
-          <p class="password-message" *ngIf="error" style="color: #dc3545;">{{ error }}</p>
-          <p class="password-message" *ngIf="success" style="color: #28a745;">{{ success }}</p>
+          <div *ngIf="error" class="error-message">{{ error }}</div>
+          <div *ngIf="success" class="success-message">{{ success }}</div>
 
           <div class="form-actions">
             <ion-button class="btn-save" type="submit">

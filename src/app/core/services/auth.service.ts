@@ -369,6 +369,7 @@ export class AuthService {
     if (this.isBackendSessionActive()) {
       const url = `${environment.apiBaseUrl}/auth/change-one-time-password`;
       return this.http.post<{ message: string }>(url, {
+        current_password: currentPassword,
         new_password: newPassword,
         confirm_new_password: newPassword
       }, { withCredentials: true }).pipe(
