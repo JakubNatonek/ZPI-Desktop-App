@@ -309,3 +309,95 @@ ion-header ion-toolbar {
   }
 }
 
+/* Dark mode overrides */
+:host-context(html.ion-palette-dark) {
+  .hero {
+    background: linear-gradient(135deg, var(--ion-color-primary) 0%, var(--ion-color-primary-shade) 100%);
+  }
+
+  .form-shell {
+    background: rgba(2, 6, 23, 0.82);
+    border-color: rgba(148, 163, 184, 0.3);
+  }
+
+  .user-selector-row ion-item {
+    --background: rgba(15, 23, 42, 0.85);
+    border-color: rgba(148, 163, 184, 0.35);
+  }
+
+  .table-container {
+    .preferences-table {
+      thead {
+        background: rgba(30, 41, 59, 0.95);
+
+        th {
+          color: #cbd5e1;
+          border-bottom-color: rgba(148, 163, 184, 0.35);
+        }
+      }
+
+      tbody {
+        tr {
+          border-bottom-color: rgba(148, 163, 184, 0.2);
+
+          &.pref-row {
+            td {
+              color: #e2e8f0;
+            }
+
+            &:hover {
+              background: rgba(30, 41, 59, 0.6);
+            }
+
+            .subject-subinfo {
+              color: #94a3b8;
+            }
+
+            .empty-val {
+              color: #64748b;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .inline-dropdown {
+    background: rgba(15, 23, 42, 0.95);
+    border-color: rgba(148, 163, 184, 0.35);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .inline-option {
+    color: #e2e8f0;
+    border-bottom-color: rgba(148, 163, 184, 0.2);
+
+    &:hover {
+      background: rgba(30, 41, 59, 0.8);
+    }
+
+    small {
+      color: #94a3b8;
+    }
+  }
+
+  .add-form {
+    border-top-color: rgba(148, 163, 184, 0.25);
+
+    .inline-search-select ion-item {
+      --background: rgba(15, 23, 42, 0.85);
+      border-color: rgba(148, 163, 184, 0.35);
+    }
+
+    .form-row ion-item {
+      --background: rgba(15, 23, 42, 0.85);
+      border-color: rgba(148, 163, 184, 0.35);
+    }
+  }
+
+  .list-message {
+    background: rgba(30, 41, 59, 0.6);
+    color: #cbd5e1;
+  }
+}
+
