@@ -756,12 +756,13 @@ export class TeachingLoadsPage implements OnInit {
 
   private buildCreatePayload(draft: TeachingLoadAssignmentDto): TeachingLoadAssignmentCreatePayload {
     const subjectId = this.resolveSubjectIdForActivity(draft.subject_id, draft.activity_id);
+    const fieldOfStudyId = this.toNumber(draft.field_of_study_id);
     return {
       teacher_id: Number(draft.teacher_id),
       subject_id: Number(subjectId ?? draft.subject_id),
       activity_id: Number(draft.activity_id),
       semester_id: Number(draft.semester_id),
-      field_of_study_id: Number(draft.field_of_study_id),
+      field_of_study_id: fieldOfStudyId,
       hours: Number(draft.hours),
     };
   }
@@ -779,7 +780,7 @@ export class TeachingLoadsPage implements OnInit {
     if (!payload.semester_id || payload.semester_id <= 0) {
       return 'Wybierz poprawny semestr.';
     }
-    if (!payload.field_of_study_id || payload.field_of_study_id <= 0) {
+    if (payload.field_of_study_id != null && payload.field_of_study_id <= 0) {
       return 'Wybierz poprawny rocznik.';
     }
     if (!Number.isFinite(payload.hours) || payload.hours <= 0) {

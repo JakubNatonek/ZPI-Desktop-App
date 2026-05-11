@@ -41,7 +41,7 @@ export interface TeachingLoadAssignmentCreatePayload {
   activity_id: number;
   semester_id: number;
   hours: number;
-  field_of_study_id: number;
+  field_of_study_id: number | null;
 }
 
 export interface FieldOfStudyOption {

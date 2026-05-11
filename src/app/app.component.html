@@ -41,6 +41,7 @@
           *ngIf="auth.role === 'admin' || auth.role === 'rapla_editor' || auth.role === 'lecturer_rapla_editor'"
           (click)="navigate('/audit-logs')">Historia zmian</ion-item>
         <ion-item button (click)="navigate('/profile')">Profil</ion-item>
+        <ion-item button (click)="navigate('/subject-preferences')">Preferencje przedmiotów</ion-item>
         <ion-item button (click)="navigate('/chat')">Czat</ion-item>
       </ion-list>
     </ion-content>
