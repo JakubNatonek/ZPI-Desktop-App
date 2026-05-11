@@ -119,6 +119,12 @@ export class TeachingLoadsApiService {
       );
   }
 
+  deleteTeachingLoad(assignmentId: number): Observable<void> {
+    return this.http
+      .delete<void>(`${this.baseUrl}/${assignmentId}`)
+      .pipe(catchError((error: HttpErrorResponse) => this.handleError(error)));
+  }
+
   getTeachingLoadHistory(assignmentId: number): Observable<AuditLogDto[]> {
     return this.auditApi.getLogs().pipe(
       map((response) => response.logs ?? []),

@@ -3,9 +3,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { IonicModule } from '@ionic/angular';
+import { AlertController, IonicModule } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { alertCircleOutline, checkmarkCircle, closeCircle, timeOutline } from 'ionicons/icons';
+import { alertCircleOutline, checkmarkCircle, closeCircle, timeOutline, trashOutline } from 'ionicons/icons';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
@@ -60,6 +60,7 @@ export class TeachingLoadsPage implements OnInit {
   // Subject preferences for filtering
   teacherPreferences: Map<number, Set<number>> = new Map();
   selectedTeacherPreferredSubjectIds: Set<number> = new Set();
+  private preferredTeacherId: number | null = null;
 
   filters: TeachingLoadFilterState = {
     teacher_id: null,
@@ -90,8 +91,9 @@ export class TeachingLoadsPage implements OnInit {
     private readonly dezyderataService: DezyderataService,
     private readonly auditApi: AuditApiService,
     private readonly subjectPreferencesApi: SubjectPreferencesApiService,
+    private readonly alertController: AlertController,
   ) {
-    addIcons({ alertCircleOutline, checkmarkCircle, closeCircle, timeOutline });
+    addIcons({ alertCircleOutline, checkmarkCircle, closeCircle, timeOutline, trashOutline });
   }
 
   ngOnInit(): void {
@@ -224,6 +226,7 @@ export class TeachingLoadsPage implements OnInit {
     this.isCreating = true;
     this.newRowDraft = this.buildDefaultRow();
     this.rowErrorMessage = '';
+    this.onNewTeacherChange();
   }
 
   cancelCreating(): void {
@@ -287,6 +290,7 @@ export class TeachingLoadsPage implements OnInit {
     this.originalRow = { ...editableRow };
     this.draftRow = { ...editableRow };
     this.rowErrorMessage = '';
+    this.onEditTeacherChange();
   }
 
   cancelEditing(): void {
@@ -329,6 +333,61 @@ export class TeachingLoadsPage implements OnInit {
         },
         error: (error) => {
           this.rowErrorMessage = this.mapRowError(error, 'Nie udało się zapisać zmian.');
+        },
+      });
+  }
+
+  async confirmDelete(row: TeachingLoadAssignmentDto, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    if (this.isSaving) {
+      return;
+    }
+
+    const alert = await this.alertController.create({
+      header: 'Usuń przydział',
+      message: `Czy na pewno usunąć przydział dla ${this.getTeacherLabel(row)} (${this.getSubjectLabel(row)})?`,
+      buttons: [
+        {
+          text: 'Anuluj',
+          role: 'cancel',
+        },
+        {
+          text: 'Usuń',
+          role: 'destructive',
+          handler: () => this.deleteAssignment(row),
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+
+  private deleteAssignment(row: TeachingLoadAssignmentDto): void {
+    if (this.isSaving) {
+      return;
+    }
+
+    this.isSaving = true;
+    this.rowErrorMessage = '';
+
+    this.teachingLoadsApi
+      .deleteTeachingLoad(row.id)
+      .pipe(finalize(() => (this.isSaving = false)))
+      .subscribe({
+        next: () => {
+          this.assignments = this.assignments.filter((item) => item.id !== row.id);
+          this.filteredAssignments = this.filteredAssignments.filter((item) => item.id !== row.id);
+          if (this.editingRowId === row.id) {
+            this.cancelEditing();
+          }
+          if (this.historyOpenRowId === row.id) {
+            this.historyOpenRowId = null;
+          }
+          delete this.historyByAssignment[row.id];
+          this.newHistoryIds.delete(row.id);
+        },
+        error: (error) => {
+          this.rowErrorMessage = this.mapRowError(error, 'Nie udało się usunąć przydziału.');
         },
       });
   }
@@ -418,15 +477,28 @@ export class TeachingLoadsPage implements OnInit {
       .join(' ');
   }
 
-  getActivityOptionsForSubject(subjectId: number | null | undefined): ActivityOption[] {
+  getActivityOptionsForSubject(
+    subjectId: number | null | undefined,
+    teacherId?: number | null,
+  ): ActivityOption[] {
     if (!subjectId) {
       return this.activities;
     }
 
     const entries = this.getSubjectEntriesById(subjectId);
-    const activityIds = Array.from(new Set(entries.map((e) => Number(e.activity_id)).filter(Boolean)));
+    const shouldFilterByPreferences =
+      teacherId != null &&
+      teacherId > 0 &&
+      this.preferredTeacherId === teacherId &&
+      this.selectedTeacherPreferredSubjectIds.size > 0;
+
+    const filteredEntries = shouldFilterByPreferences
+      ? entries.filter((entry) => this.selectedTeacherPreferredSubjectIds.has(entry.id))
+      : entries;
+
+    const activityIds = Array.from(new Set(filteredEntries.map((e) => Number(e.activity_id)).filter(Boolean)));
     if (!activityIds.length) {
-      return this.activities;
+      return shouldFilterByPreferences ? [] : this.activities;
     }
 
     return this.activities.filter((a) => activityIds.includes(a.id));
@@ -437,10 +509,7 @@ export class TeachingLoadsPage implements OnInit {
     if (!draft) {
       return;
     }
-    const options = this.getActivityOptionsForSubject(draft.subject_id);
-    if (options.length && !options.some((o) => o.id === draft.activity_id)) {
-      draft.activity_id = options[0].id;
-    }
+    this.ensureActivitySelection(draft, draft.teacher_id);
   }
 
   onNewActivityChange(): void {
@@ -455,10 +524,7 @@ export class TeachingLoadsPage implements OnInit {
     if (!draft) {
       return;
     }
-    const options = this.getActivityOptionsForSubject(draft.subject_id);
-    if (options.length && !options.some((o) => o.id === draft.activity_id)) {
-      draft.activity_id = options[0].id;
-    }
+    this.ensureActivitySelection(draft, draft.teacher_id);
   }
 
   onEditActivityChange(): void {
@@ -924,10 +990,11 @@ export class TeachingLoadsPage implements OnInit {
     const teacherId = draft.teacher_id;
     if (!teacherId || teacherId <= 0) {
       this.selectedTeacherPreferredSubjectIds.clear();
+      this.preferredTeacherId = null;
       return;
     }
 
-    this.loadTeacherPreferences(teacherId);
+    this.loadTeacherPreferences(teacherId, draft);
   }
 
   onEditTeacherChange(): void {
@@ -939,15 +1006,18 @@ export class TeachingLoadsPage implements OnInit {
     const teacherId = draft.teacher_id;
     if (!teacherId || teacherId <= 0) {
       this.selectedTeacherPreferredSubjectIds.clear();
+      this.preferredTeacherId = null;
       return;
     }
 
-    this.loadTeacherPreferences(teacherId);
+    this.loadTeacherPreferences(teacherId, draft);
   }
 
-  private loadTeacherPreferences(teacherId: number): void {
+  private loadTeacherPreferences(teacherId: number, row?: TeachingLoadAssignmentDto | null): void {
     if (this.teacherPreferences.has(teacherId)) {
       this.selectedTeacherPreferredSubjectIds = new Set(this.teacherPreferences.get(teacherId)!);
+      this.preferredTeacherId = teacherId;
+      this.syncRowSelection(row ?? null, teacherId);
       return;
     }
 
@@ -956,22 +1026,82 @@ export class TeachingLoadsPage implements OnInit {
         const subjectIds = new Set(preferences.map((p) => p.subject_id));
         this.teacherPreferences.set(teacherId, subjectIds);
         this.selectedTeacherPreferredSubjectIds = subjectIds;
+        this.preferredTeacherId = teacherId;
+        this.syncRowSelection(row ?? null, teacherId);
       },
       error: (error) => {
         console.error(`Failed to load preferences for teacher ${teacherId}:`, error);
         this.selectedTeacherPreferredSubjectIds.clear();
+        this.preferredTeacherId = null;
       },
     });
   }
 
   getPreferredSubjectOptions(teacherId: number | null | undefined): { id: number; name: string; entries: SubjectDto[] }[] {
-    if (!teacherId || teacherId <= 0 || this.selectedTeacherPreferredSubjectIds.size === 0) {
+    if (
+      !teacherId ||
+      teacherId <= 0 ||
+      this.selectedTeacherPreferredSubjectIds.size === 0 ||
+      this.preferredTeacherId !== teacherId
+    ) {
       return this.getSubjectOptions();
     }
 
-    // Filter subjects to only those in teacher's preferences
+    // Filter subjects to only those in teacher's preferences.
+    // Match any variant (activity) in the subject group.
     const all = this.getSubjectOptions();
-    return all.filter((option) => this.selectedTeacherPreferredSubjectIds.has(option.id));
+    return all.filter((option) =>
+      option.entries.some((entry) => this.selectedTeacherPreferredSubjectIds.has(entry.id)),
+    );
+  }
+
+  private ensureActivitySelection(
+    row: TeachingLoadAssignmentDto,
+    teacherId: number | null | undefined,
+  ): void {
+    const options = this.getActivityOptionsForSubject(row.subject_id, teacherId);
+    if (options.length && !options.some((o) => o.id === row.activity_id)) {
+      row.activity_id = options[0].id;
+    }
+  }
+
+  private getSubjectGroupBySubjectId(
+    subjectId: number | null | undefined,
+  ): { id: number; name: string; entries: SubjectDto[] } | null {
+    if (!subjectId) {
+      return null;
+    }
+    const entries = this.getSubjectEntriesById(subjectId);
+    if (!entries.length) {
+      return null;
+    }
+    const name = entries[0].name ?? `#${entries[0].id}`;
+    return { id: entries[0].id, name, entries };
+  }
+
+  private syncRowSelection(row: TeachingLoadAssignmentDto | null, teacherId: number): void {
+    if (!row) {
+      return;
+    }
+    if (this.preferredTeacherId !== teacherId || this.selectedTeacherPreferredSubjectIds.size === 0) {
+      return;
+    }
+
+    const preferredGroups = this.getPreferredSubjectOptions(teacherId);
+    if (!preferredGroups.length) {
+      return;
+    }
+
+    const currentGroup = this.getSubjectGroupBySubjectId(row.subject_id);
+    const hasPreferredInCurrent = currentGroup
+      ? currentGroup.entries.some((entry) => this.selectedTeacherPreferredSubjectIds.has(entry.id))
+      : false;
+
+    if (!hasPreferredInCurrent) {
+      row.subject_id = preferredGroups[0].id;
+    }
+
+    this.ensureActivitySelection(row, teacherId);
   }
 
   isTeacherSelected(teacherId: number | null | undefined): boolean {

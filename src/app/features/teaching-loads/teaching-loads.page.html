@@ -194,7 +194,7 @@
                   class="cell-select"
                   [(ngModel)]="newRowDraft.activity_id"
                   (ionChange)="onNewActivityChange()">
-                  <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(newRowDraft.subject_id)" [value]="activity.id">
+                  <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(newRowDraft.subject_id, newRowDraft.teacher_id)" [value]="activity.id">
                     {{ activity.name }}
                   </ion-select-option>
                 </ion-select>
@@ -287,7 +287,7 @@
                       [(ngModel)]="draftRow.activity_id"
                       (ionChange)="onEditActivityChange()"
                       (click)="$event.stopPropagation()">
-                      <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(draftRow.subject_id)" [value]="activity.id">
+                      <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(draftRow.subject_id, draftRow.teacher_id)" [value]="activity.id">
                         {{ activity.name }}
                       </ion-select-option>
                     </ion-select>
@@ -358,7 +358,7 @@
                   </span>
                 </td>
                 <td class="cell actions-cell">
-                  <div class="edit-actions" *ngIf="editingRowId === row.id">
+                  <div class="edit-actions" *ngIf="editingRowId === row.id; else rowActions">
                     <ion-button size="small" color="success" fill="clear" (click)="saveEditing()">
                       <ion-icon name="checkmark-circle"></ion-icon>
                     </ion-button>
@@ -366,6 +366,11 @@
                       <ion-icon name="close-circle"></ion-icon>
                     </ion-button>
                   </div>
+                  <ng-template #rowActions>
+                    <ion-button size="small" color="danger" fill="clear" (click)="confirmDelete(row, $event)">
+                      <ion-icon name="trash-outline"></ion-icon>
+                    </ion-button>
+                  </ng-template>
                 </td>
               </tr>
               <tr *ngIf="historyOpenRowId === row.id" class="history-row">
