@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AlertController, IonicModule, LoadingController } from '@ionic/angular';
 import { Subject, finalize, filter, take, takeUntil } from 'rxjs';
 
@@ -36,6 +37,9 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
   newActivityId: number | null = null;
   isUserDropdownOpen = false;
   isSubjectDropdownOpen = false;
+
+  isProfileMenuOpen = false;
+  profileMenuEvent?: Event;
 
   isLoading = false;
   isSaving = false;
@@ -139,7 +143,8 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
   }
 
   constructor(
-    private readonly auth: AuthService,
+    public auth: AuthService,
+    private readonly router: Router,
     private readonly subjectsApi: SubjectsApiService,
     private readonly preferencesApi: SubjectPreferencesApiService,
     private readonly usersAdminApi: UsersAdminApiService,
@@ -166,8 +171,31 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  get userDisplayName(): string {
+    return this.auth.displayName;
+  }
+
   get userRoleLabel(): string {
     return this.auth.roleLabel;
+  }
+
+  toggleProfileMenu(event: Event): void {
+    this.profileMenuEvent = event;
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+  }
+
+  closeProfileMenu(): void {
+    this.isProfileMenuOpen = false;
+  }
+
+  openSettings(): void {
+    this.closeProfileMenu();
+    this.router.navigateByUrl('/profile');
+  }
+
+  logout(): void {
+    this.closeProfileMenu();
+    this.auth.logout();
   }
 
   private loadInitialData(): void {

@@ -1,13 +1,28 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
     <ion-title>Preferencje przedmiotów</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
-      <ion-chip color="medium" outline>
+      <ion-chip class="role-chip" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
       </ion-chip>
+      <span class="toolbar-username">{{ userDisplayName }}</span>
+      <ion-avatar class="ion-margin-start app-user-avatar" role="button" tabindex="0"
+        (click)="toggleProfileMenu($event)">
+        <img [src]="auth.avatarUrl" alt="Avatar" />
+      </ion-avatar>
+
+      <ion-popover [isOpen]="isProfileMenuOpen" [event]="profileMenuEvent" [dismissOnSelect]="true" side="bottom"
+        alignment="end" (didDismiss)="closeProfileMenu()">
+        <ng-template>
+          <ion-list lines="none">
+            <ion-item button detail="false" (click)="openSettings()">Ustawienia</ion-item>
+            <ion-item button detail="false" class="logout-item" (click)="logout()">Wyloguj</ion-item>
+          </ion-list>
+        </ng-template>
+      </ion-popover>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>

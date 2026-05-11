@@ -103,7 +103,7 @@ export class TeachingLoadsPage implements OnInit {
   lastViewedAt: string | null = null;
 
   constructor(
-    private readonly auth: AuthService,
+    public auth: AuthService,
     private readonly router: Router,
     private readonly teachingLoadsApi: TeachingLoadsApiService,
     private readonly dezyderataService: DezyderataService,
@@ -127,6 +127,10 @@ export class TeachingLoadsPage implements OnInit {
     }
 
     this.loadData();
+  }
+
+  get userDisplayName(): string {
+    return this.auth.displayName;
   }
 
   get userRoleLabel(): string {
