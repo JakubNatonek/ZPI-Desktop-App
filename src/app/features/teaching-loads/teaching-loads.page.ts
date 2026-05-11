@@ -3,9 +3,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { IonicModule } from '@ionic/angular';
+import { AlertController, IonicModule } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { alertCircleOutline, checkmarkCircle, closeCircle, timeOutline } from 'ionicons/icons';
+import { alertCircleOutline, checkmarkCircle, closeCircle, timeOutline, trashOutline } from 'ionicons/icons';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
@@ -16,8 +16,10 @@ import {
   TeachingLoadAssignmentCreatePayload,
   TeachingLoadAssignmentPatchPayload,
   TeacherOption,
+  FieldOfStudyOption,
 } from '../../core/services/teaching-loads-api.service';
 import { ActivityOption, SubjectDto } from '../../core/services/subjects-api.service';
+import { SubjectPreferencesApiService, SubjectPreferenceResponse } from '../../core/services/subject-preferences-api.service';
 import { DezyderataService, Semestr } from '../../core/services/dezyderata.service';
 
 type TeachingLoadFilterState = {
@@ -25,6 +27,7 @@ type TeachingLoadFilterState = {
   subject_id?: number | null;
   activity_id?: number | null;
   semester_id?: number | null;
+  field_of_study_id?: number | null;
   hours_min?: number | null;
   hours_max?: number | null;
 };
@@ -49,14 +52,22 @@ export class TeachingLoadsPage implements OnInit {
   filteredAssignments: TeachingLoadAssignmentDto[] = [];
   teachers: TeacherOption[] = [];
   subjects: SubjectDto[] = [];
+  private subjectGroups: Map<string, SubjectDto[]> = new Map();
   activities: ActivityOption[] = [];
   semesters: Semestr[] = [];
+  fieldOfStudies: FieldOfStudyOption[] = [];
+
+  // Subject preferences for filtering
+  teacherPreferences: Map<number, Set<number>> = new Map();
+  selectedTeacherPreferredSubjectIds: Set<number> = new Set();
+  private preferredTeacherId: number | null = null;
 
   filters: TeachingLoadFilterState = {
     teacher_id: null,
     subject_id: null,
     activity_id: null,
     semester_id: null,
+    field_of_study_id: null,
     hours_min: null,
     hours_max: null,
   };
@@ -79,19 +90,21 @@ export class TeachingLoadsPage implements OnInit {
     private readonly teachingLoadsApi: TeachingLoadsApiService,
     private readonly dezyderataService: DezyderataService,
     private readonly auditApi: AuditApiService,
+    private readonly subjectPreferencesApi: SubjectPreferencesApiService,
+    private readonly alertController: AlertController,
   ) {
-    addIcons({ alertCircleOutline, checkmarkCircle, closeCircle, timeOutline });
+    addIcons({ alertCircleOutline, checkmarkCircle, closeCircle, timeOutline, trashOutline });
   }
 
   ngOnInit(): void {
-    if (this.auth.role !== 'admin') {
+    if (this.auth.role !== 'admin' && this.auth.role !== 'rapla_editor') {
       this.router.navigateByUrl('/home');
       return;
     }
   }
 
   ionViewWillEnter(): void {
-    if (this.auth.role !== 'admin') {
+    if (this.auth.role !== 'admin' && this.auth.role !== 'rapla_editor') {
       return;
     }
 
@@ -131,6 +144,7 @@ export class TeachingLoadsPage implements OnInit {
       subject_id: null,
       activity_id: null,
       semester_id: null,
+      field_of_study_id: null,
       hours_min: null,
       hours_max: null,
     };
@@ -143,21 +157,28 @@ export class TeachingLoadsPage implements OnInit {
     const subjectId = this.toNumber(this.filters.subject_id);
     const activityId = this.toNumber(this.filters.activity_id);
     const semesterId = this.toNumber(this.filters.semester_id);
+    const fieldOfStudyId = this.toNumber(this.filters.field_of_study_id);
     const hoursMin = this.toNumber(this.filters.hours_min);
     const hoursMax = this.toNumber(this.filters.hours_max);
     const query = this.normalizeSearch(this.searchQuery);
 
-    this.filteredAssignments = this.assignments.filter((item) => {
+    const filtered = this.assignments.filter((item) => {
       if (teacherId !== null && item.teacher_id !== teacherId) {
         return false;
       }
-      if (subjectId !== null && item.subject_id !== subjectId) {
-        return false;
+      if (subjectId !== null) {
+        const allowed = this.getSubjectEntriesById(subjectId).map((s) => s.id);
+        if (!allowed.includes(item.subject_id)) {
+          return false;
+        }
       }
       if (activityId !== null && item.activity_id !== activityId) {
         return false;
       }
       if (semesterId !== null && item.semester_id !== semesterId) {
+        return false;
+      }
+      if (fieldOfStudyId !== null && item.field_of_study_id !== fieldOfStudyId) {
         return false;
       }
       if (hoursMin !== null && item.hours < hoursMin) {
@@ -171,6 +192,22 @@ export class TeachingLoadsPage implements OnInit {
       }
       return true;
     });
+
+    filtered.sort((a, b) => {
+      const subjectA = this.normalizeSearch(this.getSubjectLabel(a));
+      const subjectB = this.normalizeSearch(this.getSubjectLabel(b));
+      if (subjectA < subjectB) return -1;
+      if (subjectA > subjectB) return 1;
+
+      const activityA = this.normalizeSearch(this.getActivityLabel(a));
+      const activityB = this.normalizeSearch(this.getActivityLabel(b));
+      if (activityA < activityB) return -1;
+      if (activityA > activityB) return 1;
+
+      return 0;
+    });
+
+    this.filteredAssignments = filtered;
   }
 
   startCreating(): void {
@@ -189,6 +226,7 @@ export class TeachingLoadsPage implements OnInit {
     this.isCreating = true;
     this.newRowDraft = this.buildDefaultRow();
     this.rowErrorMessage = '';
+    this.onNewTeacherChange();
   }
 
   cancelCreating(): void {
@@ -217,7 +255,8 @@ export class TeachingLoadsPage implements OnInit {
       .pipe(finalize(() => (this.isSaving = false)))
       .subscribe({
         next: (created) => {
-          this.assignments = [created, ...this.assignments];
+          const enriched = this.enrichAssignment(created);
+          this.assignments = [enriched, ...this.assignments];
           this.applyFilters();
           this.cancelCreating();
           this.refreshAuditIndex();
@@ -244,9 +283,14 @@ export class TeachingLoadsPage implements OnInit {
     }
 
     this.editingRowId = row.id;
-    this.originalRow = { ...row };
-    this.draftRow = { ...row };
+    const editableRow = {
+      ...row,
+      subject_id: this.getRepresentativeSubjectId(row.subject_id) ?? row.subject_id,
+    };
+    this.originalRow = { ...editableRow };
+    this.draftRow = { ...editableRow };
     this.rowErrorMessage = '';
+    this.onEditTeacherChange();
   }
 
   cancelEditing(): void {
@@ -281,13 +325,69 @@ export class TeachingLoadsPage implements OnInit {
       .pipe(finalize(() => (this.isSaving = false)))
       .subscribe({
         next: (updated) => {
-          this.assignments = this.replaceById(this.assignments, updated, (item) => item.id);
+          const enriched = this.enrichAssignment(updated);
+          this.assignments = this.replaceById(this.assignments, enriched, (item) => item.id);
           this.applyFilters();
           this.cancelEditing();
           this.refreshAuditIndex();
         },
         error: (error) => {
           this.rowErrorMessage = this.mapRowError(error, 'Nie udało się zapisać zmian.');
+        },
+      });
+  }
+
+  async confirmDelete(row: TeachingLoadAssignmentDto, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    if (this.isSaving) {
+      return;
+    }
+
+    const alert = await this.alertController.create({
+      header: 'Usuń przydział',
+      message: `Czy na pewno usunąć przydział dla ${this.getTeacherLabel(row)} (${this.getSubjectLabel(row)})?`,
+      buttons: [
+        {
+          text: 'Anuluj',
+          role: 'cancel',
+        },
+        {
+          text: 'Usuń',
+          role: 'destructive',
+          handler: () => this.deleteAssignment(row),
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+
+  private deleteAssignment(row: TeachingLoadAssignmentDto): void {
+    if (this.isSaving) {
+      return;
+    }
+
+    this.isSaving = true;
+    this.rowErrorMessage = '';
+
+    this.teachingLoadsApi
+      .deleteTeachingLoad(row.id)
+      .pipe(finalize(() => (this.isSaving = false)))
+      .subscribe({
+        next: () => {
+          this.assignments = this.assignments.filter((item) => item.id !== row.id);
+          this.filteredAssignments = this.filteredAssignments.filter((item) => item.id !== row.id);
+          if (this.editingRowId === row.id) {
+            this.cancelEditing();
+          }
+          if (this.historyOpenRowId === row.id) {
+            this.historyOpenRowId = null;
+          }
+          delete this.historyByAssignment[row.id];
+          this.newHistoryIds.delete(row.id);
+        },
+        error: (error) => {
+          this.rowErrorMessage = this.mapRowError(error, 'Nie udało się usunąć przydziału.');
         },
       });
   }
@@ -356,41 +456,81 @@ export class TeachingLoadsPage implements OnInit {
     return fallback?.nazwa ?? `#${row.semester_id}`;
   }
 
+  getFieldOfStudyOptionLabel(fieldOfStudy: FieldOfStudyOption): string {
+    return fieldOfStudy.label ?? `${fieldOfStudy.name} / ${fieldOfStudy.abbreviation} / ${fieldOfStudy.year}`;
+  }
+
+  getFieldOfStudyLabel(row: TeachingLoadAssignmentDto): string {
+    if (row.field_of_study_label) {
+      return row.field_of_study_label;
+    }
+    if (!row.field_of_study_id) {
+      return '-';
+    }
+    const fallback = this.fieldOfStudies.find((item) => item.id === row.field_of_study_id);
+    return fallback ? this.getFieldOfStudyOptionLabel(fallback) : `#${row.field_of_study_id}`;
+  }
+
   getTeacherOptionLabel(teacher: TeacherOption): string {
     return [teacher.title || teacher.titles[0], `${teacher.first_name} ${teacher.last_name}`.trim()]
       .filter(Boolean)
       .join(' ');
   }
 
-  getActivityOptionsForSubject(subjectId: number | null | undefined): ActivityOption[] {
-    const resolvedId = this.resolveSubjectActivityId(subjectId);
-    if (!resolvedId) {
+  getActivityOptionsForSubject(
+    subjectId: number | null | undefined,
+    teacherId?: number | null,
+  ): ActivityOption[] {
+    if (!subjectId) {
       return this.activities;
     }
 
-    const match = this.activities.find((activity) => activity.id === resolvedId);
-    return match ? [match] : this.activities;
+    const entries = this.getSubjectEntriesById(subjectId);
+    const shouldFilterByPreferences =
+      teacherId != null &&
+      teacherId > 0 &&
+      this.preferredTeacherId === teacherId &&
+      this.selectedTeacherPreferredSubjectIds.size > 0;
+
+    const filteredEntries = shouldFilterByPreferences
+      ? entries.filter((entry) => this.selectedTeacherPreferredSubjectIds.has(entry.id))
+      : entries;
+
+    const activityIds = Array.from(new Set(filteredEntries.map((e) => Number(e.activity_id)).filter(Boolean)));
+    if (!activityIds.length) {
+      return shouldFilterByPreferences ? [] : this.activities;
+    }
+
+    return this.activities.filter((a) => activityIds.includes(a.id));
   }
 
   onNewSubjectChange(): void {
-    if (!this.newRowDraft) {
+    const draft = this.newRowDraft;
+    if (!draft) {
       return;
     }
+    this.ensureActivitySelection(draft, draft.teacher_id);
+  }
 
-    const resolvedId = this.resolveSubjectActivityId(this.newRowDraft.subject_id);
-    if (resolvedId) {
-      this.newRowDraft.activity_id = resolvedId;
+  onNewActivityChange(): void {
+    const draft = this.newRowDraft;
+    if (!draft) {
+      return;
     }
   }
 
   onEditSubjectChange(): void {
-    if (!this.draftRow) {
+    const draft = this.draftRow;
+    if (!draft) {
       return;
     }
+    this.ensureActivitySelection(draft, draft.teacher_id);
+  }
 
-    const resolvedId = this.resolveSubjectActivityId(this.draftRow.subject_id);
-    if (resolvedId) {
-      this.draftRow.activity_id = resolvedId;
+  onEditActivityChange(): void {
+    const draft = this.draftRow;
+    if (!draft) {
+      return;
     }
   }
 
@@ -432,6 +572,33 @@ export class TeachingLoadsPage implements OnInit {
     return action;
   }
 
+  private buildSubjectGroups(): void {
+    this.subjectGroups = new Map();
+    for (const s of this.subjects) {
+      const name = s.name ?? `#${s.id}`;
+      const list = this.subjectGroups.get(name) ?? [];
+      list.push(s);
+      this.subjectGroups.set(name, list);
+    }
+  }
+
+  getSubjectOptions(): { id: number; name: string; entries: SubjectDto[] }[] {
+    const out: { id: number; name: string; entries: SubjectDto[] }[] = [];
+    for (const [name, entries] of this.subjectGroups.entries()) {
+      out.push({ id: entries[0].id, name, entries });
+    }
+    out.sort((a, b) => a.name.localeCompare(b.name));
+    return out;
+  }
+
+  private getSubjectEntriesById(subjectId: number | null | undefined): SubjectDto[] {
+    if (!subjectId) return [];
+    const subject = this.subjects.find((s) => s.id === subjectId);
+    if (!subject) return [];
+    const name = subject.name ?? `#${subject.id}`;
+    return this.subjectGroups.get(name) ?? [subject];
+  }
+
   trackByAssignmentId(_: number, item: TeachingLoadAssignmentDto): number {
     return item.id;
   }
@@ -453,6 +620,7 @@ export class TeachingLoadsPage implements OnInit {
       teachers: this.teachingLoadsApi.getTeachers(),
       subjects: this.teachingLoadsApi.getSubjects(),
       activities: this.teachingLoadsApi.getActivities(),
+      fieldOfStudies: this.teachingLoadsApi.getFieldOfStudies(),
       semesters: this.dezyderataService.getSemestry(),
       audit: this.auditApi.getLogs().pipe(
         catchError(() => of({ last_changes_viewed_at: null, logs: [] })),
@@ -460,13 +628,21 @@ export class TeachingLoadsPage implements OnInit {
     })
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
-        next: ({ assignments, teachers, subjects, activities, semesters, audit }) => {
+        next: ({ assignments, teachers, subjects, activities, fieldOfStudies, semesters, audit }) => {
           this.assignments = assignments;
-          this.filteredAssignments = assignments;
           this.teachers = teachers;
           this.subjects = subjects;
+          this.buildSubjectGroups();
           this.activities = activities;
+          this.fieldOfStudies = fieldOfStudies;
           this.semesters = semesters.items ?? [];
+          // Prefill resolved labels so sorting is stable on first render
+          this.assignments = this.assignments.map((a) => ({
+            ...a,
+            subject_name: this.getSubjectLabel(a),
+            activity_name: this.getActivityLabel(a),
+            field_of_study_label: this.getFieldOfStudyLabel(a),
+          }));
           this.buildAuditIndex(audit.last_changes_viewed_at, audit.logs ?? []);
           this.applyFilters();
         },
@@ -520,19 +696,33 @@ export class TeachingLoadsPage implements OnInit {
     const normalizedOriginal = this.normalizeRow(original);
     const normalizedDraft = this.normalizeRow(draft);
 
+    // Resolve subject ids taking activity into account so switching between
+    // subject variants (same name, different activity) is detected.
+    const resolvedOriginalSubject = this.resolveSubjectIdForActivity(
+      normalizedOriginal.subject_id,
+      normalizedOriginal.activity_id,
+    );
+    const resolvedDraftSubject = this.resolveSubjectIdForActivity(
+      normalizedDraft.subject_id,
+      normalizedDraft.activity_id,
+    );
+
     const payload: TeachingLoadAssignmentPatchPayload = {};
 
     if (normalizedDraft.teacher_id !== normalizedOriginal.teacher_id) {
       payload.teacher_id = normalizedDraft.teacher_id;
     }
-    if (normalizedDraft.subject_id !== normalizedOriginal.subject_id) {
-      payload.subject_id = normalizedDraft.subject_id;
+    if (resolvedDraftSubject !== resolvedOriginalSubject) {
+      payload.subject_id = Number(resolvedDraftSubject ?? normalizedDraft.subject_id);
     }
     if (normalizedDraft.activity_id !== normalizedOriginal.activity_id) {
       payload.activity_id = normalizedDraft.activity_id;
     }
     if (normalizedDraft.semester_id !== normalizedOriginal.semester_id) {
       payload.semester_id = normalizedDraft.semester_id;
+    }
+    if (normalizedDraft.field_of_study_id !== normalizedOriginal.field_of_study_id) {
+      payload.field_of_study_id = normalizedDraft.field_of_study_id;
     }
     if (normalizedDraft.hours !== normalizedOriginal.hours) {
       payload.hours = normalizedDraft.hours;
@@ -554,6 +744,9 @@ export class TeachingLoadsPage implements OnInit {
     if (payload.semester_id !== undefined && payload.semester_id <= 0) {
       return 'Wybierz poprawny semestr.';
     }
+    if (payload.field_of_study_id != null && payload.field_of_study_id <= 0) {
+      return 'Wybierz poprawny rocznik.';
+    }
     if (payload.hours !== undefined && (!Number.isFinite(payload.hours) || payload.hours <= 0)) {
       return 'Podaj poprawną liczbę godzin.';
     }
@@ -562,11 +755,13 @@ export class TeachingLoadsPage implements OnInit {
   }
 
   private buildCreatePayload(draft: TeachingLoadAssignmentDto): TeachingLoadAssignmentCreatePayload {
+    const subjectId = this.resolveSubjectIdForActivity(draft.subject_id, draft.activity_id);
     return {
       teacher_id: Number(draft.teacher_id),
-      subject_id: Number(draft.subject_id),
+      subject_id: Number(subjectId ?? draft.subject_id),
       activity_id: Number(draft.activity_id),
       semester_id: Number(draft.semester_id),
+      field_of_study_id: Number(draft.field_of_study_id),
       hours: Number(draft.hours),
     };
   }
@@ -584,6 +779,9 @@ export class TeachingLoadsPage implements OnInit {
     if (!payload.semester_id || payload.semester_id <= 0) {
       return 'Wybierz poprawny semestr.';
     }
+    if (!payload.field_of_study_id || payload.field_of_study_id <= 0) {
+      return 'Wybierz poprawny rocznik.';
+    }
     if (!Number.isFinite(payload.hours) || payload.hours <= 0) {
       return 'Podaj poprawną liczbę godzin.';
     }
@@ -595,11 +793,47 @@ export class TeachingLoadsPage implements OnInit {
     return {
       ...row,
       teacher_id: Number(row.teacher_id),
-      subject_id: Number(row.subject_id),
+      subject_id: Number(this.getRepresentativeSubjectId(row.subject_id) ?? row.subject_id),
       activity_id: Number(row.activity_id),
       semester_id: Number(row.semester_id),
+      field_of_study_id: row.field_of_study_id ? Number(row.field_of_study_id) : null,
       hours: Number(row.hours),
     };
+  }
+
+  private getRepresentativeSubjectId(subjectId: number | null | undefined): number | null {
+    if (!subjectId) {
+      return null;
+    }
+
+    const subject = this.subjects.find((item) => item.id === subjectId);
+    if (!subject) {
+      return subjectId;
+    }
+
+    const groupName = subject.name ?? `#${subject.id}`;
+    const candidates = this.subjectGroups.get(groupName) ?? [subject];
+    return candidates[0]?.id ?? subjectId;
+  }
+
+  private resolveSubjectIdForActivity(
+    subjectId: number | null | undefined,
+    activityId: number | null | undefined,
+  ): number | null {
+    const representativeSubjectId = this.getRepresentativeSubjectId(subjectId);
+    if (!representativeSubjectId || !activityId) {
+      return representativeSubjectId;
+    }
+
+    const subject = this.subjects.find((item) => item.id === representativeSubjectId);
+    if (!subject) {
+      return representativeSubjectId;
+    }
+
+    const groupName = subject.name ?? `#${subject.id}`;
+    const candidates = this.subjectGroups.get(groupName) ?? [subject];
+    const exact = candidates.find((item) => Number(item.activity_id) === Number(activityId));
+    return exact?.id ?? representativeSubjectId;
   }
 
   private translateAuditKey(key: string): string {
@@ -614,6 +848,9 @@ export class TeachingLoadsPage implements OnInit {
       activity_name: 'Typ zajęć',
       semester_id: 'Semestr',
       semester_name: 'Semestr',
+      group_id: 'Grupa (legacy)',
+      field_of_study_id: 'Rocznik',
+      field_of_study_label: 'Rocznik',
       hours: 'Godziny',
     };
 
@@ -652,7 +889,8 @@ export class TeachingLoadsPage implements OnInit {
 
   private mapRowError(error: unknown, fallback: string): string {
     if (error instanceof HttpErrorResponse) {
-      const detail = error.error?.detail;
+      const errBody = error.error ?? {};
+      const detail = errBody.detail ?? errBody.message ?? (errBody.detail?.message ?? null);
       if (typeof detail === 'string' && detail.trim()) {
         return detail;
       }
@@ -662,7 +900,13 @@ export class TeachingLoadsPage implements OnInit {
   }
 
   private ensureDictionariesReady(): boolean {
-    if (!this.teachers.length || !this.subjects.length || !this.activities.length || !this.semesters.length) {
+    if (
+      !this.teachers.length ||
+      !this.subjects.length ||
+      !this.activities.length ||
+      !this.semesters.length ||
+      !this.fieldOfStudies.length
+    ) {
       this.rowErrorMessage = 'Brak słowników do dodania przydziału.';
       return false;
     }
@@ -688,6 +932,8 @@ export class TeachingLoadsPage implements OnInit {
       activity_name: activity?.name ?? null,
       semester_id: semester?.id ?? 0,
       semester_name: semester?.nazwa ?? null,
+      field_of_study_id: this.fieldOfStudies[0]?.id ?? 0,
+      field_of_study_label: this.fieldOfStudies[0]?.label ?? null,
       hours: 1,
     };
   }
@@ -720,8 +966,145 @@ export class TeachingLoadsPage implements OnInit {
       this.getSubjectLabel(item),
       this.getActivityLabel(item),
       this.getSemesterLabel(item),
+      this.getFieldOfStudyLabel(item),
       String(item.hours),
     ];
     return this.normalizeSearch(parts.join(' '));
+  }
+
+  private enrichAssignment(a: TeachingLoadAssignmentDto): TeachingLoadAssignmentDto {
+    return {
+      ...a,
+      subject_name: this.getSubjectLabel(a),
+      activity_name: this.getActivityLabel(a),
+      field_of_study_label: this.getFieldOfStudyLabel(a),
+    };
+  }
+
+  onNewTeacherChange(): void {
+    const draft = this.newRowDraft;
+    if (!draft) {
+      return;
+    }
+
+    const teacherId = draft.teacher_id;
+    if (!teacherId || teacherId <= 0) {
+      this.selectedTeacherPreferredSubjectIds.clear();
+      this.preferredTeacherId = null;
+      return;
+    }
+
+    this.loadTeacherPreferences(teacherId, draft);
+  }
+
+  onEditTeacherChange(): void {
+    const draft = this.draftRow;
+    if (!draft) {
+      return;
+    }
+
+    const teacherId = draft.teacher_id;
+    if (!teacherId || teacherId <= 0) {
+      this.selectedTeacherPreferredSubjectIds.clear();
+      this.preferredTeacherId = null;
+      return;
+    }
+
+    this.loadTeacherPreferences(teacherId, draft);
+  }
+
+  private loadTeacherPreferences(teacherId: number, row?: TeachingLoadAssignmentDto | null): void {
+    if (this.teacherPreferences.has(teacherId)) {
+      this.selectedTeacherPreferredSubjectIds = new Set(this.teacherPreferences.get(teacherId)!);
+      this.preferredTeacherId = teacherId;
+      this.syncRowSelection(row ?? null, teacherId);
+      return;
+    }
+
+    this.subjectPreferencesApi.getPreferencesForUser(teacherId).subscribe({
+      next: (preferences: SubjectPreferenceResponse[]) => {
+        const subjectIds = new Set(preferences.map((p) => p.subject_id));
+        this.teacherPreferences.set(teacherId, subjectIds);
+        this.selectedTeacherPreferredSubjectIds = subjectIds;
+        this.preferredTeacherId = teacherId;
+        this.syncRowSelection(row ?? null, teacherId);
+      },
+      error: (error) => {
+        console.error(`Failed to load preferences for teacher ${teacherId}:`, error);
+        this.selectedTeacherPreferredSubjectIds.clear();
+        this.preferredTeacherId = null;
+      },
+    });
+  }
+
+  getPreferredSubjectOptions(teacherId: number | null | undefined): { id: number; name: string; entries: SubjectDto[] }[] {
+    if (
+      !teacherId ||
+      teacherId <= 0 ||
+      this.selectedTeacherPreferredSubjectIds.size === 0 ||
+      this.preferredTeacherId !== teacherId
+    ) {
+      return this.getSubjectOptions();
+    }
+
+    // Filter subjects to only those in teacher's preferences.
+    // Match any variant (activity) in the subject group.
+    const all = this.getSubjectOptions();
+    return all.filter((option) =>
+      option.entries.some((entry) => this.selectedTeacherPreferredSubjectIds.has(entry.id)),
+    );
+  }
+
+  private ensureActivitySelection(
+    row: TeachingLoadAssignmentDto,
+    teacherId: number | null | undefined,
+  ): void {
+    const options = this.getActivityOptionsForSubject(row.subject_id, teacherId);
+    if (options.length && !options.some((o) => o.id === row.activity_id)) {
+      row.activity_id = options[0].id;
+    }
+  }
+
+  private getSubjectGroupBySubjectId(
+    subjectId: number | null | undefined,
+  ): { id: number; name: string; entries: SubjectDto[] } | null {
+    if (!subjectId) {
+      return null;
+    }
+    const entries = this.getSubjectEntriesById(subjectId);
+    if (!entries.length) {
+      return null;
+    }
+    const name = entries[0].name ?? `#${entries[0].id}`;
+    return { id: entries[0].id, name, entries };
+  }
+
+  private syncRowSelection(row: TeachingLoadAssignmentDto | null, teacherId: number): void {
+    if (!row) {
+      return;
+    }
+    if (this.preferredTeacherId !== teacherId || this.selectedTeacherPreferredSubjectIds.size === 0) {
+      return;
+    }
+
+    const preferredGroups = this.getPreferredSubjectOptions(teacherId);
+    if (!preferredGroups.length) {
+      return;
+    }
+
+    const currentGroup = this.getSubjectGroupBySubjectId(row.subject_id);
+    const hasPreferredInCurrent = currentGroup
+      ? currentGroup.entries.some((entry) => this.selectedTeacherPreferredSubjectIds.has(entry.id))
+      : false;
+
+    if (!hasPreferredInCurrent) {
+      row.subject_id = preferredGroups[0].id;
+    }
+
+    this.ensureActivitySelection(row, teacherId);
+  }
+
+  isTeacherSelected(teacherId: number | null | undefined): boolean {
+    return teacherId != null && teacherId > 0;
   }
 }

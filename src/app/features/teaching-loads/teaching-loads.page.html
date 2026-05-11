@@ -67,13 +67,14 @@
         {{ historyErrorMessage }}
       </ion-note>
 
-      <div *ngIf="!isLoading && (filteredAssignments.length > 0 || isCreating)" class="table-wrapper">
+      <div *ngIf="!isLoading" class="table-wrapper">
         <table class="excel-table">
           <thead>
             <tr>
               <th>Dydaktyk</th>
               <th>Przedmiot</th>
               <th>Typ zajęć</th>
+              <th>Kierunek / rocznik</th>
               <th class="hours-col">Godziny</th>
               <th>Semestr</th>
               <th class="history-col">Historia</th>
@@ -99,8 +100,8 @@
                   [(ngModel)]="filters.subject_id"
                   (ionChange)="applyFilters()">
                   <ion-select-option [value]="null">Wszystkie</ion-select-option>
-                  <ion-select-option *ngFor="let subject of subjects" [value]="subject.id">
-                    {{ subject.name }}
+                  <ion-select-option *ngFor="let subj of getSubjectOptions()" [value]="subj.id">
+                    {{ subj.name }}
                   </ion-select-option>
                 </ion-select>
               </th>
@@ -113,6 +114,18 @@
                   <ion-select-option [value]="null">Wszystkie</ion-select-option>
                   <ion-select-option *ngFor="let activity of activities" [value]="activity.id">
                     {{ activity.name }}
+                  </ion-select-option>
+                </ion-select>
+              </th>
+              <th>
+                <ion-select
+                  interface="popover"
+                  class="filter-select"
+                  [(ngModel)]="filters.field_of_study_id"
+                  (ionChange)="applyFilters()">
+                  <ion-select-option [value]="null">Wszystkie</ion-select-option>
+                  <ion-select-option *ngFor="let fieldOfStudy of fieldOfStudies" [value]="fieldOfStudy.id">
+                    {{ getFieldOfStudyOptionLabel(fieldOfStudy) }}
                   </ion-select-option>
                 </ion-select>
               </th>
@@ -156,7 +169,8 @@
                 <ion-select
                   interface="popover"
                   class="cell-select"
-                  [(ngModel)]="newRowDraft.teacher_id">
+                  [(ngModel)]="newRowDraft.teacher_id"
+                  (ionChange)="onNewTeacherChange()">
                   <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.user_id">
                     {{ getTeacherOptionLabel(teacher) }}
                   </ion-select-option>
@@ -167,9 +181,10 @@
                   interface="popover"
                   class="cell-select"
                   [(ngModel)]="newRowDraft.subject_id"
-                  (ionChange)="onNewSubjectChange()">
-                  <ion-select-option *ngFor="let subject of subjects" [value]="subject.id">
-                    {{ subject.name }}
+                  (ionChange)="onNewSubjectChange()"
+                  [disabled]="!isTeacherSelected(newRowDraft.teacher_id)">
+                  <ion-select-option *ngFor="let subj of getPreferredSubjectOptions(newRowDraft.teacher_id)" [value]="subj.id">
+                    {{ subj.name }}
                   </ion-select-option>
                 </ion-select>
               </td>
@@ -177,9 +192,21 @@
                 <ion-select
                   interface="popover"
                   class="cell-select"
-                  [(ngModel)]="newRowDraft.activity_id">
-                  <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(newRowDraft.subject_id)" [value]="activity.id">
+                  [(ngModel)]="newRowDraft.activity_id"
+                  (ionChange)="onNewActivityChange()">
+                  <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(newRowDraft.subject_id, newRowDraft.teacher_id)" [value]="activity.id">
                     {{ activity.name }}
+                  </ion-select-option>
+                </ion-select>
+              </td>
+              <td class="cell">
+                <ion-select
+                  interface="popover"
+                  class="cell-select"
+                  [(ngModel)]="newRowDraft.field_of_study_id">
+                  <ion-select-option [value]="null">Brak</ion-select-option>
+                  <ion-select-option *ngFor="let fieldOfStudy of fieldOfStudies" [value]="fieldOfStudy.id">
+                    {{ getFieldOfStudyOptionLabel(fieldOfStudy) }}
                   </ion-select-option>
                 </ion-select>
               </td>
@@ -223,6 +250,7 @@
                       interface="popover"
                       class="cell-select"
                       [(ngModel)]="draftRow.teacher_id"
+                      (ionChange)="onEditTeacherChange()"
                       (click)="$event.stopPropagation()">
                       <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.user_id">
                         {{ getTeacherOptionLabel(teacher) }}
@@ -240,9 +268,10 @@
                       class="cell-select"
                       [(ngModel)]="draftRow.subject_id"
                       (ionChange)="onEditSubjectChange()"
+                      [disabled]="!isTeacherSelected(draftRow.teacher_id)"
                       (click)="$event.stopPropagation()">
-                      <ion-select-option *ngFor="let subject of subjects" [value]="subject.id">
-                        {{ subject.name }}
+                      <ion-select-option *ngFor="let subj of getPreferredSubjectOptions(draftRow.teacher_id)" [value]="subj.id">
+                        {{ subj.name }}
                       </ion-select-option>
                     </ion-select>
                   </ng-container>
@@ -256,14 +285,32 @@
                       interface="popover"
                       class="cell-select"
                       [(ngModel)]="draftRow.activity_id"
+                      (ionChange)="onEditActivityChange()"
                       (click)="$event.stopPropagation()">
-                      <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(draftRow.subject_id)" [value]="activity.id">
+                      <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(draftRow.subject_id, draftRow.teacher_id)" [value]="activity.id">
                         {{ activity.name }}
                       </ion-select-option>
                     </ion-select>
                   </ng-container>
                   <ng-template #activityDisplay>
                     <div class="cell-display">{{ getActivityLabel(row) }}</div>
+                  </ng-template>
+                </td>
+                <td class="cell editable" (click)="startEditing(row, $event)">
+                  <ng-container *ngIf="editingRowId === row.id && draftRow; else fieldOfStudyDisplay">
+                    <ion-select
+                      interface="popover"
+                      class="cell-select"
+                      [(ngModel)]="draftRow.field_of_study_id"
+                      (click)="$event.stopPropagation()">
+                      <ion-select-option [value]="null">Brak</ion-select-option>
+                      <ion-select-option *ngFor="let fieldOfStudy of fieldOfStudies" [value]="fieldOfStudy.id">
+                        {{ getFieldOfStudyOptionLabel(fieldOfStudy) }}
+                      </ion-select-option>
+                    </ion-select>
+                  </ng-container>
+                  <ng-template #fieldOfStudyDisplay>
+                    <div class="cell-display">{{ getFieldOfStudyLabel(row) }}</div>
                   </ng-template>
                 </td>
                 <td class="cell editable hours-cell" (click)="startEditing(row, $event)">
@@ -311,7 +358,7 @@
                   </span>
                 </td>
                 <td class="cell actions-cell">
-                  <div class="edit-actions" *ngIf="editingRowId === row.id">
+                  <div class="edit-actions" *ngIf="editingRowId === row.id; else rowActions">
                     <ion-button size="small" color="success" fill="clear" (click)="saveEditing()">
                       <ion-icon name="checkmark-circle"></ion-icon>
                     </ion-button>
@@ -319,10 +366,15 @@
                       <ion-icon name="close-circle"></ion-icon>
                     </ion-button>
                   </div>
+                  <ng-template #rowActions>
+                    <ion-button size="small" color="danger" fill="clear" (click)="confirmDelete(row, $event)">
+                      <ion-icon name="trash-outline"></ion-icon>
+                    </ion-button>
+                  </ng-template>
                 </td>
               </tr>
               <tr *ngIf="historyOpenRowId === row.id" class="history-row">
-                <td colspan="7">
+                <td colspan="8">
                   <div class="history-panel">
                     <ng-container *ngIf="getHistoryForRow(row.id).length > 0; else emptyHistory">
                       <div class="history-entry" *ngFor="let log of getHistoryForRow(row.id)">

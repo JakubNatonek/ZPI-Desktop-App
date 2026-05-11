@@ -1,0 +1,180 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Preferencje przedmiotów</ion-title>
+    <ion-buttons slot="end" class="app-header-user-actions">
+      <ion-chip color="medium" outline>
+        <ion-label>{{ userRoleLabel }}</ion-label>
+      </ion-chip>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="preferences-content">
+  <div class="canvas-bg" aria-hidden="true"></div>
+
+  <section class="hero">
+    <p class="eyebrow">Zarządzanie preferencjami</p>
+    <h1>Przedmioty dydaktyczne</h1>
+    <p>
+      <span *ngIf="isAdmin">Zarządzaj przedmiotami przypisanymi do wykładowców. Wybierz wykładowcę z listy, dodaj lub usuń jego przedmioty.</span>
+      <span *ngIf="!isAdmin">Zarządzaj swoimi przedmiotami. Dodaj lub usuń przedmioty, które prezentujesz.</span>
+    </p>
+  </section>
+
+  <ion-card class="form-shell">
+    <ion-card-content>
+      <!-- Admin user selector -->
+      <div class="user-selector-row" *ngIf="isAdmin">
+        <div class="inline-search-select">
+          <ion-item>
+            <ion-label position="stacked">Wybierz wykładowcę</ion-label>
+            <ion-input
+              type="text"
+              placeholder="Wpisz nazwisko lub login"
+              [(ngModel)]="userSearchQuery"
+              (ionFocus)="onUserSearchFocus()"
+              (ngModelChange)="onUserSearchInput($event)"
+              (ionBlur)="closeUserDropdown()"
+              [disabled]="isLoading">
+            </ion-input>
+          </ion-item>
+          <div class="inline-dropdown" *ngIf="isUserDropdownOpen && filteredUsers.length > 0">
+            <button
+              type="button"
+              class="inline-option"
+              *ngFor="let user of filteredUsers"
+              (mousedown)="selectUser(user); $event.preventDefault()">
+              <span>{{ user.first_name }} {{ user.last_name }}</span>
+              <small>{{ user.login }}</small>
+            </button>
+          </div>
+          <ion-note color="medium" *ngIf="isUserDropdownOpen && filteredUsers.length === 0" class="list-message">
+            Brak wykładowców pasujących do wyszukiwania.
+          </ion-note>
+        </div>
+      </div>
+
+      <!-- Loading indicator -->
+      <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
+
+      <!-- Error message -->
+      <ion-note color="danger" *ngIf="errorMessage" class="list-message">
+        {{ errorMessage }}
+      </ion-note>
+
+      <!-- Preferences table -->
+      <div *ngIf="!isLoading" class="table-container">
+        <table class="preferences-table">
+          <thead>
+            <tr>
+              <th>Przedmiot</th>
+              <th>Typ zajęć</th>
+              <th>Skrót przedmiotu</th>
+              <th class="actions-col">Akcje</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="userPreferences.length === 0">
+              <td colspan="4" class="empty-message">
+                <ion-text color="medium">
+                  <p *ngIf="isAdmin">Brak przypisanych przedmiotów dla tego wykładowcy.</p>
+                  <p *ngIf="!isAdmin">Nie masz jeszcze żadnych przypisanych przedmiotów.</p>
+                </ion-text>
+              </td>
+            </tr>
+            <tr *ngFor="let pref of enrichedPreferences" class="pref-row">
+              <td class="subject-cell">
+                <div class="subject-name">{{ pref.subject_name }}</div>
+                <div class="subject-subinfo" *ngIf="pref.room_properties">
+                  <ion-icon name="information-circle-outline"></ion-icon>
+                  <span>Wymagania: {{ pref.room_properties }}</span>
+                </div>
+              </td>
+              <td>
+                <ion-badge color="tertiary" *ngIf="pref.activity_name">{{ pref.activity_name }}</ion-badge>
+                <span *ngIf="!pref.activity_name" class="empty-val">-</span>
+              </td>
+              <td>
+                <ion-badge color="medium" *ngIf="pref.type_display">{{ pref.type_display }}</ion-badge>
+                <span *ngIf="!pref.type_display" class="empty-val">-</span>
+              </td>
+              <td class="actions-cell">
+                <ion-button
+                  fill="clear"
+                  color="danger"
+                  size="small"
+                  (click)="onRemovePreference(pref)"
+                  [disabled]="isSaving">
+                  <ion-icon slot="start" name="trash-outline"></ion-icon>
+                  Usuń
+                </ion-button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Add new preference form -->
+      <div *ngIf="!isLoading && availableSubjects.length > 0" class="add-form">
+        <ion-item-divider>
+          <ion-label>Dodaj przedmiot</ion-label>
+        </ion-item-divider>
+        <div class="form-row">
+          <div class="inline-search-select">
+            <ion-item>
+              <ion-label position="stacked">Przedmiot</ion-label>
+              <ion-input
+                type="text"
+                placeholder="Wpisz, aby wyszukać przedmiot"
+                [(ngModel)]="subjectSearchQuery"
+                (ionFocus)="onSubjectSearchFocus()"
+                (ngModelChange)="onSubjectSearchChange($event)"
+                (ionBlur)="closeSubjectDropdown()"
+                [disabled]="isSaving">
+              </ion-input>
+            </ion-item>
+            <div class="inline-dropdown" *ngIf="isSubjectDropdownOpen && filteredAvailableSubjects.length > 0">
+              <button
+                type="button"
+                class="inline-option"
+                *ngFor="let subj of filteredAvailableSubjects"
+                (mousedown)="selectSubject(subj); $event.preventDefault()">
+                <span>{{ subj.name }}</span>
+                <small *ngIf="subj.entries.length > 1">{{ subj.entries.length }} typów</small>
+              </button>
+            </div>
+            <ion-note color="medium" *ngIf="isSubjectDropdownOpen && filteredAvailableSubjects.length === 0" class="list-message">
+              Brak przedmiotów pasujących do wyszukiwania.
+            </ion-note>
+          </div>
+          <ion-item>
+            <ion-label>Typ zajęć:</ion-label>
+            <ion-select
+              interface="popover"
+              [(ngModel)]="newActivityId"
+              [disabled]="!newSubjectId || isSaving">
+              <ion-select-option [value]="null">-- Wybierz typ zajęć --</ion-select-option>
+              <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(newSubjectId)" [value]="activity.id">
+                {{ activity.name }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-button
+            color="primary"
+            (click)="onAddPreference()"
+            [disabled]="!newSubjectId || !newActivityId || isSaving">
+            <ion-icon slot="start" name="add-outline"></ion-icon>
+            Dodaj
+          </ion-button>
+        </div>
+      </div>
+
+      <ion-note *ngIf="!isLoading && availableSubjects.length === 0 && userPreferences.length > 0" color="warning" class="list-message">
+        Wszystkie dostępne przedmioty są już przypisane.
+      </ion-note>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

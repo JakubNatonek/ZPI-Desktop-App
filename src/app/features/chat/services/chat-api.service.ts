@@ -58,9 +58,13 @@ export class ChatApiService {
     return this.http.get<MessageApiResponse[]>(`${environment.apiBaseUrl}/api/chat/${conversationId}/messages`, { params });
   }
 
-  getMessagesForUser(userId: number) {
+  getMessagesForUser(userId: number, since?: string) {
+    const params: Record<string, string> = { user_id: String(userId) };
+    if (since) {
+      params['since'] = since;
+    }
     return this.http.get<MessageApiResponse[]>(`${environment.apiBaseUrl}/messages`, {
-      params: { user_id: String(userId) },
+      params,
     });
   }
 

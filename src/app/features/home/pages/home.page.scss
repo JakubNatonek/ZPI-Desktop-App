@@ -91,6 +91,19 @@
       }
     }
 
+    .audit-btn {
+      margin-top: 10px;
+      margin-bottom: 12px;
+      animation: pulse-badge 2s infinite;
+      font-weight: 600;
+    }
+
+    @keyframes pulse-badge {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+
     .role-label {
       color: #4b5563;
       margin-top: 0;
