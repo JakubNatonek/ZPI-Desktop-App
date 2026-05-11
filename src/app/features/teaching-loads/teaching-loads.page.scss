@@ -161,7 +161,7 @@
 }
 
 .hours-col {
-  width: 120px;
+  width: 90px;
 }
 
 .hours-cell {
@@ -205,12 +205,12 @@
 }
 
 .history-col {
-  width: 110px;
+  width: 85px;
   text-align: center;
 }
 
 .actions-col {
-  width: 84px;
+  width: 74px;
 }
 
 .history-cell {
@@ -303,6 +303,84 @@
   margin-top: 6px;
   font-size: 0.85rem;
   color: #1f2937;
+}
+
+/* Szczegółowa tabela diff w historii */
+.history-diff {
+  margin-top: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.diff-header-row {
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #475569;
+  background: rgba(241, 245, 249, 0.8);
+}
+
+.diff-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 24px 1fr;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  align-items: center;
+}
+
+.diff-row:not(:last-child) {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.diff-field {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.diff-old {
+  color: #b91c1c;
+  font-size: 0.75rem;
+}
+
+.diff-arrow {
+  text-align: center;
+  color: #94a3b8;
+}
+
+.diff-new {
+  color: #15803d;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+:host-context(html.ion-palette-dark) {
+  .diff-header-row {
+    color: #cbd5e1;
+    background: rgba(30, 41, 59, 0.8);
+  }
+
+  .diff-field {
+    color: #e2e8f0;
+  }
+
+  .diff-old {
+    color: #fca5a5;
+  }
+
+  .diff-new {
+    color: #86efac;
+  }
+
+  .diff-row {
+    border-color: rgba(148, 163, 184, 0.2);
+  }
+
+  .history-diff {
+    border-color: rgba(148, 163, 184, 0.3);
+  }
 }
 
 .history-empty {

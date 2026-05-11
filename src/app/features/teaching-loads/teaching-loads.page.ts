@@ -32,6 +32,24 @@ type TeachingLoadFilterState = {
   hours_max?: number | null;
 };
 
+/** Mapowanie angielskich nazw pól na polskie (dla starych rekordów w bazie). */
+const AUDIT_KEY_TRANSLATIONS: Record<string, string> = {
+  teacher_id: 'Dydaktyk',
+  teacher_title: 'Tytuł',
+  teacher_first_name: 'Imię wykładowcy',
+  teacher_last_name: 'Nazwisko wykładowcy',
+  subject_id: 'Przedmiot',
+  subject_name: 'Nazwa przedmiotu',
+  activity_id: 'Typ zajęć',
+  activity_name: 'Nazwa typu zajęć',
+  semester_id: 'Semestr',
+  semester_name: 'Nazwa semestru',
+  field_of_study_id: 'Rocznik',
+  field_of_study_label: 'Kierunek / rocznik',
+  hours: 'Liczba godzin',
+  id: 'ID',
+};
+
 @Component({
   selector: 'app-teaching-loads',
   templateUrl: './teaching-loads.page.html',
@@ -534,29 +552,75 @@ export class TeachingLoadsPage implements OnInit {
     }
   }
 
+  /**
+   * Zwraca podsumowanie zmian – wyświetla listę zmienionych pól z wartościami.
+   * Obsługuje zarówno polskie klucze (nowe rekordy), jak i angielskie (stare).
+   */
   getHistorySummary(log: AuditLogDto): string {
     if (!log.old_values || !log.new_values || log.action !== 'UPDATE') {
       return 'Brak szczegółów zmian.';
     }
 
-    const changedKeys = Object.keys(log.new_values).filter(
-      (key) => log.old_values?.[key] !== log.new_values?.[key],
+    const oldKeys = Object.keys(log.old_values);
+    const newKeys = Object.keys(log.new_values);
+    const allKeys = Array.from(new Set([...oldKeys, ...newKeys]));
+
+    const changedKeys = allKeys.filter(
+      (key) => JSON.stringify(log.old_values?.[key]) !== JSON.stringify(log.new_values?.[key]),
     );
 
     if (changedKeys.length === 0) {
       return 'Brak szczegółów zmian.';
     }
 
-    const previewKeys = changedKeys.slice(0, 3);
+    const previewKeys = changedKeys.slice(0, 4);
     const preview = previewKeys
-      .map((key) => `${this.translateAuditKey(key)}: ${this.formatAuditValue(log.old_values?.[key])} -> ${this.formatAuditValue(log.new_values?.[key])}`)
+      .map((key) => {
+        const fieldName = this.resolveAuditFieldName(key);
+        const oldVal = this.formatAuditValue(log.old_values?.[key], key);
+        const newVal = this.formatAuditValue(log.new_values?.[key], key);
+        return `${fieldName}: ${oldVal} → ${newVal}`;
+      })
       .join(' | ');
 
     if (changedKeys.length > previewKeys.length) {
-      return `${preview} | +${changedKeys.length - previewKeys.length}`;
+      return `${preview} | +${changedKeys.length - previewKeys.length} więcej`;
     }
 
     return preview;
+  }
+
+  /**
+   * Zwraca tablicę zmienionych pól dla rozszerzonego widoku historii.
+   * Każdy wpis zawiera: nazwa_pola, stara_wartość, nowa_wartość.
+   */
+  /** Lista pól do ukrycia w historii zmian. */
+  private readonly hiddenHistoryKeys = new Set([
+    'field_of_study_label', 'field_of_study_id',
+    'group_id', 'group_label',
+  ]);
+
+  getHistoryChanges(log: AuditLogDto): { field: string; oldValue: string; newValue: string }[] {
+    if (!log.old_values || !log.new_values) {
+      return [];
+    }
+
+    const oldKeys = Object.keys(log.old_values);
+    const newKeys = Object.keys(log.new_values);
+    const allKeys = Array.from(new Set([...oldKeys, ...newKeys]));
+
+    return allKeys
+      .filter(
+        (key) =>
+          key !== 'id' &&
+          !this.hiddenHistoryKeys.has(key) &&
+          JSON.stringify(log.old_values?.[key]) !== JSON.stringify(log.new_values?.[key]),
+      )
+      .map((key) => ({
+        field: this.resolveAuditFieldName(key),
+        oldValue: this.formatAuditValue(log.old_values?.[key], key),
+        newValue: this.formatAuditValue(log.new_values?.[key], key),
+      }));
   }
 
   getActionLabel(action: string): string {
@@ -570,6 +634,84 @@ export class TeachingLoadsPage implements OnInit {
       return 'Usunięto';
     }
     return action;
+  }
+
+  /**
+   * Zwraca listę kluczy do wyświetlenia w widoku CREATE/DELETE.
+   */
+  getHistoryDetailKeys(log: AuditLogDto): string[] {
+    const values = log.new_values || log.old_values || {};
+    return Object.keys(values).filter(
+      (key) => !['id', 'modified_by', 'modified_by_name', 'timestamp'].includes(key) && !this.hiddenHistoryKeys.has(key),
+    ).slice(0, 12);
+  }
+
+  /** Zwraca przetłumaczoną nazwę pola – dostępny z szablonu. */
+  resolveAuditFieldName(key: string): string {
+    const hasPolish = /[ąćęłńóśźżż]/i.test(key);
+    if (hasPolish) {
+      return key;
+    }
+    return AUDIT_KEY_TRANSLATIONS[key] || key;
+  }
+
+  /** Formatuje wartość do wyświetlenia – dostępny z szablonu. key to nazwa pola (wspomaga rozpoznawanie ID). */
+  formatAuditValue(value: unknown, key?: string): string {
+    if (value === null || value === undefined) {
+      return '-';
+    }
+    if (typeof value === 'boolean') {
+      return value ? 'Tak' : 'Nie';
+    }
+    if (typeof value === 'number') {
+      // Rozpoznawanie ID po nazwie pola
+      if (key) {
+        const resolved = this.resolveAuditIdByKey(key, value);
+        if (resolved) return resolved;
+      }
+      return Number.isFinite(value) ? String(value) : '-';
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    return JSON.stringify(value);
+  }
+
+  /** Próbuje rozpoznać ID na czytelną nazwę na podstawie słowników. */
+  private resolveAuditIdByKey(key: string, id: number): string | null {
+    if (key.includes('teacher_id')) {
+      const teacher = this.teachers.find((t) => t.user_id === id);
+      if (teacher) return `${teacher.title ? teacher.title + ' ' : ''}${teacher.first_name} ${teacher.last_name}`.trim();
+    }
+    if (key.includes('subject_id')) {
+      const subject = this.subjects.find((s) => s.id === id);
+      if (subject?.name) return subject.name;
+    }
+    if (key.includes('activity_id')) {
+      const activity = this.activities.find((a) => a.id === id);
+      if (activity?.name) return activity.name;
+    }
+    if (key.includes('semester_id')) {
+      const sem = this.semesters.find((s) => s.id === id);
+      if (sem?.nazwa) return sem.nazwa;
+    }
+    if (key.includes('field_of_study_id')) {
+      const fos = this.fieldOfStudies.find((f) => f.id === id);
+      if (fos) return `${fos.name} / ${fos.abbreviation} / ${fos.year}`;
+    }
+    return null;
+  }
+
+  getActionClass(action: string): string {
+    const map: Record<string, string> = {
+      create: 'is-create',
+      update: 'is-update',
+      delete: 'is-delete',
+      CREATE: 'is-create',
+      UPDATE: 'is-update',
+      DELETE: 'is-delete',
+    };
+    return map[action] || '';
   }
 
   private buildSubjectGroups(): void {
@@ -836,42 +978,6 @@ export class TeachingLoadsPage implements OnInit {
     return exact?.id ?? representativeSubjectId;
   }
 
-  private translateAuditKey(key: string): string {
-    const map: Record<string, string> = {
-      teacher_id: 'Dydaktyk',
-      teacher_first_name: 'Imię',
-      teacher_last_name: 'Nazwisko',
-      teacher_title: 'Tytuł',
-      subject_id: 'Przedmiot',
-      subject_name: 'Przedmiot',
-      activity_id: 'Typ zajęć',
-      activity_name: 'Typ zajęć',
-      semester_id: 'Semestr',
-      semester_name: 'Semestr',
-      group_id: 'Grupa (legacy)',
-      field_of_study_id: 'Rocznik',
-      field_of_study_label: 'Rocznik',
-      hours: 'Godziny',
-    };
-
-    return map[key] || key;
-  }
-
-  private formatAuditValue(value: unknown): string {
-    if (value === null || value === undefined) {
-      return '-';
-    }
-    if (typeof value === 'boolean') {
-      return value ? 'Tak' : 'Nie';
-    }
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? String(value) : '-';
-    }
-    if (typeof value === 'string') {
-      return value;
-    }
-    return JSON.stringify(value);
-  }
 
   private toNumber(value: unknown): number | null {
     if (value === null || value === undefined || value === '') {

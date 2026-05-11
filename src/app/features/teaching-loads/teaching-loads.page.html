@@ -379,16 +379,41 @@
                     <ng-container *ngIf="getHistoryForRow(row.id).length > 0; else emptyHistory">
                       <div class="history-entry" *ngFor="let log of getHistoryForRow(row.id)">
                         <div class="history-meta">
-                          <span class="history-action" [class.is-create]="log.action === 'CREATE'"
-                            [class.is-update]="log.action === 'UPDATE'"
-                            [class.is-delete]="log.action === 'DELETE'">
+                          <span class="history-action {{ getActionClass(log.action) }}">
                             {{ getActionLabel(log.action) }}
                           </span>
                           <span class="history-author">{{ log.modified_by_name || 'System' }}</span>
                           <span class="history-time">{{ log.timestamp | date:'dd.MM.yyyy HH:mm' }}</span>
                         </div>
+                        <!-- Podsumowanie w jednej linii -->
                         <div class="history-summary" *ngIf="log.action === 'UPDATE'">
                           {{ getHistorySummary(log) }}
+                        </div>
+                        <!-- Szczegółowa tabela zmian dla UPDATE -->
+                        <div class="history-diff" *ngIf="log.action === 'UPDATE' && getHistoryChanges(log).length > 0">
+                          <div class="diff-row diff-header-row">
+                            <span class="diff-field">Pole</span>
+                            <span class="diff-old">Było</span>
+                            <span class="diff-arrow"></span>
+                            <span class="diff-new">Jest</span>
+                          </div>
+                          <div class="diff-row" *ngFor="let change of getHistoryChanges(log)">
+                            <span class="diff-field">{{ change.field }}</span>
+                            <span class="diff-old">{{ change.oldValue }}</span>
+                            <span class="diff-arrow">→</span>
+                            <span class="diff-new">{{ change.newValue }}</span>
+                          </div>
+                        </div>
+                        <!-- Podgląd wartości dla CREATE / DELETE -->
+                        <div class="history-diff" *ngIf="log.action !== 'UPDATE' && (log.new_values || log.old_values)">
+                          <div class="diff-row diff-header-row">
+                            <span class="diff-field">Pole</span>
+                            <span class="diff-old">Wartość</span>
+                          </div>
+                          <div class="diff-row" *ngFor="let key of getHistoryDetailKeys(log)">
+                            <span class="diff-field">{{ resolveAuditFieldName(key) }}</span>
+                            <span class="diff-old">{{ formatAuditValue((log.new_values || log.old_values)[key]) }}</span>
+                          </div>
                         </div>
                       </div>
                     </ng-container>
