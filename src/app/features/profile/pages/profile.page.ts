@@ -1,30 +1,66 @@
 import { Component } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService, AppTheme } from '../../../core/services/auth.service';
 import { Router } from '@angular/router';
+import { addIcons } from 'ionicons';
+import { lockClosedOutline } from 'ionicons/icons';
+import {
+  calcPasswordStrength,
+  passwordMatchValidator,
+  passwordNotContainsNameValidator,
+  passwordStrengthValidator,
+} from '../../../core/validators/form-validators';
 
 @Component({
   selector: 'app-profile',
   templateUrl: 'profile.page.html',
   styleUrls: ['profile.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule],
+  imports: [IonicModule, CommonModule, ReactiveFormsModule],
 })
 export class ProfilePage {
   isProfileMenuOpen = false;
   profileMenuEvent?: Event;
-  currentPassword = '';
-  newPassword = '';
-  confirmPassword = '';
-  passwordMessage = '';
   selectedTheme: AppTheme = 'light';
+
+  readonly form = this.fb.group(
+    {
+      currentPassword: ['', [Validators.required]],
+      newPassword: ['', [Validators.required, passwordStrengthValidator()]],
+      confirmPassword: ['', [Validators.required]],
+    },
+    { validators: passwordMatchValidator('newPassword', 'confirmPassword') }
+  );
+
+  error = '';
+  success = '';
+
+  get passwordStrength(): number {
+    return calcPasswordStrength(this.form.controls.newPassword.value ?? '');
+  }
+
+  get passwordStrengthLabel(): string {
+    return ['', 'Słabe', 'Średnie', 'Mocne', 'Bardzo mocne'][this.passwordStrength] ?? '';
+  }
+
+  get passwordStrengthClass(): string {
+    return ['', 'strength-weak', 'strength-fair', 'strength-strong', 'strength-very-strong'][this.passwordStrength] ?? '';
+  }
 
   constructor(
     public auth: AuthService,
-    private readonly router: Router
-  ) { }
+    private readonly router: Router,
+    private readonly fb: FormBuilder
+  ) {
+    addIcons({ lockClosedOutline });
+
+    this.form.controls.newPassword.addValidators(
+      passwordNotContainsNameValidator(this.auth.firstName, this.auth.lastName)
+    );
+    this.form.controls.newPassword.updateValueAndValidity();
+  }
 
   get userRoleLabel(): string {
     return this.auth.roleLabel;
@@ -78,33 +114,33 @@ export class ProfilePage {
   }
 
   submitPasswordChange() {
-    if (!this.currentPassword || !this.newPassword || !this.confirmPassword) {
-      this.passwordMessage = 'Uzupełnij wszystkie pola hasła.';
+    this.error = '';
+    this.success = '';
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      if (this.form.errors?.['passwordMismatch']) {
+        this.error = 'Nowe hasła nie są takie same.';
+      } else {
+        this.error = 'Uzupełnij poprawnie wszystkie pola.';
+      }
       return;
     }
 
-    if (this.newPassword.length < 4) {
-      this.passwordMessage = 'Nowe hasło musi mieć minimum 4 znaki.';
-      return;
-    }
+    const currentPassword = this.form.controls.currentPassword.value!;
+    const newPassword = this.form.controls.newPassword.value!;
 
-    if (this.newPassword !== this.confirmPassword) {
-      this.passwordMessage = 'Nowe hasła nie są takie same.';
-      return;
-    }
-
-    this.auth.changePassword(this.currentPassword, this.newPassword).subscribe({
+    this.auth.changePassword(currentPassword, newPassword).subscribe({
       next: (result) => {
-        this.passwordMessage = result.message;
-
         if (result.success) {
-          this.currentPassword = '';
-          this.newPassword = '';
-          this.confirmPassword = '';
+          this.success = 'Hasło zmienione pomyślnie.';
+          this.form.reset();
+        } else {
+          this.error = result.message || 'Błąd przy zmianie hasła';
         }
       },
       error: () => {
-        this.passwordMessage = 'Wystąpił nieoczekiwany błąd';
+        this.error = 'Wystąpił nieoczekiwany błąd';
       }
     });
   }

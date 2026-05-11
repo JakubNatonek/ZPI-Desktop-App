@@ -59,31 +59,60 @@
       <div class="profile-card">
         <h3 class="section-heading">Zmiana hasła</h3>
 
-        <div class="field-group">
-          <label class="field-label">Aktualne hasło</label>
-          <ion-input class="styled-input" type="password" [(ngModel)]="currentPassword"
-            placeholder="••••••••"></ion-input>
-        </div>
+        <form [formGroup]="form" (ngSubmit)="submitPasswordChange()">
 
-        <div class="field-group">
-          <label class="field-label">Nowe hasło</label>
-          <ion-input class="styled-input" type="password" [(ngModel)]="newPassword" placeholder="••••••••"></ion-input>
-        </div>
+          <div class="field-group">
+            <label class="field-label">Aktualne hasło</label>
+            <ion-input class="styled-input" type="password" formControlName="currentPassword"
+              placeholder="••••••••"></ion-input>
+            <div class="field-errors" *ngIf="form.controls.currentPassword.invalid && form.controls.currentPassword.touched">
+              <span *ngIf="form.controls.currentPassword.errors?.['required']">Aktualne hasło jest wymagane.</span>
+            </div>
+          </div>
 
-        <div class="field-group">
-          <label class="field-label">Powtórz nowe hasło</label>
-          <ion-input class="styled-input" type="password" [(ngModel)]="confirmPassword"
-            placeholder="••••••••"></ion-input>
-        </div>
+          <div class="field-group">
+            <label class="field-label">Nowe hasło</label>
+            <ion-input class="styled-input" type="password" formControlName="newPassword" placeholder="••••••••"></ion-input>
+            <!-- Pasek siły hasła -->
+            <div class="password-strength" *ngIf="form.controls.newPassword.value">
+              <div class="strength-bar">
+                <div class="strength-fill {{ passwordStrengthClass }}" [style.width.%]="passwordStrength * 25"></div>
+              </div>
+              <span class="strength-label {{ passwordStrengthClass }}">{{ passwordStrengthLabel }}</span>
+            </div>
+            <div class="field-errors" *ngIf="form.controls.newPassword.invalid && form.controls.newPassword.touched">
+              <span *ngIf="form.controls.newPassword.errors?.['required']">Nowe hasło jest wymagane.</span>
+              <span *ngIf="form.controls.newPassword.errors?.['minlength']">Hasło musi mieć minimum 8 znaków.</span>
+              <span *ngIf="form.controls.newPassword.errors?.['missingUppercase']">Hasło musi zawierać przynajmniej jedną wielką literę.</span>
+              <span *ngIf="form.controls.newPassword.errors?.['missingLowercase']">Hasło musi zawierać przynajmniej jedną małą literę.</span>
+              <span *ngIf="form.controls.newPassword.errors?.['missingDigit']">Hasło musi zawierać przynajmniej jedną cyfrę.</span>
+              <span *ngIf="form.controls.newPassword.errors?.['missingSpecial']">Hasło musi zawierać przynajmniej jeden znak specjalny (np. ! @ # $ %).</span>
+              <span *ngIf="form.controls.newPassword.errors?.['containsName']">Hasło nie może zawierać Twojego imienia ani nazwiska.</span>
+            </div>
+          </div>
 
-        <p class="password-message" *ngIf="passwordMessage">{{ passwordMessage }}</p>
+          <div class="field-group">
+            <label class="field-label">Powtórz nowe hasło</label>
+            <ion-input class="styled-input" type="password" formControlName="confirmPassword"
+              placeholder="••••••••"></ion-input>
+            <div class="field-errors"
+              *ngIf="(form.controls.confirmPassword.invalid && form.controls.confirmPassword.touched) || (form.errors?.['passwordMismatch'] && form.controls.confirmPassword.touched)">
+              <span *ngIf="form.controls.confirmPassword.errors?.['required']">Potwierdzenie hasła jest wymagane.</span>
+              <span *ngIf="form.errors?.['passwordMismatch'] && !form.controls.confirmPassword.errors?.['required']">Hasła nie pasują do siebie.</span>
+            </div>
+          </div>
 
-        <div class="form-actions">
-          <ion-button class="btn-save" (click)="submitPasswordChange()">
-            <ion-icon slot="start" name="save-outline"></ion-icon>
-            Zapisz hasło
-          </ion-button>
-        </div>
+          <p class="password-message" *ngIf="error" style="color: #dc3545;">{{ error }}</p>
+          <p class="password-message" *ngIf="success" style="color: #28a745;">{{ success }}</p>
+
+          <div class="form-actions">
+            <ion-button class="btn-save" type="submit">
+              <ion-icon slot="start" name="save-outline"></ion-icon>
+              Zapisz hasło
+            </ion-button>
+          </div>
+
+        </form>
       </div>
 
       <!-- Motyw aplikacji -->
