@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AlertController, IonicModule, LoadingController } from '@ionic/angular';
-import { Subject, finalize, takeUntil } from 'rxjs';
+import { Subject, finalize, filter, take, takeUntil } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
 import { SubjectsApiService, SubjectDto, ActivityOption } from '../../core/services/subjects-api.service';
@@ -19,7 +19,6 @@ import { UsersAdminApiService, AdminUserRow } from '../../core/services/users-ad
 export class SubjectPreferencesPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
-  isAdmin = false;
   currentUserId: number | null = null;
   selectedUserId: number | null = null;
 
@@ -47,24 +46,35 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
     return this.allSubjects.filter((s) => !preferredIds.has(s.id));
   }
 
+  get isAdmin(): boolean {
+    return this.auth.role === 'admin';
+  }
+
   get filteredUsers(): AdminUserRow[] {
     const query = this.userSearchQuery.trim().toLowerCase();
-    return this.allUsers.filter((user) => {
+    return [...this.allUsers]
+      .filter((user) => {
       const roleList = (user.roles ?? []).map((role) => role.toLowerCase());
       if (roleList.includes('admin')) {
         return false;
       }
 
-      if (!query) {
-        return true;
-      }
+      return true;
+    })
+      .sort((left, right) => {
+        if (!query) {
+          return `${left.first_name} ${left.last_name}`.localeCompare(`${right.first_name} ${right.last_name}`);
+        }
 
-      const haystack = [user.first_name, user.last_name, user.login, user.email]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(query);
-    });
+        const leftScore = this.getUserSearchScore(left, query);
+        const rightScore = this.getUserSearchScore(right, query);
+
+        if (leftScore !== rightScore) {
+          return leftScore - rightScore;
+        }
+
+        return `${left.first_name} ${left.last_name}`.localeCompare(`${right.first_name} ${right.last_name}`);
+      });
   }
 
   get selectedUserDisplayValue(): string {
@@ -82,18 +92,30 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
 
     for (const subject of available) {
       const name = subject.name ?? `#${subject.id}`;
-      if (!query || name.toLowerCase().includes(query)) {
-        const list = groups.get(name) ?? [];
-        list.push(subject);
-        groups.set(name, list);
-      }
+      const list = groups.get(name) ?? [];
+      list.push(subject);
+      groups.set(name, list);
     }
 
     const out: { id: number; name: string; entries: SubjectDto[] }[] = [];
     for (const [name, entries] of groups.entries()) {
       out.push({ id: entries[0].id, name, entries });
     }
-    out.sort((a, b) => a.name.localeCompare(b.name));
+
+    out.sort((a, b) => {
+      if (!query) {
+        return a.name.localeCompare(b.name);
+      }
+
+      const scoreA = this.getSubjectSearchScore(a.name, query);
+      const scoreB = this.getSubjectSearchScore(b.name, query);
+
+      if (scoreA !== scoreB) {
+        return scoreA - scoreB;
+      }
+
+      return a.name.localeCompare(b.name);
+    });
     return out;
   }
 
@@ -124,12 +146,19 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
     private readonly alertController: AlertController,
     private readonly loadingController: LoadingController,
   ) {
-    this.isAdmin = this.auth.role === 'admin';
     this.currentUserId = this.auth.currentUserId;
   }
 
   ngOnInit(): void {
-    this.loadInitialData();
+    this.auth.isRestoringSession$
+      .pipe(
+        takeUntil(this.destroy$),
+        filter((isRestoring) => !isRestoring),
+        take(1),
+      )
+      .subscribe(() => {
+        this.loadInitialData();
+      });
   }
 
   ngOnDestroy(): void {
@@ -154,10 +183,11 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
     Promise.all(requests)
       .then(() => {
         // Set initial user ID
-        if (this.isAdmin && this.allUsers.length > 0) {
-          // Select first lecturer/teacher by default
-          this.selectedUserId = this.filteredUsers[0]?.user_id ?? null;
+        if (this.isAdmin) {
+          // Admin: no auto-selection
+          this.selectedUserId = null;
         } else {
+          // Lecturer: always view own preferences
           this.selectedUserId = this.currentUserId;
         }
 
@@ -236,12 +266,16 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
   }
 
   onUserSelected(userId: number | null): void {
+    if (!this.isAdmin) {
+      return;
+    }
+
     if (!userId || userId <= 0) {
       return;
     }
 
     this.selectedUserId = userId;
-  this.userSearchQuery = this.getUserLabel(userId);
+    this.userSearchQuery = this.getUserLabel(userId);
     this.isLoading = true;
     this.refreshSelectedUserData(userId)
       .catch((error) => {
@@ -253,16 +287,28 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
   }
 
   onUserSearchFocus(): void {
+    if (!this.isAdmin) {
+      return;
+    }
+
     this.isUserDropdownOpen = true;
     this.userSearchQuery = this.selectedUserDisplayValue;
   }
 
   onUserSearchInput(value: string | null | undefined): void {
+    if (!this.isAdmin) {
+      return;
+    }
+
     this.userSearchQuery = value ?? '';
     this.isUserDropdownOpen = true;
   }
 
   selectUser(user: AdminUserRow): void {
+    if (!this.isAdmin) {
+      return;
+    }
+
     this.selectedUserId = user.user_id;
     this.userSearchQuery = this.getUserLabel(user.user_id);
     this.isUserDropdownOpen = false;
@@ -270,6 +316,10 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
   }
 
   closeUserDropdown(): void {
+    if (!this.isAdmin) {
+      return;
+    }
+
     setTimeout(() => {
       this.isUserDropdownOpen = false;
       this.userSearchQuery = this.getUserLabel(this.selectedUserId);
@@ -425,6 +475,45 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
       return '';
     }
     return `${user.first_name} ${user.last_name}`.trim();
+  }
+
+  private getUserSearchScore(user: AdminUserRow, query: string): number {
+    const haystack = [user.first_name, user.last_name, user.login, user.email]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    if (haystack === query) {
+      return 0;
+    }
+
+    if (haystack.startsWith(query)) {
+      return 1;
+    }
+
+    if (haystack.includes(query)) {
+      return 2;
+    }
+
+    return 3;
+  }
+
+  private getSubjectSearchScore(subjectName: string, query: string): number {
+    const haystack = subjectName.toLowerCase();
+
+    if (haystack === query) {
+      return 0;
+    }
+
+    if (haystack.startsWith(query)) {
+      return 1;
+    }
+
+    if (haystack.includes(query)) {
+      return 2;
+    }
+
+    return 3;
   }
 
   private getSubjectLabel(subjectId: number | null): string {
