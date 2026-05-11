@@ -169,7 +169,8 @@
                 <ion-select
                   interface="popover"
                   class="cell-select"
-                  [(ngModel)]="newRowDraft.teacher_id">
+                  [(ngModel)]="newRowDraft.teacher_id"
+                  (ionChange)="onNewTeacherChange()">
                   <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.user_id">
                     {{ getTeacherOptionLabel(teacher) }}
                   </ion-select-option>
@@ -180,8 +181,9 @@
                   interface="popover"
                   class="cell-select"
                   [(ngModel)]="newRowDraft.subject_id"
-                  (ionChange)="onNewSubjectChange()">
-                  <ion-select-option *ngFor="let subj of getSubjectOptions()" [value]="subj.id">
+                  (ionChange)="onNewSubjectChange()"
+                  [disabled]="!isTeacherSelected(newRowDraft.teacher_id)">
+                  <ion-select-option *ngFor="let subj of getPreferredSubjectOptions(newRowDraft.teacher_id)" [value]="subj.id">
                     {{ subj.name }}
                   </ion-select-option>
                 </ion-select>
@@ -248,6 +250,7 @@
                       interface="popover"
                       class="cell-select"
                       [(ngModel)]="draftRow.teacher_id"
+                      (ionChange)="onEditTeacherChange()"
                       (click)="$event.stopPropagation()">
                       <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.user_id">
                         {{ getTeacherOptionLabel(teacher) }}
@@ -265,8 +268,9 @@
                       class="cell-select"
                       [(ngModel)]="draftRow.subject_id"
                       (ionChange)="onEditSubjectChange()"
+                      [disabled]="!isTeacherSelected(draftRow.teacher_id)"
                       (click)="$event.stopPropagation()">
-                      <ion-select-option *ngFor="let subj of getSubjectOptions()" [value]="subj.id">
+                      <ion-select-option *ngFor="let subj of getPreferredSubjectOptions(draftRow.teacher_id)" [value]="subj.id">
                         {{ subj.name }}
                       </ion-select-option>
                     </ion-select>

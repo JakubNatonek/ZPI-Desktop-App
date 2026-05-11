@@ -56,6 +56,17 @@ export class SubjectsApiService {
       );
   }
 
+  getSubjectsPublic(): Observable<SubjectDto[]> {
+    return this.http
+      .get<SubjectListResponse | SubjectDto[]>(`${this.subjectsBaseUrl}/public/list`)
+      .pipe(
+        map((response) => {
+          const source = Array.isArray(response) ? response : (response.items ?? []);
+          return source.map((subject) => this.normalizeSubject(subject));
+        })
+      );
+  }
+
   getSubjectById(subjectId: number): Observable<SubjectDto> {
     return this.http
       .get<SubjectDto>(`${this.subjectsBaseUrl}/${subjectId}`)

@@ -63,6 +63,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/teaching-loads/teaching-loads.page').then((m) => m.TeachingLoadsPage),
   },
   {
+    path: 'subject-preferences',
+    loadComponent: () => import('./features/subject-preferences/subject-preferences.page').then((m) => m.SubjectPreferencesPage),
+  },
+  {
     path: 'admin/users/new',
     canActivate: [authGuard],
     loadComponent: () => import('./features/admin/pages/user-create.page').then((m) => m.UserCreatePage),

@@ -19,6 +19,7 @@ import {
   FieldOfStudyOption,
 } from '../../core/services/teaching-loads-api.service';
 import { ActivityOption, SubjectDto } from '../../core/services/subjects-api.service';
+import { SubjectPreferencesApiService, SubjectPreferenceResponse } from '../../core/services/subject-preferences-api.service';
 import { DezyderataService, Semestr } from '../../core/services/dezyderata.service';
 
 type TeachingLoadFilterState = {
@@ -55,6 +56,10 @@ export class TeachingLoadsPage implements OnInit {
   activities: ActivityOption[] = [];
   semesters: Semestr[] = [];
   fieldOfStudies: FieldOfStudyOption[] = [];
+  
+  // Subject preferences for filtering
+  teacherPreferences: Map<number, Set<number>> = new Map();
+  selectedTeacherPreferredSubjectIds: Set<number> = new Set();
 
   filters: TeachingLoadFilterState = {
     teacher_id: null,
@@ -84,6 +89,7 @@ export class TeachingLoadsPage implements OnInit {
     private readonly teachingLoadsApi: TeachingLoadsApiService,
     private readonly dezyderataService: DezyderataService,
     private readonly auditApi: AuditApiService,
+    private readonly subjectPreferencesApi: SubjectPreferencesApiService,
   ) {
     addIcons({ alertCircleOutline, checkmarkCircle, closeCircle, timeOutline });
   }
@@ -907,5 +913,68 @@ export class TeachingLoadsPage implements OnInit {
       activity_name: this.getActivityLabel(a),
       field_of_study_label: this.getFieldOfStudyLabel(a),
     };
+  }
+
+  onNewTeacherChange(): void {
+    const draft = this.newRowDraft;
+    if (!draft) {
+      return;
+    }
+
+    const teacherId = draft.teacher_id;
+    if (!teacherId || teacherId <= 0) {
+      this.selectedTeacherPreferredSubjectIds.clear();
+      return;
+    }
+
+    this.loadTeacherPreferences(teacherId);
+  }
+
+  onEditTeacherChange(): void {
+    const draft = this.draftRow;
+    if (!draft) {
+      return;
+    }
+
+    const teacherId = draft.teacher_id;
+    if (!teacherId || teacherId <= 0) {
+      this.selectedTeacherPreferredSubjectIds.clear();
+      return;
+    }
+
+    this.loadTeacherPreferences(teacherId);
+  }
+
+  private loadTeacherPreferences(teacherId: number): void {
+    if (this.teacherPreferences.has(teacherId)) {
+      this.selectedTeacherPreferredSubjectIds = new Set(this.teacherPreferences.get(teacherId)!);
+      return;
+    }
+
+    this.subjectPreferencesApi.getPreferencesForUser(teacherId).subscribe({
+      next: (preferences: SubjectPreferenceResponse[]) => {
+        const subjectIds = new Set(preferences.map((p) => p.subject_id));
+        this.teacherPreferences.set(teacherId, subjectIds);
+        this.selectedTeacherPreferredSubjectIds = subjectIds;
+      },
+      error: (error) => {
+        console.error(`Failed to load preferences for teacher ${teacherId}:`, error);
+        this.selectedTeacherPreferredSubjectIds.clear();
+      },
+    });
+  }
+
+  getPreferredSubjectOptions(teacherId: number | null | undefined): { id: number; name: string; entries: SubjectDto[] }[] {
+    if (!teacherId || teacherId <= 0 || this.selectedTeacherPreferredSubjectIds.size === 0) {
+      return this.getSubjectOptions();
+    }
+
+    // Filter subjects to only those in teacher's preferences
+    const all = this.getSubjectOptions();
+    return all.filter((option) => this.selectedTeacherPreferredSubjectIds.has(option.id));
+  }
+
+  isTeacherSelected(teacherId: number | null | undefined): boolean {
+    return teacherId != null && teacherId > 0;
   }
 }
