@@ -13,6 +13,7 @@ import { environment } from '../../../../environments/environment';
 interface WeekDay {
   name: string;
   iso: string;
+  date: Date;
   isToday: boolean;
 }
 
@@ -43,6 +44,10 @@ interface RaplaRenderedItem {
   reservation: RaplaReservationDto;
   topOffsetMinutes: number;
   durationMinutes: number;
+  startMin: number;
+  endMin: number;
+  colIndex: number;
+  colCount: number;
 }
 
 type Delimiter = ',' | ';' | '\t' | '|';
@@ -80,6 +85,7 @@ export class HermonogramPage implements OnInit {
   // Rapla XML (backend) layer
   raplaReservations: RaplaReservationDto[] = [];
   showRaplaLayer = true;
+  showZajeciaLayer = true;
   isImportingRapla = false;
   raplaXmlMessage = '';
   raplaXmlError = false;
@@ -88,16 +94,22 @@ export class HermonogramPage implements OnInit {
   selectedRaplaReservation: RaplaReservationDto | null = null;
   isDetailsOpen = false;
 
+  // Day view
+  isDayViewOpen = false;
+  dayViewDay: WeekDay | null = null;
+  dayViewItems: RaplaRenderedItem[] = [];
+  dayViewHours: number[] = [];
+
   constructor(public auth: AuthService, private router: Router, private raplaApi: RaplaApiService) {
     addIcons({ chevronBackOutline, chevronForwardOutline, cloudUploadOutline });
   }
 
   get canAccessHarmonogram(): boolean {
-    return this.auth.role === 'admin' || this.auth.role === 'planner';
+    return this.auth.role === 'admin' || this.auth.role === 'planner' || this.auth.role === 'rapla_editor' || this.auth.role === 'lecturer_rapla_editor';
   }
 
   get isAdminOrRaplaEditor(): boolean {
-    return this.auth.role === 'admin' || this.auth.role === 'rapla_editor';
+    return this.auth.role === 'admin' || this.auth.role === 'rapla_editor' || this.auth.role === 'lecturer_rapla_editor';
   }
 
   get userRoleLabel(): string {
@@ -274,6 +286,7 @@ export class HermonogramPage implements OnInit {
       this.weekDays.push({
         name: names[i],
         iso: this.formatLocalIsoDate(nextDay),
+        date: nextDay,
         isToday: nextDay.toDateString() === new Date().toDateString(),
       });
     }
@@ -376,11 +389,6 @@ export class HermonogramPage implements OnInit {
     });
   }
 
-  /**
-   * Returns Rapla reservations that overlap with a given calendar cell (day + hour).
-   * A reservation appears in every hour slot it covers on its start_date.
-   * For weekly repeating entries, it also appears on the matching weekday within the repeat range.
-   */
   getRaplaItems(day: WeekDay, hour: number): RaplaReservationDto[] {
     if (!this.showRaplaLayer || !this.raplaReservations.length) return [];
 
@@ -413,7 +421,8 @@ export class HermonogramPage implements OnInit {
       return [];
     }
 
-    return this.raplaReservations
+    const items = this.raplaReservations
+      .filter((r) => !r.reservation_type || r.reservation_type === 'dezyderata')
       .filter((r) => this.isReservationOnDay(r, day))
       .filter((r) => {
         const startMinutes = this.parseTimeToMinutes(r.start_time);
@@ -425,24 +434,93 @@ export class HermonogramPage implements OnInit {
         return startHour === hour;
       })
       .map((r) => {
-        const startMinutes = this.parseTimeToMinutes(r.start_time) ?? hour * 60;
-        const endMinutes = this.parseTimeToMinutes(r.end_time) ?? (startMinutes + 60);
+        const startMin = this.parseTimeToMinutes(r.start_time) ?? hour * 60;
+        const endMin = this.parseTimeToMinutes(r.end_time) ?? (startMin + 60);
 
         return {
           reservation: r,
-          topOffsetMinutes: Math.max(startMinutes - (hour * 60), 0),
-          durationMinutes: Math.max(endMinutes - startMinutes, 30),
+          topOffsetMinutes: Math.max(startMin - (hour * 60), 0),
+          durationMinutes: Math.max(endMin - startMin, 30),
+          startMin,
+          endMin,
+          colIndex: 0,
+          colCount: 1,
         };
       });
+    this.assignOverlapColumns(items);
+    return items;
+  }
+
+  getZajeciaItemsStartingAt(day: WeekDay, hour: number): RaplaRenderedItem[] {
+    if (!this.showZajeciaLayer || !this.raplaReservations.length) {
+      return [];
+    }
+
+    const items = this.raplaReservations
+      .filter((r) => r.reservation_type === 'zajencia')
+      .filter((r) => this.isReservationOnDay(r, day))
+      .filter((r) => {
+        const startMinutes = this.parseTimeToMinutes(r.start_time);
+        if (startMinutes === null) {
+          return false;
+        }
+
+        const startHour = Math.floor(startMinutes / 60);
+        return startHour === hour;
+      })
+      .map((r) => {
+        const startMin = this.parseTimeToMinutes(r.start_time) ?? hour * 60;
+        const endMin = this.parseTimeToMinutes(r.end_time) ?? (startMin + 60);
+
+        return {
+          reservation: r,
+          topOffsetMinutes: Math.max(startMin - (hour * 60), 0),
+          durationMinutes: Math.max(endMin - startMin, 30),
+          startMin,
+          endMin,
+          colIndex: 0,
+          colCount: 1,
+        };
+      });
+    this.assignOverlapColumns(items);
+    return items;
+  }
+
+  private assignOverlapColumns(items: RaplaRenderedItem[]): void {
+    const cols: number[] = [];
+    for (const item of items) {
+      let col = cols.findIndex((endMin) => endMin <= item.startMin);
+      if (col === -1) {
+        col = cols.length;
+        cols.push(item.endMin);
+      } else {
+        cols[col] = item.endMin;
+      }
+      item.colIndex = col;
+    }
+
+    // Per-item colCount: max colIndex+1 among all items that overlap this item
+    for (const item of items) {
+      let maxCol = item.colIndex;
+      for (const other of items) {
+        if (other.startMin < item.endMin && other.endMin > item.startMin) {
+          maxCol = Math.max(maxCol, other.colIndex);
+        }
+      }
+      item.colCount = maxCol + 1;
+    }
   }
 
   getRaplaItemStyle(item: RaplaRenderedItem): Record<string, string> {
     const topPercent = (item.topOffsetMinutes / 60) * 100;
     const durationInHours = item.durationMinutes / 60;
+    const colWidthPct = 100 / item.colCount;
 
     return {
       top: `${topPercent}%`,
       height: `calc(var(--hour-row-height) * ${durationInHours})`,
+      left: `${item.colIndex * colWidthPct}%`,
+      width: `${colWidthPct}%`,
     };
   }
 
@@ -450,6 +528,13 @@ export class HermonogramPage implements OnInit {
     return {
       ...this.getRaplaItemStyle(item),
       borderLeftColor: item.reservation.color || '#eab308',
+    };
+  }
+
+  getZajeciaItemNgStyle(item: RaplaRenderedItem): Record<string, string> {
+    return {
+      ...this.getRaplaItemStyle(item),
+      borderLeftColor: '#2563eb',
     };
   }
 
@@ -592,6 +677,92 @@ export class HermonogramPage implements OnInit {
     this.selectedPlanEvent = event;
     this.selectedRaplaReservation = null;
     this.isDetailsOpen = true;
+  }
+
+  openDayView(day: WeekDay) {
+    this.dayViewDay = day;
+
+    const allItems: RaplaRenderedItem[] = [];
+
+    // Collect all rapla (dezyderata) items for this day
+    if (this.showRaplaLayer) {
+      const raplaForDay = this.raplaReservations
+        .filter((r) => !r.reservation_type || r.reservation_type === 'dezyderata')
+        .filter((r) => this.isReservationOnDay(r, day));
+      for (const r of raplaForDay) {
+        const startMin = this.parseTimeToMinutes(r.start_time);
+        const endMin = this.parseTimeToMinutes(r.end_time);
+        if (startMin === null || endMin === null) continue;
+        allItems.push({
+          reservation: r,
+          topOffsetMinutes: startMin,
+          durationMinutes: Math.max(endMin - startMin, 30),
+          startMin,
+          endMin,
+          colIndex: 0,
+          colCount: 1,
+        });
+      }
+    }
+
+    // Collect all zajecia items for this day
+    if (this.showZajeciaLayer) {
+      const zajeciaForDay = this.raplaReservations
+        .filter((r) => r.reservation_type === 'zajencia')
+        .filter((r) => this.isReservationOnDay(r, day));
+      for (const r of zajeciaForDay) {
+        const startMin = this.parseTimeToMinutes(r.start_time);
+        const endMin = this.parseTimeToMinutes(r.end_time);
+        if (startMin === null || endMin === null) continue;
+        allItems.push({
+          reservation: r,
+          topOffsetMinutes: startMin,
+          durationMinutes: Math.max(endMin - startMin, 30),
+          startMin,
+          endMin,
+          colIndex: 0,
+          colCount: 1,
+        });
+      }
+    }
+
+    // Sort by start time
+    allItems.sort((a, b) => a.startMin - b.startMin);
+    this.assignOverlapColumns(allItems);
+
+    this.dayViewItems = allItems;
+    // Always show 7:00 – 21:00 (15 hour rows)
+    this.dayViewHours = Array.from({ length: 15 }, (_, k) => k + 7);
+
+    this.isDayViewOpen = true;
+  }
+
+  closeDayView() {
+    this.isDayViewOpen = false;
+  }
+
+  getDayViewItemNgStyle(item: RaplaRenderedItem): Record<string, string> {
+    const pxPerMin = 70 / 60; // 70px per hour
+    const baseMin = 7 * 60;   // always start from 7:00
+    const topPx = (item.startMin - baseMin) * pxPerMin;
+    const heightPx = Math.max(item.durationMinutes * pxPerMin, 36);
+    // Fixed column width: 220px per column slot
+    const colW = 220;
+    const gap = 4;
+
+    return {
+      top: `${topPx}px`,
+      height: `${heightPx}px`,
+      left: `${item.colIndex * (colW + gap)}px`,
+      width: `${colW}px`,
+      borderLeftColor: item.reservation.reservation_type === 'zajencia' ? '#2563eb' : (item.reservation.color || '#eab308'),
+    };
+  }
+
+  formatDayViewDate(date: Date): string {
+    const months = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+      'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   }
 
   openRaplaDetails(reservation: RaplaReservationDto) {

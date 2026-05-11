@@ -37,7 +37,8 @@
           użytkownika</ion-item>
         <ion-item button *ngIf="auth.role === 'admin'" (click)="navigate('/admin/unavailability-notes')">Notatki o
           niedostępności</ion-item>
-        <ion-item button *ngIf="auth.role === 'admin' || auth.role === 'rapla_editor'"
+        <ion-item button
+          *ngIf="auth.role === 'admin' || auth.role === 'rapla_editor' || auth.role === 'lecturer_rapla_editor'"
           (click)="navigate('/audit-logs')">Historia zmian</ion-item>
         <ion-item button (click)="navigate('/profile')">Profil</ion-item>
         <ion-item button (click)="navigate('/chat')">Czat</ion-item>

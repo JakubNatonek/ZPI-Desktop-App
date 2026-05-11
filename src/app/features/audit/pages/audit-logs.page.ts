@@ -64,6 +64,10 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
     'Semestr': 'Semestr',
     'SpecialEquipment': 'Sprzęt specjalny',
     'Notification': 'Powiadomienie',
+    'RaplaImportedReservation': 'Rezerwacja z Rapli',
+    'rapla_imported_reservation': 'Rezerwacja z Rapli',
+    'rapla_reservation': 'Rezerwacja z Rapli',
+    'RaplaReservation': 'Rezerwacja z Rapli',
   };
 
   readonly translateMap: Record<string, string> = {
@@ -152,6 +156,22 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
     tab_visible_from: 'Widoczny od',
     tab_visible_to: 'Widoczny do',
 
+    // === Rapla / importowane rezerwacje ===
+    uuid: 'Identyfikator Rapla',
+    reservation_uuid: 'ID rezerwacji Rapla',
+    reservation_type: 'Typ rezerwacji',
+    activity_type: 'Rodzaj zajęć',
+    start_time: 'Godzina rozpoczęcia',
+    end_time: 'Godzina zakończenia',
+    repeating_type: 'Powtarzanie',
+    repeating_end_date: 'Powtarzanie do',
+    allocate: 'Przydzielone zasoby',
+    room_names: 'Sale',
+    teacher_names: 'Prowadzący',
+    semester_names: 'Semestry',
+    group_names: 'Grupy',
+    last_imported_at: 'Ostatni import',
+
     // === Ogólne ===
     role: 'Rola systemowa',
     title: 'Tytuł naukowy',
@@ -186,6 +206,7 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
     'created_at', 'updated_at', 'last_viewed_at', 'last_seen_at', 'seen_at',
     'expires_at', 'revoked_at', 'reviewed_at', 'submitted_at',
     'modified_by', 'modified_by_name',
+    'last_imported_at', 'allocate',
   ]);
 
   get entityTypes(): string[] {
@@ -411,6 +432,22 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
       friday: 'Piątek',
       saturday: 'Sobota',
       sunday: 'Niedziela',
+      // Rapla — typy rezerwacji
+      dezyderata: 'Dezyderata',
+      zajencia: 'Zajęcia',
+      // Rapla — rodzaje zajęć
+      wyklady: 'Wykłady',
+      laboratoria: 'Laboratoria',
+      cwiczenia: 'Ćwiczenia',
+      seminaria: 'Seminaria',
+      projekty: 'Projekty',
+      lektoraty: 'Lektoraty',
+      konwersatoria: 'Konwersatoria',
+      // Rapla — typy powtarzania
+      weekly: 'Co tydzień',
+      daily: 'Codziennie',
+      monthly: 'Co miesiąc',
+      yearly: 'Co rok',
     };
 
     if (typeof val === 'string' && enumMap[val]) return enumMap[val];

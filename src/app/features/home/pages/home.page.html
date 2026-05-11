@@ -13,8 +13,10 @@
           Nowe zmiany w systemie
         </ion-button>
 
-        <ion-button *ngIf="isLecturer || isAdminOrPlanner || auth.role === 'rapla_editor'" class="rapla-file-btn"
-          expand="block" fill="outline" color="primary" [href]="raplaFileUrl" target="_blank" rel="noopener noreferrer">
+        <ion-button
+          *ngIf="isLecturer || isAdminOrPlanner || auth.role === 'rapla_editor' || auth.role === 'lecturer_rapla_editor'"
+          class="rapla-file-btn" expand="block" fill="outline" color="primary" [href]="raplaFileUrl" target="_blank"
+          rel="noopener noreferrer">
           <ion-icon slot="start" name="cloud-download-outline"></ion-icon>
           Pobierz plik Rapla
         </ion-button>

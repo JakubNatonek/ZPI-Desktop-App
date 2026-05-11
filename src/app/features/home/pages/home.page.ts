@@ -176,7 +176,7 @@ export class HomePage implements OnInit {
   }
 
   get isAdmin(): boolean {
-    return this.auth.role === 'admin';
+    return this.auth.role === 'admin' || this.auth.role === 'rapla_editor' || this.auth.role === 'lecturer_rapla_editor';
   }
 
   get userRoleLabel(): string {
@@ -319,7 +319,7 @@ export class HomePage implements OnInit {
   }
 
   checkAuditLogs() {
-    if (this.isAdminOrPlanner || this.auth.role === 'rapla_editor') {
+    if (this.isAdminOrPlanner || this.auth.role === 'rapla_editor' || this.auth.role === 'lecturer_rapla_editor') {
       this.auditApi.getLogs().subscribe({
         next: (res) => {
           const lastViewed = res.last_changes_viewed_at ? new Date(res.last_changes_viewed_at).getTime() : 0;

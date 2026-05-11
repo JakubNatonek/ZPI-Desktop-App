@@ -6,7 +6,7 @@ import { CryptoService } from './crypto.service';
 
 import { environment } from '../../../environments/environment';
 
-export type UserRole = 'admin' | 'lecturer' | 'planner' | 'rapla_editor';
+export type UserRole = 'admin' | 'lecturer' | 'planner' | 'rapla_editor' | 'lecturer_rapla_editor';
 export type AppTheme = 'light' | 'dark';
 
 interface UserAccount {
@@ -271,6 +271,10 @@ export class AuthService {
         return 'Wykładowca';
       case 'planner':
         return 'Planista harmonogramu';
+      case 'rapla_editor':
+        return 'Redaktor Rapla';
+      case 'lecturer_rapla_editor':
+        return 'Wykładowca / Redaktor Rapla';
       default:
         return 'Gość';
     }
@@ -478,6 +482,9 @@ export class AuthService {
         return 'planner';
       case 'rapla_editor':
         return 'rapla_editor';
+      case 'wykladowca_rapla_editor':
+      case 'lecturer_rapla_editor':
+        return 'lecturer_rapla_editor';
       default:
         return 'planner';
     }

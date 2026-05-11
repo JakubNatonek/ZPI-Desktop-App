@@ -8,6 +8,9 @@ export interface RaplaReservationDto {
     uuid: string;
     name: string | null;
     color: string | null;
+    reservation_type: string | null;
+    reservation_uuid: string | null;
+    activity_type: string | null;
     start_date: string | null;  // 'YYYY-MM-DD'
     start_time: string | null;  // 'HH:MM:SS'
     end_date: string | null;
@@ -18,6 +21,7 @@ export interface RaplaReservationDto {
     room_names: string[] | null;
     teacher_names: string[] | null;
     semester_names: string[] | null;
+    group_names: string[] | null;
 }
 
 @Injectable({ providedIn: 'root' })
