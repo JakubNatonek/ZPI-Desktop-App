@@ -18,6 +18,7 @@ import { calcPasswordStrength, passwordMatchValidator, passwordNotContainsNameVa
 export class ChangePasswordPage {
   readonly form = this.fb.group(
     {
+      currentPassword: ['', [Validators.required]],
       newPassword: ['', [Validators.required, passwordStrengthValidator()]],
       confirmPassword: ['', [Validators.required]],
     },
@@ -63,9 +64,10 @@ export class ChangePasswordPage {
       return;
     }
 
+    const currentPassword = this.form.controls.currentPassword.value!;
     const newPassword = this.form.controls.newPassword.value!;
 
-    this.auth.changePassword('', newPassword).subscribe({
+    this.auth.changePassword(currentPassword, newPassword).subscribe({
       next: (res) => {
         if (res.success) {
           this.success = 'Hasło zostało zmienione. Przekierowuję...';
