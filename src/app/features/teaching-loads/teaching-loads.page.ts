@@ -21,12 +21,14 @@ import {
 import { ActivityOption, SubjectDto } from '../../core/services/subjects-api.service';
 import { SubjectPreferencesApiService, SubjectPreferenceResponse } from '../../core/services/subject-preferences-api.service';
 import { DezyderataService, Semestr } from '../../core/services/dezyderata.service';
+import { RoomsApiService, RoomDto } from '../../core/services/rooms-api.service';
 
 type TeachingLoadFilterState = {
   teacher_id?: number | null;
   subject_id?: number | null;
   activity_id?: number | null;
   semester_id?: number | null;
+  room_id?: number | null;
   field_of_study_id?: number | null;
   hours_min?: number | null;
   hours_max?: number | null;
@@ -46,6 +48,8 @@ const AUDIT_KEY_TRANSLATIONS: Record<string, string> = {
   semester_name: 'Nazwa semestru',
   field_of_study_id: 'Rocznik',
   field_of_study_label: 'Kierunek / rocznik',
+  room_id: 'Sala',
+  room_number: 'Numer sali',
   hours: 'Liczba godzin',
   id: 'ID',
 };
@@ -74,6 +78,7 @@ export class TeachingLoadsPage implements OnInit {
   activities: ActivityOption[] = [];
   semesters: Semestr[] = [];
   fieldOfStudies: FieldOfStudyOption[] = [];
+  rooms: RoomDto[] = [];
   
   // Subject preferences for filtering
   teacherPreferences: Map<number, Set<number>> = new Map();
@@ -85,6 +90,7 @@ export class TeachingLoadsPage implements OnInit {
     subject_id: null,
     activity_id: null,
     semester_id: null,
+    room_id: null,
     field_of_study_id: null,
     hours_min: null,
     hours_max: null,
@@ -106,6 +112,7 @@ export class TeachingLoadsPage implements OnInit {
     public auth: AuthService,
     private readonly router: Router,
     private readonly teachingLoadsApi: TeachingLoadsApiService,
+    private readonly roomsApi: RoomsApiService,
     private readonly dezyderataService: DezyderataService,
     private readonly auditApi: AuditApiService,
     private readonly subjectPreferencesApi: SubjectPreferencesApiService,
@@ -166,6 +173,7 @@ export class TeachingLoadsPage implements OnInit {
       subject_id: null,
       activity_id: null,
       semester_id: null,
+      room_id: null,
       field_of_study_id: null,
       hours_min: null,
       hours_max: null,
@@ -179,6 +187,7 @@ export class TeachingLoadsPage implements OnInit {
     const subjectId = this.toNumber(this.filters.subject_id);
     const activityId = this.toNumber(this.filters.activity_id);
     const semesterId = this.toNumber(this.filters.semester_id);
+    const roomId = this.toNumber(this.filters.room_id);
     const fieldOfStudyId = this.toNumber(this.filters.field_of_study_id);
     const hoursMin = this.toNumber(this.filters.hours_min);
     const hoursMax = this.toNumber(this.filters.hours_max);
@@ -198,6 +207,9 @@ export class TeachingLoadsPage implements OnInit {
         return false;
       }
       if (semesterId !== null && item.semester_id !== semesterId) {
+        return false;
+      }
+      if (roomId !== null && item.room_id !== roomId) {
         return false;
       }
       if (fieldOfStudyId !== null && item.field_of_study_id !== fieldOfStudyId) {
@@ -469,6 +481,22 @@ export class TeachingLoadsPage implements OnInit {
     return fallback?.name ?? `#${row.activity_id}`;
   }
 
+  getRoomLabel(row: TeachingLoadAssignmentDto): string {
+    if (row.room_number) {
+      return row.room_number;
+    }
+    if (!row.room_id) {
+      return '-';
+    }
+    const fallback = this.rooms.find((room) => room.id === row.room_id);
+    return fallback?.room_number ?? `#${row.room_id}`;
+  }
+
+  getRoomOptionLabel(room: RoomDto): string {
+    const typeSuffix = room.room_type ? ` (${room.room_type})` : '';
+    return `${room.room_number}${typeSuffix}`.trim();
+  }
+
   getSemesterLabel(row: TeachingLoadAssignmentDto): string {
     if (row.semester_name) {
       return row.semester_name;
@@ -699,6 +727,10 @@ export class TeachingLoadsPage implements OnInit {
       const sem = this.semesters.find((s) => s.id === id);
       if (sem?.nazwa) return sem.nazwa;
     }
+    if (key.includes('room_id')) {
+      const room = this.rooms.find((r) => r.id === id);
+      if (room?.room_number) return room.room_number;
+    }
     if (key.includes('field_of_study_id')) {
       const fos = this.fieldOfStudies.find((f) => f.id === id);
       if (fos) return `${fos.name} / ${fos.abbreviation} / ${fos.year}`;
@@ -766,6 +798,7 @@ export class TeachingLoadsPage implements OnInit {
       teachers: this.teachingLoadsApi.getTeachers(),
       subjects: this.teachingLoadsApi.getSubjects(),
       activities: this.teachingLoadsApi.getActivities(),
+      rooms: this.roomsApi.getRooms(),
       fieldOfStudies: this.teachingLoadsApi.getFieldOfStudies(),
       semesters: this.dezyderataService.getSemestry(),
       audit: this.auditApi.getLogs().pipe(
@@ -774,12 +807,13 @@ export class TeachingLoadsPage implements OnInit {
     })
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
-        next: ({ assignments, teachers, subjects, activities, fieldOfStudies, semesters, audit }) => {
+        next: ({ assignments, teachers, subjects, activities, rooms, fieldOfStudies, semesters, audit }) => {
           this.assignments = assignments;
           this.teachers = teachers;
           this.subjects = subjects;
           this.buildSubjectGroups();
           this.activities = activities;
+          this.rooms = rooms;
           this.fieldOfStudies = fieldOfStudies;
           this.semesters = semesters.items ?? [];
           // Prefill resolved labels so sorting is stable on first render
@@ -787,6 +821,7 @@ export class TeachingLoadsPage implements OnInit {
             ...a,
             subject_name: this.getSubjectLabel(a),
             activity_name: this.getActivityLabel(a),
+            room_number: a.room_number ?? (this.getRoomLabel(a) === '-' ? null : this.getRoomLabel(a)),
             field_of_study_label: this.getFieldOfStudyLabel(a),
           }));
           this.buildAuditIndex(audit.last_changes_viewed_at, audit.logs ?? []);
@@ -867,6 +902,9 @@ export class TeachingLoadsPage implements OnInit {
     if (normalizedDraft.semester_id !== normalizedOriginal.semester_id) {
       payload.semester_id = normalizedDraft.semester_id;
     }
+    if (normalizedDraft.room_id !== normalizedOriginal.room_id) {
+      payload.room_id = normalizedDraft.room_id ?? null;
+    }
     if (normalizedDraft.field_of_study_id !== normalizedOriginal.field_of_study_id) {
       payload.field_of_study_id = normalizedDraft.field_of_study_id;
     }
@@ -890,6 +928,9 @@ export class TeachingLoadsPage implements OnInit {
     if (payload.semester_id !== undefined && payload.semester_id <= 0) {
       return 'Wybierz poprawny semestr.';
     }
+    if (payload.room_id != null && payload.room_id <= 0) {
+      return 'Wybierz poprawną salę.';
+    }
     if (payload.field_of_study_id != null && payload.field_of_study_id <= 0) {
       return 'Wybierz poprawny rocznik.';
     }
@@ -908,6 +949,7 @@ export class TeachingLoadsPage implements OnInit {
       activity_id: Number(draft.activity_id),
       semester_id: Number(draft.semester_id),
       field_of_study_id: Number(draft.field_of_study_id),
+      room_id: draft.room_id != null ? Number(draft.room_id) : null,
       hours: Number(draft.hours),
     };
   }
@@ -924,6 +966,9 @@ export class TeachingLoadsPage implements OnInit {
     }
     if (!payload.semester_id || payload.semester_id <= 0) {
       return 'Wybierz poprawny semestr.';
+    }
+    if (payload.room_id != null && payload.room_id <= 0) {
+      return 'Wybierz poprawną salę.';
     }
     if (!payload.field_of_study_id || payload.field_of_study_id <= 0) {
       return 'Wybierz poprawny rocznik.';
@@ -942,6 +987,7 @@ export class TeachingLoadsPage implements OnInit {
       subject_id: Number(this.getRepresentativeSubjectId(row.subject_id) ?? row.subject_id),
       activity_id: Number(row.activity_id),
       semester_id: Number(row.semester_id),
+      room_id: row.room_id ? Number(row.room_id) : null,
       field_of_study_id: row.field_of_study_id ? Number(row.field_of_study_id) : null,
       hours: Number(row.hours),
     };
@@ -1044,6 +1090,8 @@ export class TeachingLoadsPage implements OnInit {
       semester_name: semester?.nazwa ?? null,
       field_of_study_id: this.fieldOfStudies[0]?.id ?? 0,
       field_of_study_label: this.fieldOfStudies[0]?.label ?? null,
+      room_id: null,
+      room_number: null,
       hours: 1,
     };
   }
@@ -1075,6 +1123,7 @@ export class TeachingLoadsPage implements OnInit {
       this.getTeacherLabel(item),
       this.getSubjectLabel(item),
       this.getActivityLabel(item),
+      this.getRoomLabel(item),
       this.getSemesterLabel(item),
       this.getFieldOfStudyLabel(item),
       String(item.hours),
@@ -1087,6 +1136,7 @@ export class TeachingLoadsPage implements OnInit {
       ...a,
       subject_name: this.getSubjectLabel(a),
       activity_name: this.getActivityLabel(a),
+      room_number: a.room_number ?? (this.getRoomLabel(a) === '-' ? null : this.getRoomLabel(a)),
       field_of_study_label: this.getFieldOfStudyLabel(a),
     };
   }

@@ -47,7 +47,7 @@
         </ion-button>
         <ion-searchbar
           class="searchbar"
-          placeholder="Szukaj według dydaktyka, przedmiotu, typu zajęć..."
+          placeholder="Szukaj według dydaktyka, przedmiotu, typu zajęć, sali..."
           [(ngModel)]="searchQuery"
           (ionInput)="applyFilters()">
         </ion-searchbar>
@@ -76,6 +76,7 @@
               <th>Dydaktyk</th>
               <th>Przedmiot</th>
               <th>Typ zajęć</th>
+              <th class="room-col">Sala</th>
               <th>Kierunek / rocznik</th>
               <th class="hours-col">Godziny</th>
               <th>Semestr</th>
@@ -116,6 +117,18 @@
                   <ion-select-option [value]="null">Wszystkie</ion-select-option>
                   <ion-select-option *ngFor="let activity of activities" [value]="activity.id">
                     {{ activity.name }}
+                  </ion-select-option>
+                </ion-select>
+              </th>
+              <th>
+                <ion-select
+                  interface="popover"
+                  class="filter-select"
+                  [(ngModel)]="filters.room_id"
+                  (ionChange)="applyFilters()">
+                  <ion-select-option [value]="null">Wszystkie</ion-select-option>
+                  <ion-select-option *ngFor="let room of rooms" [value]="room.id">
+                    {{ getRoomOptionLabel(room) }}
                   </ion-select-option>
                 </ion-select>
               </th>
@@ -198,6 +211,17 @@
                   (ionChange)="onNewActivityChange()">
                   <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(newRowDraft.subject_id, newRowDraft.teacher_id)" [value]="activity.id">
                     {{ activity.name }}
+                  </ion-select-option>
+                </ion-select>
+              </td>
+              <td class="cell">
+                <ion-select
+                  interface="popover"
+                  class="cell-select"
+                  [(ngModel)]="newRowDraft.room_id">
+                  <ion-select-option [value]="null">Brak</ion-select-option>
+                  <ion-select-option *ngFor="let room of rooms" [value]="room.id">
+                    {{ getRoomOptionLabel(room) }}
                   </ion-select-option>
                 </ion-select>
               </td>
@@ -299,6 +323,23 @@
                   </ng-template>
                 </td>
                 <td class="cell editable" (click)="startEditing(row, $event)">
+                  <ng-container *ngIf="editingRowId === row.id && draftRow; else roomDisplay">
+                    <ion-select
+                      interface="popover"
+                      class="cell-select"
+                      [(ngModel)]="draftRow.room_id"
+                      (click)="$event.stopPropagation()">
+                      <ion-select-option [value]="null">Brak</ion-select-option>
+                      <ion-select-option *ngFor="let room of rooms" [value]="room.id">
+                        {{ getRoomOptionLabel(room) }}
+                      </ion-select-option>
+                    </ion-select>
+                  </ng-container>
+                  <ng-template #roomDisplay>
+                    <div class="cell-display">{{ getRoomLabel(row) }}</div>
+                  </ng-template>
+                </td>
+                <td class="cell editable" (click)="startEditing(row, $event)">
                   <ng-container *ngIf="editingRowId === row.id && draftRow; else fieldOfStudyDisplay">
                     <ion-select
                       interface="popover"
@@ -376,7 +417,7 @@
                 </td>
               </tr>
               <tr *ngIf="historyOpenRowId === row.id" class="history-row">
-                <td colspan="8">
+                <td colspan="9">
                   <div class="history-panel">
                     <ng-container *ngIf="getHistoryForRow(row.id).length > 0; else emptyHistory">
                       <div class="history-entry" *ngFor="let log of getHistoryForRow(row.id)">

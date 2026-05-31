@@ -21,6 +21,8 @@ export interface TeachingLoadAssignmentDto {
   semester_name: string | null;
   field_of_study_id?: number | null;
   field_of_study_label?: string | null;
+  room_id?: number | null;
+  room_number?: string | null;
   group_id?: number | null;
   group_label?: string | null;
   hours: number;
@@ -33,6 +35,7 @@ export interface TeachingLoadAssignmentPatchPayload {
   semester_id?: number;
   hours?: number;
   field_of_study_id?: number | null;
+  room_id?: number | null;
 }
 
 export interface TeachingLoadAssignmentCreatePayload {
@@ -42,6 +45,7 @@ export interface TeachingLoadAssignmentCreatePayload {
   semester_id: number;
   hours: number;
   field_of_study_id: number | null;
+  room_id?: number | null;
 }
 
 export interface FieldOfStudyOption {
@@ -57,6 +61,7 @@ export interface TeachingLoadFilters {
   subject_id?: number;
   activity_id?: number;
   semester_id?: number;
+  room_id?: number;
   hours?: number;
   hours_min?: number;
   hours_max?: number;
@@ -187,6 +192,8 @@ export class TeachingLoadsApiService {
       semester_name: item.semester_name ? String(item.semester_name) : null,
       field_of_study_id: typeof item.field_of_study_id === 'number' ? Number(item.field_of_study_id) : null,
       field_of_study_label: item.field_of_study_label ? String(item.field_of_study_label) : null,
+      room_id: typeof item.room_id === 'number' ? Number(item.room_id) : null,
+      room_number: item.room_number ? String(item.room_number) : null,
       group_id: typeof item.group_id === 'number' ? Number(item.group_id) : null,
       group_label: item.group_label ? String(item.group_label) : null,
       hours: Number(item.hours),
@@ -212,6 +219,9 @@ export class TeachingLoadsApiService {
         return false;
       }
       if (filters.semester_id !== undefined && item.semester_id !== filters.semester_id) {
+        return false;
+      }
+      if (filters.room_id !== undefined && item.room_id !== filters.room_id) {
         return false;
       }
       if (filters.hours !== undefined && item.hours !== filters.hours) {
