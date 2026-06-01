@@ -19,11 +19,13 @@ import {
 } from '../../core/services/teaching-loads-api.service';
 import { ActivityOption, SubjectDto } from '../../core/services/subjects-api.service';
 import { DezyderataService, Semestr } from '../../core/services/dezyderata.service';
+import { RoomDto, RoomsApiService } from '../../core/services/rooms-api.service';
 
 type TeachingLoadFilterState = {
   teacher_id?: number | null;
   subject_id?: number | null;
   activity_id?: number | null;
+  room_id?: number | null;
   semester_id?: number | null;
   hours_min?: number | null;
   hours_max?: number | null;
@@ -51,11 +53,13 @@ export class TeachingLoadsPage implements OnInit {
   subjects: SubjectDto[] = [];
   activities: ActivityOption[] = [];
   semesters: Semestr[] = [];
+  rooms: RoomDto[] = [];
 
   filters: TeachingLoadFilterState = {
     teacher_id: null,
     subject_id: null,
     activity_id: null,
+    room_id: null,
     semester_id: null,
     hours_min: null,
     hours_max: null,
@@ -82,6 +86,7 @@ export class TeachingLoadsPage implements OnInit {
     teacher: ['teacher', 'teacher_id', 'teacher_first_name', 'teacher_last_name', 'teacher_title'],
     subject: ['subject_id', 'subject_name'],
     activity: ['activity_id', 'activity_name'],
+    room: ['room_id', 'room_number'],
     semester: ['semester_id', 'semester_name'],
     hours: ['hours'],
   };
@@ -91,6 +96,7 @@ export class TeachingLoadsPage implements OnInit {
     private readonly router: Router,
     private readonly teachingLoadsApi: TeachingLoadsApiService,
     private readonly dezyderataService: DezyderataService,
+    private readonly roomsApi: RoomsApiService,
     private readonly auditApi: AuditApiService,
   ) {
     addIcons({ alertCircleOutline, checkmarkCircle, closeCircle, funnelOutline, pencilOutline, timeOutline });
@@ -147,6 +153,7 @@ export class TeachingLoadsPage implements OnInit {
       teacher_id: null,
       subject_id: null,
       activity_id: null,
+      room_id: null,
       semester_id: null,
       hours_min: null,
       hours_max: null,
@@ -159,6 +166,7 @@ export class TeachingLoadsPage implements OnInit {
     const teacherId = this.toNumber(this.filters.teacher_id);
     const subjectId = this.toNumber(this.filters.subject_id);
     const activityId = this.toNumber(this.filters.activity_id);
+    const roomId = this.toNumber(this.filters.room_id);
     const semesterId = this.toNumber(this.filters.semester_id);
     const hoursMin = this.toNumber(this.filters.hours_min);
     const hoursMax = this.toNumber(this.filters.hours_max);
@@ -168,6 +176,7 @@ export class TeachingLoadsPage implements OnInit {
       if (teacherId !== null && item.teacher_id !== teacherId) { return false; }
       if (subjectId !== null && item.subject_id !== subjectId) { return false; }
       if (activityId !== null && item.activity_id !== activityId) { return false; }
+      if (roomId !== null && item.room_id !== roomId) { return false; }
       if (semesterId !== null && item.semester_id !== semesterId) { return false; }
       if (hoursMin !== null && item.hours < hoursMin) { return false; }
       if (hoursMax !== null && item.hours > hoursMax) { return false; }
@@ -373,6 +382,7 @@ export class TeachingLoadsPage implements OnInit {
       teacher: 'Dydaktyk',
       subject: 'Przedmiot',
       activity: 'Typ zajęć',
+      room: 'Sala',
       semester: 'Semestr',
       hours: 'Godziny',
     };
@@ -481,6 +491,38 @@ export class TeachingLoadsPage implements OnInit {
     return fallback?.nazwa ?? `#${row.semester_id}`;
   }
 
+  private resolveRoomForRow(row: TeachingLoadAssignmentDto): RoomDto | null {
+    if (typeof row.room_id === 'number') {
+      return this.rooms.find((room) => room.id === row.room_id) ?? null;
+    }
+    if (row.room_number) {
+      return this.rooms.find((room) => room.room_number === row.room_number) ?? null;
+    }
+    return null;
+  }
+
+  getRoomLabel(row: TeachingLoadAssignmentDto): string {
+    const room = this.resolveRoomForRow(row);
+    const number = row.room_number || room?.room_number || null;
+    if (number) {
+      return number;
+    }
+    if (typeof row.room_id === 'number') {
+      return `#${row.room_id}`;
+    }
+    return '—';
+  }
+
+  getRoomDepartmentLabel(row: TeachingLoadAssignmentDto): string | null {
+    const room = this.resolveRoomForRow(row);
+    const departments = room?.department_names ?? [];
+    return departments.length > 0 ? departments.join(', ') : null;
+  }
+
+  getRoomOptionLabel(room: RoomDto): string {
+    return room.room_number || `#${room.id}`;
+  }
+
   getTeacherOptionLabel(teacher: TeacherOption): string {
     return [teacher.title || teacher.titles[0], `${teacher.first_name} ${teacher.last_name}`.trim()]
       .filter(Boolean)
@@ -580,6 +622,7 @@ export class TeachingLoadsPage implements OnInit {
       teachers: this.teachingLoadsApi.getTeachers(),
       subjects: this.teachingLoadsApi.getSubjects(),
       activities: this.teachingLoadsApi.getActivities(),
+      rooms: this.roomsApi.getRooms(),
       semesters: this.dezyderataService.getSemestry(),
       audit: this.auditApi.getLogs().pipe(
         catchError(() => of({ last_changes_viewed_at: null, logs: [] })),
@@ -587,12 +630,13 @@ export class TeachingLoadsPage implements OnInit {
     })
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
-        next: ({ assignments, teachers, subjects, activities, semesters, audit }) => {
+        next: ({ assignments, teachers, subjects, activities, rooms, semesters, audit }) => {
           this.assignments = assignments;
           this.filteredAssignments = assignments;
           this.teachers = teachers;
           this.subjects = subjects;
           this.activities = activities;
+          this.rooms = rooms;
           this.semesters = semesters.items ?? [];
           this.buildAuditIndex(audit.last_changes_viewed_at, audit.logs ?? [], true);
           this.applyFilters();
@@ -633,6 +677,7 @@ export class TeachingLoadsPage implements OnInit {
       teacher_last_name: 'teacher', teacher_title: 'teacher',
       subject_id: 'subject', subject_name: 'subject',
       activity_id: 'activity', activity_name: 'activity',
+      room_id: 'room', room_number: 'room',
       semester_id: 'semester', semester_name: 'semester',
       hours: 'hours',
     };
@@ -666,7 +711,7 @@ export class TeachingLoadsPage implements OnInit {
               }
             });
           } else if (log.action === 'CREATE' || log.action === 'DELETE') {
-            ['teacher', 'subject', 'activity', 'hours', 'semester'].forEach((g) =>
+            ['teacher', 'subject', 'activity', 'room', 'hours', 'semester'].forEach((g) =>
               this.changedFieldGroupsByAssignment[assignmentId].add(g),
             );
           }
@@ -697,6 +742,9 @@ export class TeachingLoadsPage implements OnInit {
     if (normalizedDraft.activity_id !== normalizedOriginal.activity_id) {
       payload.activity_id = normalizedDraft.activity_id;
     }
+    if (normalizedDraft.room_id !== normalizedOriginal.room_id) {
+      payload.room_id = normalizedDraft.room_id;
+    }
     if (normalizedDraft.semester_id !== normalizedOriginal.semester_id) {
       payload.semester_id = normalizedDraft.semester_id;
     }
@@ -717,6 +765,9 @@ export class TeachingLoadsPage implements OnInit {
     if (payload.activity_id !== undefined && payload.activity_id <= 0) {
       return 'Wybierz poprawny typ zajęć.';
     }
+    if (payload.room_id !== undefined && payload.room_id !== null && payload.room_id <= 0) {
+      return 'Wybierz poprawną salę.';
+    }
     if (payload.semester_id !== undefined && payload.semester_id <= 0) {
       return 'Wybierz poprawny semestr.';
     }
@@ -732,6 +783,7 @@ export class TeachingLoadsPage implements OnInit {
       teacher_id: Number(draft.teacher_id),
       subject_id: Number(draft.subject_id),
       activity_id: Number(draft.activity_id),
+      room_id: draft.room_id ?? null,
       semester_id: Number(draft.semester_id),
       hours: Number(draft.hours),
       field_of_study_id: draft.field_of_study_id ?? null,
@@ -747,6 +799,9 @@ export class TeachingLoadsPage implements OnInit {
     }
     if (!payload.activity_id || payload.activity_id <= 0) {
       return 'Wybierz poprawny typ zajęć.';
+    }
+    if (payload.room_id !== null && payload.room_id !== undefined && payload.room_id <= 0) {
+      return 'Wybierz poprawną salę.';
     }
     if (!payload.semester_id || payload.semester_id <= 0) {
       return 'Wybierz poprawny semestr.';
@@ -764,6 +819,7 @@ export class TeachingLoadsPage implements OnInit {
       teacher_id: Number(row.teacher_id),
       subject_id: Number(row.subject_id),
       activity_id: Number(row.activity_id),
+      room_id: row.room_id === null || row.room_id === undefined ? null : Number(row.room_id),
       semester_id: Number(row.semester_id),
       hours: Number(row.hours),
     };
@@ -780,6 +836,8 @@ export class TeachingLoadsPage implements OnInit {
       subject_name: 'Przedmiot',
       activity_id: 'Typ zajęć',
       activity_name: 'Typ zajęć',
+      room_id: 'Sala',
+      room_number: 'Numer sali',
       semester_id: 'Semestr',
       semester_name: 'Semestr',
       hours: 'Godziny',
@@ -854,6 +912,8 @@ export class TeachingLoadsPage implements OnInit {
       subject_name: subject?.name ?? null,
       activity_id: activity?.id ?? 0,
       activity_name: activity?.name ?? null,
+      room_id: null,
+      room_number: null,
       semester_id: semester?.id ?? 0,
       semester_name: semester?.nazwa ?? null,
       hours: 1,
@@ -883,13 +943,17 @@ export class TeachingLoadsPage implements OnInit {
   }
 
   private buildRowSearchText(item: TeachingLoadAssignmentDto): string {
+    const roomLabel = this.getRoomLabel(item);
+    const roomDepartment = this.getRoomDepartmentLabel(item);
     const parts = [
       this.getTeacherLabel(item),
       this.getSubjectLabel(item),
       this.getActivityLabel(item),
+      roomLabel !== '—' ? roomLabel : '',
+      roomDepartment ?? '',
       this.getSemesterLabel(item),
       String(item.hours),
-    ];
+    ].filter(Boolean);
     return this.normalizeSearch(parts.join(' '));
   }
 
@@ -905,6 +969,7 @@ export class TeachingLoadsPage implements OnInit {
     const hasTeacherNames = teacherNameKeys.some((k) => allKeys.includes(k));
     const hasSubjectName = allKeys.includes('subject_name');
     const hasActivityName = allKeys.includes('activity_name');
+    const hasRoomNumber = allKeys.includes('room_number');
     const hasSemesterName = allKeys.includes('semester_name');
 
     // Keys to skip — replaced by human-readable alternatives
@@ -915,7 +980,9 @@ export class TeachingLoadsPage implements OnInit {
     }
     if (hasSubjectName) { skipKeys.add('subject_id'); }
     if (hasActivityName) { skipKeys.add('activity_id'); }
+    if (hasRoomNumber) { skipKeys.add('room_id'); }
     if (hasSemesterName) { skipKeys.add('semester_id'); }
+    if (hasRoomNumber) { skipKeys.add('room_number'); }
 
     const result: Array<{ label: string; oldVal: string; newVal: string }> = [];
 
@@ -925,6 +992,14 @@ export class TeachingLoadsPage implements OnInit {
       const newName = this.buildTeacherFullName(newVals);
       if (oldName !== newName) {
         result.push({ label: 'Dydaktyk', oldVal: oldName, newVal: newName });
+      }
+    }
+
+    if (hasRoomNumber) {
+      const oldRoom = this.resolveDisplayValue('room_number', oldVals?.['room_number'] ?? null);
+      const newRoom = this.resolveDisplayValue('room_number', newVals?.['room_number'] ?? null);
+      if (oldRoom !== newRoom) {
+        result.push({ label: 'Sala', oldVal: oldRoom, newVal: newRoom });
       }
     }
 
@@ -969,6 +1044,12 @@ export class TeachingLoadsPage implements OnInit {
     }
     if (key === 'activity_id') {
       return this.activities.find((x) => x.id === Number(value))?.name ?? String(value);
+    }
+    if (key === 'room_id') {
+      return this.rooms.find((x) => x.id === Number(value))?.room_number ?? String(value);
+    }
+    if (key === 'room_number') {
+      return String(value);
     }
     if (key === 'semester_id') {
       return this.semesters.find((x) => x.id === Number(value))?.nazwa ?? String(value);

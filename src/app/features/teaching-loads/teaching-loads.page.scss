@@ -131,7 +131,7 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  min-width: 920px;
+  min-width: 1040px;
 }
 
 .excel-table th,
@@ -190,12 +190,31 @@
   min-height: 32px;
 }
 
+.room-display {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.room-number {
+  font-weight: 600;
+}
+
+.room-department {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
 .editable {
   cursor: pointer;
 }
 
 .hours-col {
   width: 120px;
+}
+
+.room-col {
+  width: 140px;
 }
 
 .hours-cell {

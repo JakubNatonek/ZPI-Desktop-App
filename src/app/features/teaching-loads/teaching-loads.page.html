@@ -48,7 +48,7 @@
         </ion-button>
         <div class="search-field">
           <label class="search-field-label">Filtrowanie</label>
-          <ion-searchbar class="searchbar" placeholder="Szukaj według dydaktyka, przedmiotu, typu zajęć..."
+          <ion-searchbar class="searchbar" placeholder="Szukaj według dydaktyka, przedmiotu, typu zajęć, sali..."
             [(ngModel)]="searchQuery" (ionInput)="applyFilters()">
           </ion-searchbar>
         </div>
@@ -77,6 +77,7 @@
               <th>Dydaktyk</th>
               <th>Przedmiot</th>
               <th>Typ zajęć</th>
+              <th class="room-col">Sala</th>
               <th class="hours-col">Godziny</th>
               <th>Semestr</th>
               <th class="history-col">Historia</th>
@@ -107,6 +108,15 @@
                   <ion-select-option [value]="null">Wszystkie</ion-select-option>
                   <ion-select-option *ngFor="let activity of activities" [value]="activity.id">
                     {{ activity.name }}
+                  </ion-select-option>
+                </ion-select>
+              </th>
+              <th>
+                <ion-select interface="popover" class="filter-select" [(ngModel)]="filters.room_id"
+                  (ionChange)="applyFilters()">
+                  <ion-select-option [value]="null">Wszystkie</ion-select-option>
+                  <ion-select-option *ngFor="let room of rooms" [value]="room.id">
+                    {{ getRoomOptionLabel(room) }}
                   </ion-select-option>
                 </ion-select>
               </th>
@@ -153,6 +163,14 @@
                   <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(newRowDraft.subject_id)"
                     [value]="activity.id">
                     {{ activity.name }}
+                  </ion-select-option>
+                </ion-select>
+              </td>
+              <td class="cell">
+                <ion-select interface="popover" class="cell-select" [(ngModel)]="newRowDraft.room_id">
+                  <ion-select-option [value]="null">Brak</ion-select-option>
+                  <ion-select-option *ngFor="let room of rooms" [value]="room.id">
+                    {{ getRoomOptionLabel(room) }}
                   </ion-select-option>
                 </ion-select>
               </td>
@@ -227,6 +245,25 @@
                   </ng-container>
                   <ng-template #activityDisplay>
                     <div class="cell-display">{{ getActivityLabel(row) }}</div>
+                  </ng-template>
+                </td>
+                <td class="cell editable" [class.is-field-changed]="isFieldChanged(row.id, 'room')"
+                  [class.is-cell-active]="historyModalRowId === row.id && historyModalFieldGroup === 'room'"
+                  (click)="onCellClick(row, 'room', $event)">
+                  <ng-container *ngIf="editingRowId === row.id && draftRow; else roomDisplay">
+                    <ion-select interface="popover" class="cell-select" [(ngModel)]="draftRow.room_id"
+                      (click)="$event.stopPropagation()">
+                      <ion-select-option [value]="null">Brak</ion-select-option>
+                      <ion-select-option *ngFor="let room of rooms" [value]="room.id">
+                        {{ getRoomOptionLabel(room) }}
+                      </ion-select-option>
+                    </ion-select>
+                  </ng-container>
+                  <ng-template #roomDisplay>
+                    <div class="cell-display room-display">
+                      <span class="room-number">{{ getRoomLabel(row) }}</span>
+                      <span class="room-department" *ngIf="getRoomDepartmentLabel(row) as dept">{{ dept }}</span>
+                    </div>
                   </ng-template>
                 </td>
                 <td class="cell editable hours-cell" [class.is-field-changed]="isFieldChanged(row.id, 'hours')"
