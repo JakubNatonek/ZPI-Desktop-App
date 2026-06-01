@@ -1,22 +1,5 @@
-:host {
+﻿:host {
   display: block;
-}
-
-ion-header ion-toolbar {
-  --background: #1a3a5c;
-  --color: #ffffff;
-  --border-color: transparent;
-
-  ion-title {
-    color: #ffffff;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-  }
-}
-
-.menu-nav-btn {
-  --color: #ffffff;
-  color: #ffffff;
 }
 
 .role-chip {
@@ -30,17 +13,6 @@ ion-header ion-toolbar {
   font-size: 0.85rem;
   font-weight: 500;
   margin: 0 6px;
-  white-space: nowrap;
-}
-
-.app-user-avatar {
-  cursor: pointer;
-  width: 32px;
-  height: 32px;
-}
-
-.logout-item {
-  --color: #c0392b;
 }
 
 .teaching-loads-content {
@@ -74,7 +46,7 @@ ion-header ion-toolbar {
 .hero h1 {
   margin: 4px 0 6px;
   font-size: clamp(1.55rem, 2.8vw, 2.2rem);
-  color: #111827;
+  color: #1c2839;
 }
 
 .hero p {
@@ -103,18 +75,39 @@ ion-header ion-toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  align-items: flex-end;
   margin-bottom: 10px;
 }
 
-.searchbar {
+.search-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   flex: 1;
   min-width: 220px;
-  max-width: 360px;
+  max-width: 380px;
+}
+
+.search-field-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  padding-left: 4px;
+}
+
+.searchbar {
+  width: 100%;
+  margin: 0;
+  padding: 0;
   --background: rgba(255, 255, 255, 0.9);
-  --border-radius: 12px;
+  --border-radius: 10px;
   --box-shadow: none;
   --placeholder-color: #94a3b8;
-  --color: #0f172a;
+  --color: #1c2839;
+  height: 40px;
+  min-height: 40px;
 }
 
 .list-message {
@@ -138,7 +131,7 @@ ion-header ion-toolbar {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  min-width: 1040px;
+  min-width: 920px;
 }
 
 .excel-table th,
@@ -202,11 +195,7 @@ ion-header ion-toolbar {
 }
 
 .hours-col {
-  width: 90px;
-}
-
-.room-col {
-  width: 140px;
+  width: 120px;
 }
 
 .hours-cell {
@@ -222,7 +211,7 @@ ion-header ion-toolbar {
   --padding-bottom: 6px;
   --border-radius: 10px;
   --background: rgba(var(--ion-color-step-50-rgb), 0.9);
-  --color: var(--ion-text-color, #111827);
+  --color: var(--ion-text-color, #1c2839);
 }
 
 .cell-input {
@@ -246,16 +235,16 @@ ion-header ion-toolbar {
   background: rgba(255, 255, 255, 0.9);
   padding: 6px 8px;
   font-size: 0.8rem;
-  color: #111827;
+  color: #1c2839;
 }
 
 .history-col {
-  width: 85px;
+  width: 110px;
   text-align: center;
 }
 
 .actions-col {
-  width: 74px;
+  width: 84px;
 }
 
 .history-cell {
@@ -344,88 +333,333 @@ ion-header ion-toolbar {
   color: var(--ion-color-danger-shade);
 }
 
+/* ── Yellow highlight for cells changed since last login ── */
+.excel-table td.is-field-changed {
+  background: rgba(253, 224, 71, 0.35) !important;
+  cursor: pointer;
+}
+
+.excel-table td.is-field-changed:hover {
+  background: rgba(253, 224, 71, 0.55) !important;
+}
+
+.excel-table td.is-field-changed::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 1.5px solid rgba(202, 138, 4, 0.5);
+  border-radius: 2px;
+}
+
+/* ── Active (currently viewed in modal) cell ── */
+.excel-table td.is-cell-active {
+  background: rgba(99, 102, 241, 0.15) !important;
+  cursor: pointer;
+}
+
+.excel-table td.is-cell-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 2px solid rgba(99, 102, 241, 0.7);
+  border-radius: 2px;
+}
+
+.excel-table td.is-field-changed.is-cell-active {
+  background: rgba(245, 158, 11, 0.5) !important;
+}
+
+/* ── Diff modal ── */
+.history-diff-modal {
+  --width: min(560px, 96vw);
+  --height: min(640px, 90vh);
+  --border-radius: 20px;
+}
+
+.diff-modal-content {
+  --padding-start: 20px;
+  --padding-end: 20px;
+  --padding-top: 16px;
+  --padding-bottom: 16px;
+}
+
+.diff-modal-subtitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  margin: 0 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.diff-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 20px;
+}
+
+.diff-entry {
+  border-radius: 0;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-bottom: none;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 12px 14px;
+  position: relative;
+  margin-left: 18px;
+
+  /* vertical chain line */
+  &::before {
+    content: '';
+    position: absolute;
+    left: -18px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: rgba(148, 163, 184, 0.35);
+  }
+
+  /* dot on the chain */
+  &::after {
+    content: '';
+    position: absolute;
+    left: -23px;
+    top: 18px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #94a3b8;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.4);
+  }
+
+  &.diff-entry--last {
+    border-radius: 0 0 10px 10px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+
+    &::before {
+      bottom: 50%;
+    }
+  }
+
+  &:first-child {
+    border-radius: 10px 10px 0 0;
+  }
+
+  &:only-child {
+    border-radius: 10px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+
+    &::before {
+      display: none;
+    }
+  }
+
+  &.diff-entry--create::after {
+    background: var(--ion-color-success);
+  }
+
+  &.diff-entry--update::after {
+    background: var(--ion-color-warning);
+  }
+
+  &.diff-entry--delete::after {
+    background: var(--ion-color-danger);
+  }
+}
+
+.diff-entry-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.diff-action-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(15, 23, 42, 0.08);
+  color: #1f2937;
+}
+
+.diff-action-badge.is-create {
+  background: rgba(var(--ion-color-success-rgb), 0.16);
+  color: var(--ion-color-success-shade);
+}
+
+.diff-action-badge.is-update {
+  background: rgba(var(--ion-color-warning-rgb), 0.18);
+  color: var(--ion-color-warning-shade);
+}
+
+.diff-action-badge.is-delete {
+  background: rgba(var(--ion-color-danger-rgb), 0.16);
+  color: var(--ion-color-danger-shade);
+}
+
+.diff-author {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1c2839;
+}
+
+.diff-time {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-left: auto;
+}
+
+.diff-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.diff-field-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+
+.diff-field-label {
+  min-width: 110px;
+  font-weight: 600;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.diff-change {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.diff-value-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.diff-value-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  min-width: 52px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.diff-old {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.diff-arrow {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.diff-new {
+  color: #16a34a;
+  font-weight: 600;
+  background: rgba(22, 163, 74, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.diff-empty {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.diff-no-detail {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 4px 0 0;
+  font-style: italic;
+}
+
+.diff-modal-footer {
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* ── Field filter indicator in modal ── */
+.diff-field-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: rgba(253, 224, 71, 0.2);
+  border: 1px solid rgba(202, 138, 4, 0.3);
+  font-size: 0.82rem;
+}
+
+.diff-field-filter-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #92400e;
+}
+
+.filter-icon {
+  font-size: 0.78rem;
+  color: #b45309;
+}
+
+.diff-field-filter-clear {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.76rem;
+  color: #64748b;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(148, 163, 184, 0.2);
+  }
+
+  ion-icon {
+    font-size: 0.9rem;
+  }
+}
+
+/* ── Row edit (pencil) button ── */
+.btn-row-edit {
+  --color: #94a3b8;
+
+  &:hover {
+    --color: #0f766e;
+  }
+}
+
 .history-summary {
   margin-top: 6px;
   font-size: 0.85rem;
   color: #1f2937;
-}
-
-/* Szczegółowa tabela diff w historii */
-.history-diff {
-  margin-top: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.diff-header-row {
-  font-weight: 700;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #475569;
-  background: rgba(241, 245, 249, 0.8);
-}
-
-.diff-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 24px 1fr;
-  gap: 4px;
-  padding: 4px 10px;
-  font-size: 0.78rem;
-  align-items: center;
-}
-
-.diff-row:not(:last-child) {
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-}
-
-.diff-field {
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.diff-old {
-  color: #b91c1c;
-  font-size: 0.75rem;
-}
-
-.diff-arrow {
-  text-align: center;
-  color: #94a3b8;
-}
-
-.diff-new {
-  color: #15803d;
-  font-weight: 600;
-  font-size: 0.75rem;
-}
-
-:host-context(html.ion-palette-dark) {
-  .diff-header-row {
-    color: #cbd5e1;
-    background: rgba(30, 41, 59, 0.8);
-  }
-
-  .diff-field {
-    color: #e2e8f0;
-  }
-
-  .diff-old {
-    color: #fca5a5;
-  }
-
-  .diff-new {
-    color: #86efac;
-  }
-
-  .diff-row {
-    border-color: rgba(148, 163, 184, 0.2);
-  }
-
-  .history-diff {
-    border-color: rgba(148, 163, 184, 0.3);
-  }
 }
 
 .history-empty {
@@ -454,36 +688,36 @@ ion-header ion-toolbar {
 
   .hero h1,
   .hero p {
-    color: #e2e8f0;
+    color: #e8eef5;
   }
 
   .form-shell {
-    background: rgba(2, 6, 23, 0.82);
+    background: rgba(37, 52, 71, 0.92);
     border-color: rgba(148, 163, 184, 0.3);
   }
 
   .table-wrapper {
-    border-color: rgba(148, 163, 184, 0.35);
+    border-color: rgba(148, 163, 184, 0.3);
     background:
-      linear-gradient(0deg, rgba(2, 6, 23, 0.5), rgba(2, 6, 23, 0.5)),
+      linear-gradient(0deg, rgba(37, 52, 71, 0.5), rgba(37, 52, 71, 0.5)),
       repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.12) 0, rgba(148, 163, 184, 0.12) 1px, transparent 1px, transparent 140px),
       repeating-linear-gradient(180deg, rgba(148, 163, 184, 0.12) 0, rgba(148, 163, 184, 0.12) 1px, transparent 1px, transparent 56px);
   }
 
   .excel-table th,
   .excel-table td {
-    background: rgba(15, 23, 42, 0.82);
-    border-color: rgba(148, 163, 184, 0.35);
-    color: #e2e8f0;
+    background: rgba(37, 52, 71, 0.88);
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #e8eef5;
   }
 
   .excel-table thead th {
-    background: rgba(30, 41, 59, 0.95);
+    background: rgba(26, 44, 64, 0.97);
     color: #cbd5e1;
   }
 
   .excel-table thead .filters-row th {
-    background: rgba(15, 23, 42, 0.92);
+    background: rgba(30, 48, 70, 0.97);
   }
 
   .excel-table tbody tr:hover td {
@@ -493,18 +727,44 @@ ion-header ion-toolbar {
   .filter-input {
     background: rgba(15, 23, 42, 0.9);
     border-color: rgba(148, 163, 184, 0.45);
-    color: #e2e8f0;
+    color: #e8eef5;
+  }
+
+  .search-field-label {
+    color: #94a3b8;
+  }
+
+  .searchbar {
+    --background: rgba(37, 52, 71, 0.95);
+    --placeholder-color: #64748b;
+    --color: #e8eef5;
+  }
+
+  .btn-add-assignment {
+    --background: #1e4d82;
+    --background-activated: #163b66;
+    --background-hover: #163b66;
+    --color: #ffffff;
+  }
+
+  .btn-reload {
+    --border-color: rgba(148, 163, 184, 0.45);
+    --color: #e8eef5;
+  }
+
+  .btn-clear-filters {
+    --color: #94a3b8;
   }
 
   .searchbar {
     --background: rgba(15, 23, 42, 0.9);
     --placeholder-color: #94a3b8;
-    --color: #e2e8f0;
+    --color: #e8eef5;
   }
 
   .history-count {
     background: rgba(148, 163, 184, 0.2);
-    color: #e2e8f0;
+    color: #e8eef5;
   }
 
   .history-row td {
@@ -523,6 +783,133 @@ ion-header ion-toolbar {
 
   .empty-state p {
     color: #cbd5e1;
+  }
+
+  /* ── Diff modal dark mode ── */
+  .history-diff-modal {
+    --background: #253447;
+  }
+
+  .diff-modal-content {
+    --background: #253447;
+  }
+
+  .diff-modal-subtitle {
+    color: #94a3b8;
+    border-bottom-color: rgba(148, 163, 184, 0.2);
+  }
+
+  .diff-modal-footer {
+    border-top-color: rgba(148, 163, 184, 0.2);
+  }
+
+  .diff-entry {
+    background: #2d3f56;
+    border-color: rgba(148, 163, 184, 0.22);
+
+    &::before {
+      background: rgba(148, 163, 184, 0.22);
+    }
+
+    &::after {
+      border-color: #2d3f56;
+    }
+  }
+
+  .diff-author {
+    color: #e8eef5;
+  }
+
+  .diff-time {
+    color: #94a3b8;
+  }
+
+  .diff-field-label {
+    color: #94a3b8;
+  }
+
+  .diff-value-label {
+    color: #64748b;
+  }
+
+  .diff-old {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.12);
+  }
+
+  .diff-new {
+    color: #86efac;
+    background: rgba(22, 163, 74, 0.12);
+  }
+
+  .diff-arrow {
+    color: #94a3b8;
+  }
+
+  .diff-action-badge {
+    background: rgba(148, 163, 184, 0.15);
+    color: #e8eef5;
+  }
+
+  .diff-action-badge.is-create {
+    background: rgba(34, 197, 94, 0.15);
+    color: #86efac;
+  }
+
+  .diff-action-badge.is-update {
+    background: rgba(234, 179, 8, 0.15);
+    color: #fde68a;
+  }
+
+  .diff-action-badge.is-delete {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+  }
+
+  .diff-field-filter {
+    background: rgba(253, 224, 71, 0.06);
+    border-color: rgba(202, 138, 4, 0.2);
+  }
+
+  .diff-field-filter-label {
+    color: #d4a843;
+  }
+
+  .filter-icon {
+    color: #d4a843;
+  }
+
+  .diff-field-filter-clear {
+    color: #94a3b8;
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.12);
+    }
+  }
+
+  .diff-empty,
+  .diff-no-detail {
+    color: #64748b;
+  }
+
+  .btn-row-edit {
+    --color: #94a3b8;
+
+    &:hover {
+      --color: #22d3ee;
+    }
+  }
+
+  .history-row td {
+    background: rgba(37, 52, 71, 0.95);
+  }
+
+  .diff-field-label {
+    color: #94a3b8;
+  }
+
+  .diff-value-label {
+    color: #64748b;
   }
 }
 

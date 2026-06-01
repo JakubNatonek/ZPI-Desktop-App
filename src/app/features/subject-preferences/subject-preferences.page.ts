@@ -51,20 +51,20 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
   }
 
   get isAdmin(): boolean {
-    return this.auth.role === 'admin';
+    return this.auth.role === 'admin' || this.auth.role === 'rapla_editor' || this.auth.role === 'lecturer_rapla_editor';
   }
 
   get filteredUsers(): AdminUserRow[] {
     const query = this.userSearchQuery.trim().toLowerCase();
     return [...this.allUsers]
       .filter((user) => {
-      const roleList = (user.roles ?? []).map((role) => role.toLowerCase());
-      if (roleList.includes('admin')) {
-        return false;
-      }
+        const roleList = (user.roles ?? []).map((role) => role.toLowerCase());
+        if (roleList.includes('admin')) {
+          return false;
+        }
 
-      return true;
-    })
+        return true;
+      })
       .sort((left, right) => {
         if (!query) {
           return `${left.first_name} ${left.last_name}`.localeCompare(`${right.first_name} ${right.last_name}`);
@@ -162,6 +162,14 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
         take(1),
       )
       .subscribe(() => {
+        if (
+          this.auth.role !== 'admin' &&
+          this.auth.role !== 'rapla_editor' &&
+          this.auth.role !== 'lecturer_rapla_editor'
+        ) {
+          this.router.navigateByUrl('/home');
+          return;
+        }
         this.loadInitialData();
       });
   }
@@ -447,7 +455,7 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
       .pipe(finalize(() => (this.isSaving = false)))
       .subscribe({
         next: () => {
-          this.loadPreferences(this.selectedUserId!).catch(() => {});
+          this.loadPreferences(this.selectedUserId!).catch(() => { });
         },
         error: (error) => {
           console.error('Error adding preference:', error);
@@ -467,7 +475,7 @@ export class SubjectPreferencesPage implements OnInit, OnDestroy {
       .pipe(finalize(() => (this.isSaving = false)))
       .subscribe({
         next: () => {
-          this.loadPreferences(this.selectedUserId!).catch(() => {});
+          this.loadPreferences(this.selectedUserId!).catch(() => { });
         },
         error: (error) => {
           console.error('Error removing preference:', error);

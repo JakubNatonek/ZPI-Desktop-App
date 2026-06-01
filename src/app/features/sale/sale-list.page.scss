@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   display: block;
 }
 
@@ -223,11 +223,11 @@ ion-toolbar {
 /* Dark mode */
 :host-context(html.ion-palette-dark) {
   .list-page-content {
-    --background: #0c1524;
+    --background: #253447;
   }
 
   .page-title {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .page-subtitle {
@@ -235,13 +235,13 @@ ion-toolbar {
   }
 
   .btn-secondary-nav {
-    --border-color: rgba(255, 255, 255, 0.2);
-    --color: #e8edf4;
+    --border-color: rgba(148, 163, 184, 0.30);
+    --color: #e8eef5;
   }
 
   .room-card {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
     border-left-color: #d4a843;
 
     &:hover {
@@ -250,7 +250,7 @@ ion-toolbar {
   }
 
   .room-number {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .room-type-badge {
@@ -263,11 +263,11 @@ ion-toolbar {
   }
 
   .detail-value {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .room-card-actions {
-    border-top-color: rgba(255, 255, 255, 0.08);
+    border-top-color: rgba(148, 163, 184, 0.15);
   }
 
   .btn-edit {
@@ -280,11 +280,11 @@ ion-toolbar {
   }
 
   .empty-state {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
 
     h3 {
-      color: #e8edf4;
+      color: #e8eef5;
     }
 
     p {

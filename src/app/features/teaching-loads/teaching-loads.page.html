@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-menu-button class="menu-nav-btn" autoHide="false"></ion-menu-button>
     </ion-buttons>
-    <ion-title>Przydział godzin dydaktycznych</ion-title>
+    <ion-title>Panel administratora</ion-title>
     <ion-buttons slot="end" class="app-header-user-actions">
       <ion-chip class="role-chip" outline>
         <ion-label>{{ userRoleLabel }}</ion-label>
@@ -42,17 +42,18 @@
   <ion-card class="form-shell table-shell">
     <ion-card-content>
       <div class="actions-row">
-        <ion-button color="primary" (click)="startCreating()" [disabled]="isCreating || isSaving || isLoading">
+        <ion-button color="primary" class="btn-add-assignment" (click)="startCreating()"
+          [disabled]="isCreating || isSaving || isLoading">
           Dodaj przydział
         </ion-button>
-        <ion-searchbar
-          class="searchbar"
-          placeholder="Szukaj według dydaktyka, przedmiotu, typu zajęć, sali..."
-          [(ngModel)]="searchQuery"
-          (ionInput)="applyFilters()">
-        </ion-searchbar>
-        <ion-button fill="outline" color="dark" (click)="reload()">Odśwież dane</ion-button>
-        <ion-button fill="clear" color="medium" (click)="clearFilters()">Wyczyść filtry</ion-button>
+        <div class="search-field">
+          <label class="search-field-label">Filtrowanie</label>
+          <ion-searchbar class="searchbar" placeholder="Szukaj według dydaktyka, przedmiotu, typu zajęć..."
+            [(ngModel)]="searchQuery" (ionInput)="applyFilters()">
+          </ion-searchbar>
+        </div>
+        <ion-button fill="outline" class="btn-reload" (click)="reload()">Odśwież dane</ion-button>
+        <ion-button fill="clear" class="btn-clear-filters" (click)="clearFilters()">Wyczyść filtry</ion-button>
       </div>
 
       <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
@@ -69,26 +70,21 @@
         {{ historyErrorMessage }}
       </ion-note>
 
-      <div *ngIf="!isLoading" class="table-wrapper">
+      <div *ngIf="!isLoading && (filteredAssignments.length > 0 || isCreating)" class="table-wrapper">
         <table class="excel-table">
           <thead>
             <tr>
               <th>Dydaktyk</th>
               <th>Przedmiot</th>
               <th>Typ zajęć</th>
-              <th class="room-col">Sala</th>
-              <th>Kierunek / rocznik</th>
               <th class="hours-col">Godziny</th>
               <th>Semestr</th>
               <th class="history-col">Historia</th>
-              <th class="actions-col"></th>
+              <th class="actions-col">Akcje</th>
             </tr>
             <tr class="filters-row">
               <th>
-                <ion-select
-                  interface="popover"
-                  class="filter-select"
-                  [(ngModel)]="filters.teacher_id"
+                <ion-select interface="popover" class="filter-select" [(ngModel)]="filters.teacher_id"
                   (ionChange)="applyFilters()">
                   <ion-select-option [value]="null">Wszyscy</ion-select-option>
                   <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.user_id">
@@ -97,22 +93,16 @@
                 </ion-select>
               </th>
               <th>
-                <ion-select
-                  interface="popover"
-                  class="filter-select"
-                  [(ngModel)]="filters.subject_id"
+                <ion-select interface="popover" class="filter-select" [(ngModel)]="filters.subject_id"
                   (ionChange)="applyFilters()">
                   <ion-select-option [value]="null">Wszystkie</ion-select-option>
-                  <ion-select-option *ngFor="let subj of getSubjectOptions()" [value]="subj.id">
-                    {{ subj.name }}
+                  <ion-select-option *ngFor="let subject of subjects" [value]="subject.id">
+                    {{ subject.name }}
                   </ion-select-option>
                 </ion-select>
               </th>
               <th>
-                <ion-select
-                  interface="popover"
-                  class="filter-select"
-                  [(ngModel)]="filters.activity_id"
+                <ion-select interface="popover" class="filter-select" [(ngModel)]="filters.activity_id"
                   (ionChange)="applyFilters()">
                   <ion-select-option [value]="null">Wszystkie</ion-select-option>
                   <ion-select-option *ngFor="let activity of activities" [value]="activity.id">
@@ -121,52 +111,15 @@
                 </ion-select>
               </th>
               <th>
-                <ion-select
-                  interface="popover"
-                  class="filter-select"
-                  [(ngModel)]="filters.room_id"
-                  (ionChange)="applyFilters()">
-                  <ion-select-option [value]="null">Wszystkie</ion-select-option>
-                  <ion-select-option *ngFor="let room of rooms" [value]="room.id">
-                    {{ getRoomOptionLabel(room) }}
-                  </ion-select-option>
-                </ion-select>
-              </th>
-              <th>
-                <ion-select
-                  interface="popover"
-                  class="filter-select"
-                  [(ngModel)]="filters.field_of_study_id"
-                  (ionChange)="applyFilters()">
-                  <ion-select-option [value]="null">Wszystkie</ion-select-option>
-                  <ion-select-option *ngFor="let fieldOfStudy of fieldOfStudies" [value]="fieldOfStudy.id">
-                    {{ getFieldOfStudyOptionLabel(fieldOfStudy) }}
-                  </ion-select-option>
-                </ion-select>
-              </th>
-              <th>
                 <div class="hours-filter">
-                  <input
-                    class="filter-input"
-                    type="number"
-                    min="0"
-                    placeholder="Min"
-                    [(ngModel)]="filters.hours_min"
+                  <input class="filter-input" type="number" min="0" placeholder="Min" [(ngModel)]="filters.hours_min"
                     (input)="applyFilters()" />
-                  <input
-                    class="filter-input"
-                    type="number"
-                    min="0"
-                    placeholder="Max"
-                    [(ngModel)]="filters.hours_max"
+                  <input class="filter-input" type="number" min="0" placeholder="Max" [(ngModel)]="filters.hours_max"
                     (input)="applyFilters()" />
                 </div>
               </th>
               <th>
-                <ion-select
-                  interface="popover"
-                  class="filter-select"
-                  [(ngModel)]="filters.semester_id"
+                <ion-select interface="popover" class="filter-select" [(ngModel)]="filters.semester_id"
                   (ionChange)="applyFilters()">
                   <ion-select-option [value]="null">Wszystkie</ion-select-option>
                   <ion-select-option *ngFor="let semester of semesters" [value]="semester.id">
@@ -181,74 +134,34 @@
           <tbody>
             <tr *ngIf="isCreating && newRowDraft" class="is-new">
               <td class="cell">
-                <ion-select
-                  interface="popover"
-                  class="cell-select"
-                  [(ngModel)]="newRowDraft.teacher_id"
-                  (ionChange)="onNewTeacherChange()">
+                <ion-select interface="popover" class="cell-select" [(ngModel)]="newRowDraft.teacher_id">
                   <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.user_id">
                     {{ getTeacherOptionLabel(teacher) }}
                   </ion-select-option>
                 </ion-select>
               </td>
               <td class="cell">
-                <ion-select
-                  interface="popover"
-                  class="cell-select"
-                  [(ngModel)]="newRowDraft.subject_id"
-                  (ionChange)="onNewSubjectChange()"
-                  [disabled]="!isTeacherSelected(newRowDraft.teacher_id)">
-                  <ion-select-option *ngFor="let subj of getPreferredSubjectOptions(newRowDraft.teacher_id)" [value]="subj.id">
-                    {{ subj.name }}
+                <ion-select interface="popover" class="cell-select" [(ngModel)]="newRowDraft.subject_id"
+                  (ionChange)="onNewSubjectChange()">
+                  <ion-select-option *ngFor="let subject of subjects" [value]="subject.id">
+                    {{ subject.name }}
                   </ion-select-option>
                 </ion-select>
               </td>
               <td class="cell">
-                <ion-select
-                  interface="popover"
-                  class="cell-select"
-                  [(ngModel)]="newRowDraft.activity_id"
-                  (ionChange)="onNewActivityChange()">
-                  <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(newRowDraft.subject_id, newRowDraft.teacher_id)" [value]="activity.id">
+                <ion-select interface="popover" class="cell-select" [(ngModel)]="newRowDraft.activity_id">
+                  <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(newRowDraft.subject_id)"
+                    [value]="activity.id">
                     {{ activity.name }}
                   </ion-select-option>
                 </ion-select>
               </td>
-              <td class="cell">
-                <ion-select
-                  interface="popover"
-                  class="cell-select"
-                  [(ngModel)]="newRowDraft.room_id">
-                  <ion-select-option [value]="null">Brak</ion-select-option>
-                  <ion-select-option *ngFor="let room of rooms" [value]="room.id">
-                    {{ getRoomOptionLabel(room) }}
-                  </ion-select-option>
-                </ion-select>
-              </td>
-              <td class="cell">
-                <ion-select
-                  interface="popover"
-                  class="cell-select"
-                  [(ngModel)]="newRowDraft.field_of_study_id">
-                  <ion-select-option [value]="null">Brak</ion-select-option>
-                  <ion-select-option *ngFor="let fieldOfStudy of fieldOfStudies" [value]="fieldOfStudy.id">
-                    {{ getFieldOfStudyOptionLabel(fieldOfStudy) }}
-                  </ion-select-option>
-                </ion-select>
-              </td>
               <td class="cell hours-cell">
-                <ion-input
-                  type="number"
-                  min="1"
-                  class="cell-input"
-                  [(ngModel)]="newRowDraft.hours">
+                <ion-input type="number" min="1" class="cell-input" [(ngModel)]="newRowDraft.hours">
                 </ion-input>
               </td>
               <td class="cell">
-                <ion-select
-                  interface="popover"
-                  class="cell-select"
-                  [(ngModel)]="newRowDraft.semester_id">
+                <ion-select interface="popover" class="cell-select" [(ngModel)]="newRowDraft.semester_id">
                   <ion-select-option *ngFor="let semester of semesters" [value]="semester.id">
                     {{ semester.nazwa }}
                   </ion-select-option>
@@ -270,13 +183,11 @@
             </tr>
             <ng-container *ngFor="let row of filteredAssignments; trackBy: trackByAssignmentId">
               <tr [class.is-editing]="editingRowId === row.id">
-                <td class="cell editable" (click)="startEditing(row, $event)">
+                <td class="cell editable" [class.is-field-changed]="isFieldChanged(row.id, 'teacher')"
+                  [class.is-cell-active]="historyModalRowId === row.id && historyModalFieldGroup === 'teacher'"
+                  (click)="onCellClick(row, 'teacher', $event)">
                   <ng-container *ngIf="editingRowId === row.id && draftRow; else teacherDisplay">
-                    <ion-select
-                      interface="popover"
-                      class="cell-select"
-                      [(ngModel)]="draftRow.teacher_id"
-                      (ionChange)="onEditTeacherChange()"
+                    <ion-select interface="popover" class="cell-select" [(ngModel)]="draftRow.teacher_id"
                       (click)="$event.stopPropagation()">
                       <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.user_id">
                         {{ getTeacherOptionLabel(teacher) }}
@@ -287,17 +198,14 @@
                     <div class="cell-display">{{ getTeacherLabel(row) }}</div>
                   </ng-template>
                 </td>
-                <td class="cell editable" (click)="startEditing(row, $event)">
+                <td class="cell editable" [class.is-field-changed]="isFieldChanged(row.id, 'subject')"
+                  [class.is-cell-active]="historyModalRowId === row.id && historyModalFieldGroup === 'subject'"
+                  (click)="onCellClick(row, 'subject', $event)">
                   <ng-container *ngIf="editingRowId === row.id && draftRow; else subjectDisplay">
-                    <ion-select
-                      interface="popover"
-                      class="cell-select"
-                      [(ngModel)]="draftRow.subject_id"
-                      (ionChange)="onEditSubjectChange()"
-                      [disabled]="!isTeacherSelected(draftRow.teacher_id)"
-                      (click)="$event.stopPropagation()">
-                      <ion-select-option *ngFor="let subj of getPreferredSubjectOptions(draftRow.teacher_id)" [value]="subj.id">
-                        {{ subj.name }}
+                    <ion-select interface="popover" class="cell-select" [(ngModel)]="draftRow.subject_id"
+                      (ionChange)="onEditSubjectChange()" (click)="$event.stopPropagation()">
+                      <ion-select-option *ngFor="let subject of subjects" [value]="subject.id">
+                        {{ subject.name }}
                       </ion-select-option>
                     </ion-select>
                   </ng-container>
@@ -305,15 +213,14 @@
                     <div class="cell-display">{{ getSubjectLabel(row) }}</div>
                   </ng-template>
                 </td>
-                <td class="cell editable" (click)="startEditing(row, $event)">
+                <td class="cell editable" [class.is-field-changed]="isFieldChanged(row.id, 'activity')"
+                  [class.is-cell-active]="historyModalRowId === row.id && historyModalFieldGroup === 'activity'"
+                  (click)="onCellClick(row, 'activity', $event)">
                   <ng-container *ngIf="editingRowId === row.id && draftRow; else activityDisplay">
-                    <ion-select
-                      interface="popover"
-                      class="cell-select"
-                      [(ngModel)]="draftRow.activity_id"
-                      (ionChange)="onEditActivityChange()"
+                    <ion-select interface="popover" class="cell-select" [(ngModel)]="draftRow.activity_id"
                       (click)="$event.stopPropagation()">
-                      <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(draftRow.subject_id, draftRow.teacher_id)" [value]="activity.id">
+                      <ion-select-option *ngFor="let activity of getActivityOptionsForSubject(draftRow.subject_id)"
+                        [value]="activity.id">
                         {{ activity.name }}
                       </ion-select-option>
                     </ion-select>
@@ -322,47 +229,11 @@
                     <div class="cell-display">{{ getActivityLabel(row) }}</div>
                   </ng-template>
                 </td>
-                <td class="cell editable" (click)="startEditing(row, $event)">
-                  <ng-container *ngIf="editingRowId === row.id && draftRow; else roomDisplay">
-                    <ion-select
-                      interface="popover"
-                      class="cell-select"
-                      [(ngModel)]="draftRow.room_id"
-                      (click)="$event.stopPropagation()">
-                      <ion-select-option [value]="null">Brak</ion-select-option>
-                      <ion-select-option *ngFor="let room of rooms" [value]="room.id">
-                        {{ getRoomOptionLabel(room) }}
-                      </ion-select-option>
-                    </ion-select>
-                  </ng-container>
-                  <ng-template #roomDisplay>
-                    <div class="cell-display">{{ getRoomLabel(row) }}</div>
-                  </ng-template>
-                </td>
-                <td class="cell editable" (click)="startEditing(row, $event)">
-                  <ng-container *ngIf="editingRowId === row.id && draftRow; else fieldOfStudyDisplay">
-                    <ion-select
-                      interface="popover"
-                      class="cell-select"
-                      [(ngModel)]="draftRow.field_of_study_id"
-                      (click)="$event.stopPropagation()">
-                      <ion-select-option [value]="null">Brak</ion-select-option>
-                      <ion-select-option *ngFor="let fieldOfStudy of fieldOfStudies" [value]="fieldOfStudy.id">
-                        {{ getFieldOfStudyOptionLabel(fieldOfStudy) }}
-                      </ion-select-option>
-                    </ion-select>
-                  </ng-container>
-                  <ng-template #fieldOfStudyDisplay>
-                    <div class="cell-display">{{ getFieldOfStudyLabel(row) }}</div>
-                  </ng-template>
-                </td>
-                <td class="cell editable hours-cell" (click)="startEditing(row, $event)">
+                <td class="cell editable hours-cell" [class.is-field-changed]="isFieldChanged(row.id, 'hours')"
+                  [class.is-cell-active]="historyModalRowId === row.id && historyModalFieldGroup === 'hours'"
+                  (click)="onCellClick(row, 'hours', $event)">
                   <ng-container *ngIf="editingRowId === row.id && draftRow; else hoursDisplay">
-                    <ion-input
-                      type="number"
-                      min="1"
-                      class="cell-input"
-                      [(ngModel)]="draftRow.hours"
+                    <ion-input type="number" min="1" class="cell-input" [(ngModel)]="draftRow.hours"
                       (click)="$event.stopPropagation()">
                     </ion-input>
                   </ng-container>
@@ -370,12 +241,11 @@
                     <div class="cell-display">{{ row.hours }}</div>
                   </ng-template>
                 </td>
-                <td class="cell editable" (click)="startEditing(row, $event)">
+                <td class="cell editable" [class.is-field-changed]="isFieldChanged(row.id, 'semester')"
+                  [class.is-cell-active]="historyModalRowId === row.id && historyModalFieldGroup === 'semester'"
+                  (click)="onCellClick(row, 'semester', $event)">
                   <ng-container *ngIf="editingRowId === row.id && draftRow; else semesterDisplay">
-                    <ion-select
-                      interface="popover"
-                      class="cell-select"
-                      [(ngModel)]="draftRow.semester_id"
+                    <ion-select interface="popover" class="cell-select" [(ngModel)]="draftRow.semester_id"
                       (click)="$event.stopPropagation()">
                       <ion-select-option *ngFor="let semester of semesters" [value]="semester.id">
                         {{ semester.nazwa }}
@@ -387,13 +257,9 @@
                   </ng-template>
                 </td>
                 <td class="cell history-cell">
-                  <ion-button
-                    fill="clear"
-                    size="small"
-                    class="history-button"
-                    [class.is-new]="isHistoryNew(row.id)"
+                  <ion-button fill="clear" size="small" class="history-button" [class.is-new]="isHistoryNew(row.id)"
                     [title]="isHistoryNew(row.id) ? 'Nowe zmiany' : 'Historia zmian'"
-                    (click)="toggleHistory(row, $event)">
+                    (click)="openHistoryModal(row, $event)">
                     <ion-icon [name]="isHistoryNew(row.id) ? 'alert-circle-outline' : 'time-outline'"></ion-icon>
                   </ion-button>
                   <span class="history-count" *ngIf="getHistoryCount(row.id) > 0">
@@ -401,7 +267,7 @@
                   </span>
                 </td>
                 <td class="cell actions-cell">
-                  <div class="edit-actions" *ngIf="editingRowId === row.id; else rowActions">
+                  <div class="edit-actions" *ngIf="editingRowId === row.id">
                     <ion-button size="small" color="success" fill="clear" (click)="saveEditing()">
                       <ion-icon name="checkmark-circle"></ion-icon>
                     </ion-button>
@@ -409,61 +275,10 @@
                       <ion-icon name="close-circle"></ion-icon>
                     </ion-button>
                   </div>
-                  <ng-template #rowActions>
-                    <ion-button size="small" color="danger" fill="clear" (click)="confirmDelete(row, $event)">
-                      <ion-icon name="trash-outline"></ion-icon>
-                    </ion-button>
-                  </ng-template>
-                </td>
-              </tr>
-              <tr *ngIf="historyOpenRowId === row.id" class="history-row">
-                <td colspan="9">
-                  <div class="history-panel">
-                    <ng-container *ngIf="getHistoryForRow(row.id).length > 0; else emptyHistory">
-                      <div class="history-entry" *ngFor="let log of getHistoryForRow(row.id)">
-                        <div class="history-meta">
-                          <span class="history-action {{ getActionClass(log.action) }}">
-                            {{ getActionLabel(log.action) }}
-                          </span>
-                          <span class="history-author">{{ log.modified_by_name || 'System' }}</span>
-                          <span class="history-time">{{ log.timestamp | date:'dd.MM.yyyy HH:mm' }}</span>
-                        </div>
-                        <!-- Podsumowanie w jednej linii -->
-                        <div class="history-summary" *ngIf="log.action === 'UPDATE'">
-                          {{ getHistorySummary(log) }}
-                        </div>
-                        <!-- Szczegółowa tabela zmian dla UPDATE -->
-                        <div class="history-diff" *ngIf="log.action === 'UPDATE' && getHistoryChanges(log).length > 0">
-                          <div class="diff-row diff-header-row">
-                            <span class="diff-field">Pole</span>
-                            <span class="diff-old">Było</span>
-                            <span class="diff-arrow"></span>
-                            <span class="diff-new">Jest</span>
-                          </div>
-                          <div class="diff-row" *ngFor="let change of getHistoryChanges(log)">
-                            <span class="diff-field">{{ change.field }}</span>
-                            <span class="diff-old">{{ change.oldValue }}</span>
-                            <span class="diff-arrow">→</span>
-                            <span class="diff-new">{{ change.newValue }}</span>
-                          </div>
-                        </div>
-                        <!-- Podgląd wartości dla CREATE / DELETE -->
-                        <div class="history-diff" *ngIf="log.action !== 'UPDATE' && (log.new_values || log.old_values)">
-                          <div class="diff-row diff-header-row">
-                            <span class="diff-field">Pole</span>
-                            <span class="diff-old">Wartość</span>
-                          </div>
-                          <div class="diff-row" *ngFor="let key of getHistoryDetailKeys(log)">
-                            <span class="diff-field">{{ resolveAuditFieldName(key) }}</span>
-                            <span class="diff-old">{{ formatAuditValue((log.new_values || log.old_values)[key]) }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </ng-container>
-                    <ng-template #emptyHistory>
-                      <div class="history-empty">Brak wpisów historii.</div>
-                    </ng-template>
-                  </div>
+                  <ion-button *ngIf="editingRowId !== row.id" size="small" fill="clear" class="btn-row-edit"
+                    title="Edytuj wiersz" (click)="startEditing(row, $event)">
+                    <ion-icon name="pencil-outline"></ion-icon>
+                  </ion-button>
                 </td>
               </tr>
             </ng-container>
@@ -477,4 +292,91 @@
       </div>
     </ion-card-content>
   </ion-card>
+
+  <!-- Historia zmian – modal diff -->
+  <ion-modal [isOpen]="historyModalRowId !== null" (didDismiss)="closeHistoryModal()" class="history-diff-modal">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Historia zmian</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeHistoryModal()">Zamknij</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="diff-modal-content">
+        <p class="diff-modal-subtitle" *ngIf="getModalRowLabel()">{{ getModalRowLabel() }}</p>
+
+        <div class="diff-field-filter" *ngIf="getModalFieldLabel()">
+          <span class="diff-field-filter-label">
+            <ion-icon name="funnel-outline" class="filter-icon"></ion-icon>
+            Pole: <strong>{{ getModalFieldLabel() }}</strong>
+          </span>
+          <button class="diff-field-filter-clear" (click)="clearModalFieldFilter($event)" title="Pokaż całą historię">
+            <ion-icon name="close-circle"></ion-icon> Pokaż całą
+          </button>
+        </div>
+
+        <div class="diff-timeline">
+          <ng-container *ngIf="getModalHistory().length > 0; else emptyModalHistory">
+            <div class="diff-entry" *ngFor="let log of getModalHistory(); let last = last"
+              [class.diff-entry--create]="log.action === 'CREATE'" [class.diff-entry--update]="log.action === 'UPDATE'"
+              [class.diff-entry--delete]="log.action === 'DELETE'" [class.diff-entry--last]="last">
+              <div class="diff-entry-header">
+                <span class="diff-action-badge" [class.is-create]="log.action === 'CREATE'"
+                  [class.is-update]="log.action === 'UPDATE'" [class.is-delete]="log.action === 'DELETE'">
+                  {{ getActionLabel(log.action) }}
+                </span>
+                <span class="diff-author">{{ log.modified_by_name || 'System' }}</span>
+                <span class="diff-time">{{ log.timestamp | date:'dd.MM.yyyy HH:mm' }}</span>
+              </div>
+
+              <div class="diff-fields" *ngIf="getDisplayedDiffFields(log).length > 0; else noDiffDetail">
+                <div class="diff-field-row" *ngFor="let field of getDisplayedDiffFields(log)">
+                  <span class="diff-field-label">{{ field.label }}</span>
+                  <div class="diff-change">
+                    <ng-container *ngIf="log.action === 'CREATE'">
+                      <div class="diff-value-line">
+                        <span class="diff-value-label">Wartość:</span>
+                        <span class="diff-new">{{ field.newVal }}</span>
+                      </div>
+                    </ng-container>
+                    <ng-container *ngIf="log.action === 'DELETE'">
+                      <div class="diff-value-line">
+                        <span class="diff-value-label">Było:</span>
+                        <span class="diff-old">{{ field.oldVal }}</span>
+                      </div>
+                    </ng-container>
+                    <ng-container *ngIf="log.action === 'UPDATE'">
+                      <div class="diff-value-line">
+                        <span class="diff-value-label">Było:</span>
+                        <span class="diff-old">{{ field.oldVal }}</span>
+                      </div>
+                      <div class="diff-value-line">
+                        <span class="diff-value-label">Jest:</span>
+                        <span class="diff-new">{{ field.newVal }}</span>
+                      </div>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+              <ng-template #noDiffDetail>
+                <p class="diff-no-detail">Brak szczegółów dla tej zmiany.</p>
+              </ng-template>
+            </div>
+          </ng-container>
+          <ng-template #emptyModalHistory>
+            <div class="diff-empty">Brak wpisów historii dla tego przydziału.</div>
+          </ng-template>
+        </div>
+
+        <div class="diff-modal-footer">
+          <ion-button expand="block" fill="outline" color="primary" (click)="startEditingFromModal()">
+            <ion-icon name="pencil-outline" slot="start"></ion-icon>
+            Edytuj przydział
+          </ion-button>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 </ion-content>

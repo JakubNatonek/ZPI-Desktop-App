@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZPI-Desktop-App — Dokumentacja Techniczna</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #1a1a2e;
+      background: #fff;
+    }
+
+    /* ───── Cover page ───── */
+    .cover {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #fff;
+      page-break-after: always;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .cover .logo-box {
+      width: 90px;
+      height: 90px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      margin-bottom: 30px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .cover h1 {
+      font-size: 32pt;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .cover .subtitle {
+      font-size: 14pt;
+      opacity: 0.75;
+      margin-bottom: 40px;
+    }
+
+    .cover .meta {
+      font-size: 11pt;
+      opacity: 0.6;
+      margin-top: 60px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      padding-top: 20px;
+      width: 100%;
+    }
+
+    .cover .badge-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .badge {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 10pt;
+      font-weight: 500;
+    }
+
+    /* ───── Content pages ───── */
+    .content {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 30px 40px 50px;
+    }
+
+    h1 {
+      font-size: 22pt;
+      color: #0f3460;
+      border-bottom: 3px solid #e94560;
+      padding-bottom: 8px;
+      margin: 40px 0 20px;
+    }
+
+    h2 {
+      font-size: 16pt;
+      color: #16213e;
+      border-left: 4px solid #e94560;
+      padding-left: 12px;
+      margin: 30px 0 14px;
+    }
+
+    h3 {
+      font-size: 13pt;
+      color: #0f3460;
+      margin: 22px 0 10px;
+    }
+
+    h4 {
+      font-size: 11pt;
+      color: #444;
+      font-weight: 600;
+      margin: 16px 0 8px;
+    }
+
+    p {
+      margin-bottom: 10px;
+    }
+
+    ul,
+    ol {
+      margin: 10px 0 12px 20px;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      background: #f0f4ff;
+      border: 1px solid #d0d8f0;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 9.5pt;
+      color: #c0392b;
+    }
+
+    pre {
+      background: #1a1a2e;
+      color: #e8f4f8;
+      border-radius: 8px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      font-size: 9pt;
+      margin: 12px 0 16px;
+      line-height: 1.5;
+    }
+
+    pre code {
+      background: none;
+      border: none;
+      color: #e8f4f8;
+      padding: 0;
+      font-size: 9pt;
+    }
+
+    /* ───── Tables ───── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 20px;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+
+    thead tr {
+      background: #0f3460;
+      color: #fff;
+    }
+
+    thead th {
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f5f7ff;
+    }
+
+    tbody tr:hover {
+      background: #e8eeff;
+    }
+
+    td {
+      padding: 7px 12px;
+      border-bottom: 1px solid #e0e5f0;
+      vertical-align: top;
+    }
+
+    /* ───── Callout boxes ───── */
+    .callout {
+      border-left: 4px solid #3498db;
+      background: #eef7ff;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 14px 0;
+    }
+
+    .callout.green {
+      border-color: #27ae60;
+      background: #efffee;
+    }
+
+    .callout.orange {
+      border-color: #e67e22;
+      background: #fff8ee;
+    }
+
+    .callout.red {
+      border-color: #e74c3c;
+      background: #fff0f0;
+    }
+
+    .callout.purple {
+      border-color: #8e44ad;
+      background: #f9f0ff;
+    }
+
+    .callout-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #1a1a2e;
+    }
+
+    /* ───── Tech cards ───── */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 16px 0;
+    }
+
+    .tech-card {
+      border: 1px solid #d0d8f0;
+      border-radius: 10px;
+      padding: 14px 16px;
+      page-break-inside: avoid;
+    }
+
+    .tech-card .tech-name {
+      font-weight: 700;
+      font-size: 12pt;
+      color: #0f3460;
+      margin-bottom: 6px;
+    }
+
+    .tech-card .tech-label {
+      display: inline-block;
+      background: #0f3460;
+      color: #fff;
+      font-size: 8pt;
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin-bottom: 8px;
+    }
+
+    /* ───── Architecture diagram ───── */
+    .arch-box {
+      border: 2px solid #0f3460;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+      background: #f8faff;
+    }
+
+    .arch-layer {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 8px 0;
+    }
+
+    .arch-item {
+      background: #0f3460;
+      color: #fff;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 9.5pt;
+      font-weight: 500;
+    }
+
+    .arch-item.light {
+      background: #e8eeff;
+      color: #0f3460;
+      border: 1px solid #0f3460;
+    }
+
+    .arch-item.red {
+      background: #e94560;
+    }
+
+    .arch-arrow {
+      text-align: center;
+      font-size: 18pt;
+      color: #0f3460;
+      margin: 4px 0;
+    }
+
+    /* ───── TOC ───── */
+    .toc {
+      background: #f5f7ff;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 20px 0 30px;
+    }
+
+    .toc h2 {
+      margin-top: 0;
+    }
+
+    .toc ol {
+      counter-reset: toc-counter;
+      list-style: none;
+      margin-left: 0;
+    }
+
+    .toc li {
+      padding: 3px 0;
+      border-bottom: 1px dotted #c0c8e0;
+    }
+
+    .toc a {
+      text-decoration: none;
+      color: #0f3460;
+    }
+
+    .toc a:hover {
+      color: #e94560;
+    }
+
+    /* ───── Page break ───── */
+    .page-break {
+      page-break-before: always;
+    }
+
+    /* ───── Print settings ───── */
+    @page {
+      margin: 20mm 18mm;
+
+      @bottom-center {
+        content: counter(page) " / " counter(pages);
+        font-size: 9pt;
+        color: #888;
+      }
+    }
+
+    @media print {
+      .cover {
+        height: 100vh;
+      }
+
+      h1,
+      h2,
+      h3 {
+        page-break-after: avoid;
+      }
+
+      table {
+        page-break-inside: avoid;
+      }
+
+      .tech-card {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══════════════════════ STRONA TYTUŁOWA ══════════════════════ -->
+  <div class="cover">
+    <div class="logo-box">🖥</div>
+    <h1>ZPI-Desktop-App</h1>
+    <div class="subtitle">Dokumentacja Techniczna — Aplikacja Desktopowa</div>
+    <div class="badge-row">
+      <span class="badge">Angular 20</span>
+      <span class="badge">Ionic 8</span>
+      <span class="badge">TypeScript</span>
+      <span class="badge">Socket.IO</span>
+      <span class="badge">REST API</span>
+      <span class="badge">JWT</span>
+      <span class="badge">Docker</span>
+      <span class="badge">WebCrypto</span>
+    </div>
+    <div class="meta">
+      Projekt Inżynierski — ZPI &nbsp;|&nbsp; Rok akademicki 2025/2026 &nbsp;|&nbsp; Wersja 1.0
+    </div>
+  </div>
+
+  <!-- ══════════════════════ TREŚĆ ══════════════════════ -->
+  <div class="content">
+
+    <!-- ─── SPIS TREŚCI ─── -->
+    <div class="toc">
+      <h2>📋 Spis treści</h2>
+      <ol>
+        <li><a href="#slownik">1. Słownik pojęć i technologii</a></li>
+        <li><a href="#stack">2. Stack technologiczny</a></li>
+        <li><a href="#architektura">3. Architektura aplikacji</a></li>
+        <li><a href="#core">4. Warstwa rdzenia (core)</a></li>
+        <li><a href="#strony-wejsciowe">5. Strony wejściowe — Login i Zmiana hasła</a></li>
+        <li><a href="#features">6. Moduły funkcjonalne (features)</a></li>
+        <li><a href="#routing">7. Routing i ochrona tras</a></li>
+        <li><a href="#bezpieczenstwo">8. Bezpieczeństwo</a></li>
+        <li><a href="#wdrozenie">9. Wdrożenie (Docker + nginx)</a></li>
+      </ol>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+     1. SŁOWNIK POJĘĆ
+     ═══════════════════════════════════════════════════════ -->
+    <h1 id="slownik">1. Słownik pojęć i technologii</h1>
+    <p>
+      Ta sekcja wyjaśnia wszystkie kluczowe terminy techniczne użyte w projekcie,
+      tak aby dokumentacja była zrozumiała dla każdego czytelnika.
+    </p>
+
+    <h2>Podstawowe pojęcia webowe</h2>
+
+    <h3>Frontend vs. Backend</h3>
+    <div class="callout">
+      <div class="callout-title">Frontend</div>
+      To część aplikacji, którą widzi i z którą wchodzi w interakcję użytkownik — to co działa
+      w przeglądarce internetowej lub oknie desktopowym. W tym projekcie frontend to kod Angular/Ionic
+      działający w przeglądarce. Frontend wysyła żądania do backendu i wyświetla otrzymane dane.
+    </div>
+    <div class="callout green">
+      <div class="callout-title">Backend</div>
+      To serwer — niewidoczna część aplikacji działająca gdzieś na maszynie serwerowej. Przetwarza
+      logikę biznesową, zarządza bazą danych i udostępnia dane frontendowi przez API. W tym projekcie
+      backend to serwer Python (FastAPI) dostępny pod adresem <code>apiBaseUrl</code>.
+    </div>
+
+    <h3>CRUD</h3>
+    <div class="callout orange">
+      <div class="callout-title">CRUD — Create, Read, Update, Delete</div>
+      Cztery podstawowe operacje na danych, które realizuje niemal każda aplikacja:
+      <ul style="margin-top:8px">
+        <li><strong>Create (Utwórz)</strong> — dodanie nowego rekordu (np. dodanie nowej sali wykładowej)</li>
+        <li><strong>Read (Odczyt)</strong> — pobranie i wyświetlenie danych (np. lista przedmiotów)</li>
+        <li><strong>Update (Aktualizacja)</strong> — edycja istniejącego rekordu (np. zmiana liczby miejsc w sali)</li>
+        <li><strong>Delete (Usunięcie)</strong> — usunięcie rekordu (np. usunięcie użytkownika)</li>
+      </ul>
+      W projekcie CRUD wykonuje się przez wysyłanie żądań HTTP do API.
+    </div>
+
+    <h3>API i REST API</h3>
+    <div class="callout">
+      <div class="callout-title">API (Application Programming Interface)</div>
+      Zestaw reguł definiujący, jak dwa programy mogą się ze sobą komunikować. To swoisty "kontrakt"
+      między frontendem a backendem — frontend wie, pod jaki adres wysłać żądanie i jaki format danych
+      otrzyma w odpowiedzi.
+    </div>
+    <div class="callout green">
+      <div class="callout-title">REST API (REpresentational State Transfer)</div>
+      Popularny styl architektury API oparty na protokole HTTP. Główne zasady:
+      <ul style="margin-top:8px">
+        <li>Zasoby identyfikowane przez adresy URL, np. <code>/subjects/42</code></li>
+        <li>Operacje realizowane przez metody HTTP: <strong>GET</strong> (pobierz), <strong>POST</strong> (utwórz),
+          <strong>PUT/PATCH</strong> (aktualizuj), <strong>DELETE</strong> (usuń)
+        </li>
+        <li>Komunikacja bezstanowa — każde żądanie jest niezależne</li>
+        <li>Dane wymieniane w formacie <strong>JSON</strong></li>
+      </ul>
+      W projekcie wszystkie serwisy <code>*-api.service.ts</code> wywołują REST API backendu.
+    </div>
+
+    <h3>JSON</h3>
+    <div class="callout purple">
+      <div class="callout-title">JSON (JavaScript Object Notation)</div>
+      Lekki format wymiany danych — tekstowy zapis obiektów. Przykład odpowiedzi API zwracającej salę:
+      <pre><code>{
+  "id": 5,
+  "room_number": "A105",
+  "seats_count": 30,
+  "room_type": "Laboratorium"
+}</code></pre>
+      Przeglądarka zamienia ten tekst na obiekt JavaScript, z którym pracuje Angular.
+    </div>
+
+    <h3>HTTP i metody HTTP</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Metoda</th>
+          <th>Znaczenie</th>
+          <th>Przykład w projekcie</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>GET</code></td>
+          <td>Pobiera dane (nie modyfikuje)</td>
+          <td>Pobranie listy przedmiotów</td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td>Tworzy nowy zasób / wysyła dane</td>
+          <td>Logowanie, dodanie sali</td>
+        </tr>
+        <tr>
+          <td><code>PUT</code></td>
+          <td>Całkowita aktualizacja zasobu</td>
+          <td>Aktualizacja klucza publicznego</td>
+        </tr>
+        <tr>
+          <td><code>PATCH</code></td>
+          <td>Częściowa aktualizacja zasobu</td>
+          <td>Zmiana liczby godzin w przydziale</td>
+        </tr>
+        <tr>
+          <td><code>DELETE</code></td>
+          <td>Usuwa zasób</td>
+          <td>Usunięcie notatki niedostępności</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2>Uwierzytelnianie i bezpieczeństwo</h2>
+
+    <h3>JWT — JSON Web Token</h3>
+    <div class="callout">
+      <div class="callout-title">JWT (JSON Web Token)</div>
+      Kompaktowy, kryptograficznie podpisany token (ciąg znaków) służący do potwierdzania tożsamości
+      użytkownika. Składa się z trzech części oddzielonych kropką: <code>header.payload.signature</code>
+      <ul style="margin-top:8px">
+        <li><strong>Header</strong> — informacja o algorytmie podpisu (np. RS256)</li>
+        <li><strong>Payload</strong> — dane użytkownika: <code>user_id</code>, <code>role</code>, <code>exp</code> (czas
+          wygaśnięcia)</li>
+        <li><strong>Signature</strong> — podpis weryfikujący autentyczność — tylko serwer może go wygenerować</li>
+      </ul>
+      Frontend przechowuje token w pamięci RAM i wysyła go w każdym żądaniu do API.
+      Po wygaśnięciu (np. 15 minut) zostaje automatycznie odświeżony przez Refresh Token.
+    </div>
+
+    <h3>Access Token vs. Refresh Token</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Token</th>
+          <th>Czas życia</th>
+          <th>Gdzie przechowywany</th>
+          <th>Cel</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Access Token</strong></td>
+          <td>Krótki (np. 15 min)</td>
+          <td>Pamięć RAM aplikacji (nietrwały)</td>
+          <td>Autoryzacja każdego żądania API</td>
+        </tr>
+        <tr>
+          <td><strong>Refresh Token</strong></td>
+          <td>Długi (np. 7 dni)</td>
+          <td>HttpOnly Cookie (niedostępny dla JS)</td>
+          <td>Uzyskanie nowego Access Tokena bez re-logowania</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout green">
+      <div class="callout-title">HttpOnly Cookie — dlaczego bezpieczniejszy?</div>
+      Cookie z flagą <code>HttpOnly</code> nie jest dostępne przez JavaScript — przez co ewentualny
+      złośliwy skrypt na stronie (atak XSS) nie może go ukraść. Przeglądarka wysyła go automatycznie
+      przy każdym żądaniu do odpowiedniej domeny.
+    </div>
+
+    <h3>Interceptor HTTP</h3>
+    <div class="callout purple">
+      <div class="callout-title">Interceptor</div>
+      Mechanizm przechwytujący każde żądanie HTTP "w locie" przed jego wysłaniem lub po odebraniu
+      odpowiedzi. To odpowiednik "bramki" przez którą przechodzi każde żądanie. W projekcie
+      <code>auth.interceptor.ts</code> automatycznie:
+      <ul style="margin-top:8px">
+        <li>Dodaje <code>withCredentials: true</code> (wysyła cookie) do każdego żądania API</li>
+        <li>Przy błędzie 401 (brak autoryzacji) próbuje automatycznie odświeżyć token</li>
+        <li>Jeśli refresh się nie powiedzie, przekierowuje do strony logowania</li>
+      </ul>
+    </div>
+
+    <h3>RSA-OAEP — Szyfrowanie asymetryczne</h3>
+    <div class="callout red">
+      <div class="callout-title">Szyfrowanie asymetryczne RSA</div>
+      System szyfrowania używający <strong>pary kluczy</strong>: klucza publicznego i prywatnego.
+      <ul style="margin-top:8px">
+        <li><strong>Klucz publiczny</strong> — może być udostępniony wszystkim; służy do <em>szyfrowania</em></li>
+        <li><strong>Klucz prywatny</strong> — tajny, tylko właściciel; służy do <em>odszyfrowania</em></li>
+        <li>To co zaszyfrowano kluczem publicznym <strong>A</strong>, odszyfrowuje tylko klucz prywatny
+          <strong>A</strong></li>
+      </ul>
+      W projekcie: każdy użytkownik przy logowaniu generuje własną parę RSA-OAEP 2048-bit.
+      Wiadomości czatu są szyfrowane kluczem publicznym odbiorcy — przeczytać je może tylko odbiorca
+      swoim prywatnym kluczem. To jest <strong>end-to-end encryption (E2EE)</strong>.
+    </div>
+
+    <h3>IndexedDB</h3>
+    <div class="callout">
+      <div class="callout-title">IndexedDB</div>
+      Wbudowana baza danych przeglądarki pozwalająca trwale przechowywać dane po stronie klienta.
+      W projekcie: klucz prywatny RSA jest zapisywany w IndexedDB (baza <code>zpi-crypto</code>)
+      — trwa między sesjami ale nie opuszcza urządzenia użytkownika.
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>Real-time i komunikacja</h2>
+
+    <h3>WebSocket i Socket.IO</h3>
+    <div class="callout green">
+      <div class="callout-title">WebSocket</div>
+      Protokół umożliwiający dwukierunkową, trwałą komunikację między przeglądarką a serwerem
+      w czasie rzeczywistym. W przeciwieństwie do HTTP (gdzie klient zawsze inicjuje żądanie),
+      WebSocket pozwala serwerowi samodzielnie wysyłać dane do klienta.
+      <br><br>
+      Przykład: gdy ktoś wyśle wiadomość na czacie, serwer natychmiast "pcha" ją do przeglądarki
+      odbiorcy — bez potrzeby ciągłego odpytywania serwera co sekundę ("polling").
+    </div>
+    <div class="callout">
+      <div class="callout-title">Socket.IO</div>
+      Biblioteka zbudowana nad WebSocket, dodająca automatyczne ponowne łączenie, obsługę pokojów
+      (rooms), potwierdzenia dostarczenia i mechanizmy fallback. W projekcie używana w
+      <code>websocket.service.ts</code> do obsługi czatu real-time.
+    </div>
+
+    <h3>RxJS i Observable</h3>
+    <div class="callout purple">
+      <div class="callout-title">RxJS / Observable / BehaviorSubject</div>
+      Biblioteka do programowania reaktywnego. Zamiast jednorazowych wartości, operuje się na
+      "strumieniach" danych (Observable) — sekwencjach wartości emitowanych w czasie.
+      <ul style="margin-top:8px">
+        <li><strong>Observable</strong> — strumień danych, można się "subskrybować" i reagować na każdą nową wartość
+        </li>
+        <li><strong>BehaviorSubject</strong> — Observable przechowujący zawsze aktualną wartość (np. stan zalogowania)
+        </li>
+        <li><strong>Subject</strong> — "kanał" do emitowania zdarzeń (np. nowa wiadomość na czacie)</li>
+        <li><strong>pipe/map/catchError</strong> — operatory do transformacji i obsługi błędów w strumieniach</li>
+      </ul>
+      Przykład w projekcie: <code>isAuthenticated$</code> to BehaviorSubject — menu automatycznie
+      pojawia się gdy jego wartość zmieni się na <code>true</code>.
+    </div>
+
+    <h2>Frameworki i biblioteki UI</h2>
+
+    <h3>Angular</h3>
+    <div class="callout">
+      <div class="callout-title">Angular (framework frontendowy Google)</div>
+      Pełnoprawny framework JavaScript/TypeScript do budowania aplikacji SPA. Główne koncepcje:
+      <ul style="margin-top:8px">
+        <li><strong>Komponent</strong> — samodzielna jednostka UI (klasa TS + szablon HTML + style CSS)</li>
+        <li><strong>Serwis (Service)</strong> — klasa z logiką biznesową, wstrzykiwana przez Dependency Injection</li>
+        <li><strong>Dependency Injection (DI)</strong> — mechanizm automatycznego dostarczania serwisów do komponentów
+        </li>
+        <li><strong>Router</strong> — zarządza nawigacją między widokami bez przeładowania strony</li>
+        <li><strong>Standalone Components</strong> — nowszy wzorzec (Angular 14+), bez konieczności tworzenia modułów
+          NgModule</li>
+      </ul>
+    </div>
+
+    <h3>Ionic Framework</h3>
+    <div class="callout green">
+      <div class="callout-title">Ionic (biblioteka komponentów UI)</div>
+      Biblioteka gotowych komponentów interfejsu użytkownika zaprojektowanych dla aplikacji mobilnych
+      i desktopowych. Dostarcza komponenty takie jak: <code>ion-menu</code>, <code>ion-list</code>,
+      <code>ion-button</code>, <code>ion-modal</code> itd. Automatycznie dostosowuje wygląd do
+      platformy (iOS/Android/Web). W projekcie używany jako warstwa UI Angulara.
+    </div>
+
+    <h3>SPA — Single Page Application</h3>
+    <div class="callout orange">
+      <div class="callout-title">SPA (Single Page Application)</div>
+      Aplikacja webowa, która ładuje się raz jako pojedynczy plik HTML, a następnie dynamicznie
+      podmienia treść bez przeładowania całej strony. Nawigacja jest obsługiwana przez JavaScript
+      (Angular Router). Efekt: aplikacja działa jak program desktopowy — natychmiastowe przejścia,
+      brak "mignięć" strony. Plik <code>nginx.conf</code> jest skonfigurowany specjalnie dla SPA —
+      każda ścieżka URL przekierowuje do <code>index.html</code>.
+    </div>
+
+    <h3>TypeScript</h3>
+    <div class="callout">
+      <div class="callout-title">TypeScript</div>
+      Nadzbiór języka JavaScript dodający <strong>statyczne typowanie</strong>. Kompiluje się do
+      czystego JavaScript. Zalety w projekcie:
+      <ul style="margin-top:8px">
+        <li>Interfejsy (<code>interface RoomDto</code>) opisują strukturę danych — błędy typów wykrywane w edytorze</li>
+        <li>Autouzupełnianie kodu</li>
+        <li>Łatwiejsze refaktoryzacje</li>
+      </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>Infrastruktura i wdrożenie</h2>
+
+    <h3>Docker i konteneryzacja</h3>
+    <div class="callout purple">
+      <div class="callout-title">Docker</div>
+      Narzędzie do "konteneryzacji" — pakowania aplikacji razem ze wszystkimi zależnościami w
+      przenośny kontener. Kontener działa tak samo na każdej maszynie niezależnie od systemu
+      operacyjnego. <code>Dockerfile</code> zawiera instrukcje budowania obrazu: zainstaluj Node,
+      zbuduj aplikację Angular, skonfiguruj nginx.
+    </div>
+
+    <h3>nginx</h3>
+    <div class="callout green">
+      <div class="callout-title">nginx (serwer HTTP)</div>
+      Wydajny serwer webowy serwujący statyczne pliki. Po zbudowaniu aplikacja Angular to
+      zestaw plików HTML/JS/CSS — nginx je serwuje przeglądarce. Skonfigurowany w projekcie
+      specjalnie dla SPA: każde żądanie do nieznanej ścieżki zwraca <code>index.html</code>,
+      co pozwala Angularnemu routerowi obsłużyć nawigację.
+    </div>
+
+    <h3>Capacitor</h3>
+    <div class="callout">
+      <div class="callout-title">Capacitor (Ionic)</div>
+      Warstwa pozwalająca uruchomić aplikację webową (Angular/Ionic) jako natywną aplikację
+      mobilną (iOS/Android) lub desktopową, z dostępem do natywnych API urządzenia (aparat,
+      wibracje, pasek statusu). W tym projekcie zainstalowany jako opcja na przyszłość —
+      projekt działa głównie jako web app.
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+     2. STACK
+     ═══════════════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="stack">2. Stack technologiczny</h1>
+
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-label">Frontend Framework</div>
+        <div class="tech-name">Angular 20</div>
+        Główny framework do budowania UI. Standalone Components, reaktywne formularze, lazy loading tras.
+      </div>
+      <div class="tech-card">
+        <div class="tech-label">UI Components</div>
+        <div class="tech-name">Ionic Framework 8</div>
+        Biblioteka komponentów — menu, listy, buttony, modale, ikony ionicons. Responsive design.
+      </div>
+      <div class="tech-card">
+        <div class="tech-label">Język programowania</div>
+        <div class="tech-name">TypeScript</div>
+        Statycznie typowany JavaScript. Interfejsy DTO dla danych API, silne typowanie serwisów.
+      </div>
+      <div class="tech-card">
+        <div class="tech-label">Real-time</div>
+        <div class="tech-name">Socket.IO Client 4</div>
+        Dwukierunkowa komunikacja z serwerem — czat w czasie rzeczywistym, powiadomienia push.
+      </div>
+      <div class="tech-card">
+        <div class="tech-label">Programowanie reaktywne</div>
+        <div class="tech-name">RxJS 7.8</div>
+        Obsługa asynchronicznych strumieni danych, operatory pipe, BehaviorSubject.
+      </div>
+      <div class="tech-card">
+        <div class="tech-label">Kryptografia</div>
+        <div class="tech-name">Web Crypto API</div>
+        Wbudowane API przeglądarki — generowanie kluczy RSA-OAEP 2048-bit, szyfrowanie E2EE.
+      </div>
+      <div class="tech-card">
+        <div class="tech-label">Konteneryzacja</div>
+        <div class="tech-name">Docker + nginx</div>
+        Wieloetapowy build: Node.js buduje app, nginx serwuje pliki statyczne w produkcji.
+      </div>
+      <div class="tech-card">
+        <div class="tech-label">Mobile bridge</div>
+        <div class="tech-name">Capacitor (Ionic)</div>
+        Opcjonalne wdrożenie jako aplikacja mobilna iOS/Android z dostępem do natywnych API.
+      </div>
+    </div>
+
+    <h3>Zależności produkcyjne (package.json)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Pakiet</th>
+          <th>Wersja</th>
+          <th>Rola</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>@angular/core</code></td>
+          <td>^20.0.0</td>
+          <td>Core frameworku Angular</td>
+        </tr>
+        <tr>
+          <td><code>@angular/router</code></td>
+          <td>^20.0.0</td>
+          <td>Routing SPA</td>
+        </tr>
+        <tr>
+          <td><code>@angular/forms</code></td>
+          <td>^20.0.0</td>
+          <td>Formularze reaktywne i template-driven</td>
+        </tr>
+        <tr>
+          <td><code>@ionic/angular</code></td>
+          <td>^8.0.0</td>
+          <td>Komponenty UI Ionic</td>
+        </tr>
+        <tr>
+          <td><code>ionicons</code></td>
+          <td>^7.0.0</td>
+          <td>Biblioteka ikon SVG</td>
+        </tr>
+        <tr>
+          <td><code>socket.io-client</code></td>
+          <td>^4.8.3</td>
+          <td>Klient WebSocket (Socket.IO)</td>
+        </tr>
+        <tr>
+          <td><code>rxjs</code></td>
+          <td>~7.8.0</td>
+          <td>Programowanie reaktywne</td>
+        </tr>
+        <tr>
+          <td><code>zone.js</code></td>
+          <td>~0.15.0</td>
+          <td>Detekcja zmian w Angularze</td>
+        </tr>
+        <tr>
+          <td><code>@capacitor/core</code></td>
+          <td>latest</td>
+          <td>Bridge do natywnych funkcji urządzenia</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ═══════════════════════════════════════════════════════
+     3. ARCHITEKTURA
+     ═══════════════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="architektura">3. Architektura aplikacji</h1>
+
+    <h2>Diagram warstw</h2>
+    <div class="arch-box">
+      <div style="text-align:center;font-weight:700;margin-bottom:12px;color:#0f3460">
+        PRZEGLĄDARKA / DESKTOP
+      </div>
+      <div class="arch-layer">
+        <span class="arch-item">Login Page</span>
+        <span class="arch-item">Change Password Page</span>
+      </div>
+      <div class="arch-arrow">↕</div>
+      <div class="arch-layer">
+        <span class="arch-item">app.component (Menu + FAB + Powiadomienia)</span>
+      </div>
+      <div class="arch-arrow">↕</div>
+      <div class="arch-layer">
+        <span class="arch-item">Home (Dezyderaty)</span>
+        <span class="arch-item">Harmonogram</span>
+        <span class="arch-item">Konflikty</span>
+        <span class="arch-item">Sale</span>
+        <span class="arch-item">Przedmioty</span>
+        <span class="arch-item">Przydziały</span>
+        <span class="arch-item">Admin</span>
+        <span class="arch-item">Czat</span>
+        <span class="arch-item">Audit Logs</span>
+        <span class="arch-item">Profil</span>
+      </div>
+      <div class="arch-arrow">↕</div>
+      <div class="arch-layer">
+        <span class="arch-item light">auth.guard</span>
+        <span class="arch-item light">auth.interceptor</span>
+        <span class="arch-item light">AuthService</span>
+        <span class="arch-item light">JwtService</span>
+        <span class="arch-item light">CryptoService</span>
+        <span class="arch-item light">WebSocketService</span>
+      </div>
+      <div class="arch-arrow">↕ HTTP REST &nbsp;&nbsp; ↕ WebSocket</div>
+      <div class="arch-layer">
+        <span class="arch-item red">BACKEND (Python FastAPI)</span>
+        <span class="arch-item red">Baza danych PostgreSQL</span>
+      </div>
+    </div>
+
+    <h2>Struktura katalogów</h2>
+    <pre><code>src/app/
+├── core/                     ← Logika współdzielona (singleton services)
+│   ├── auth/                 ← auth.guard, auth.service (JWT), jwt.service
+│   ├── interceptors/         ← auth.interceptor (auto-refresh tokenów)
+│   ├── services/             ← Serwisy API dla każdego obszaru backendu
+│   └── validators/           ← Walidatory formularzy (hasło, email, imię)
+│
+├── features/                 ← Moduły funkcjonalne (lazy-loaded)
+│   ├── home/                 ← Dezyderaty (dostępność wykładowcy)
+│   ├── hermonogram/          ← Harmonogram tygodniowy z Rapłą
+│   ├── konflikty/            ← Widok konfliktów w planie
+│   ├── sale/                 ← CRUD sal wykładowych
+│   ├── subjects/             ← CRUD przedmiotów
+│   ├── teaching-loads/       ← Przydziały godzin
+│   ├── admin/                ← Panel admina (użytkownicy, notatki)
+│   ├── chat/                 ← Czat real-time z E2EE
+│   ├── audit/                ← Historia zmian
+│   └── profile/              ← Profil i ustawienia
+│
+├── pages/                    ← Strony bez wymogu auth
+│   ├── login/                ← Formularz logowania
+│   └── change-password/      ← Wymuszona zmiana hasła
+│
+├── app.routes.ts             ← Definicja wszystkich ścieżek URL
+└── app.component.*           ← Root: menu boczne, powiadomienia, FAB</code></pre>
+
+    <h2>Wzorzec Standalone Components</h2>
+    <p>
+      Projekt używa <strong>Standalone Components</strong> — nowoczesnego wzorca Angular 14+, gdzie
+      każdy komponent deklaruje własne zależności (importy) bez potrzeby tworzenia modułów
+      <code>NgModule</code>. Dzięki temu możliwy jest <strong>lazy loading</strong> — ładowanie
+      kodu strony dopiero gdy użytkownik do niej nawiguje, co przyspiesza start aplikacji.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════
+     4. CORE
+     ═══════════════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="core">4. Warstwa rdzenia (core/)</h1>
+
+    <h2>4.1 Uwierzytelnianie — auth/</h2>
+
+    <h3>auth.service.ts (core/auth)</h3>
+    <p>Serwis backendu JWT. Zarządza cyklem życia tokenów.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Metoda</th>
+          <th>Endpoint</th>
+          <th>Opis</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>login(payload)</code></td>
+          <td>POST <code>/auth/</code></td>
+          <td>Wysyła login+hasło, otrzymuje access token</td>
+        </tr>
+        <tr>
+          <td><code>refreshAccessToken()</code></td>
+          <td>POST <code>/auth/refresh</code></td>
+          <td>Odświeżenie tokena z refresh cookie</td>
+        </tr>
+        <tr>
+          <td><code>fetchCurrentUser()</code></td>
+          <td>GET <code>/auth/me</code></td>
+          <td>Pobiera dane zalogowanego użytkownika</td>
+        </tr>
+        <tr>
+          <td><code>logout()</code></td>
+          <td>POST <code>/auth/logout</code></td>
+          <td>Wyczyszczenie sesji po stronie serwera</td>
+        </tr>
+        <tr>
+          <td><code>isAuthenticated()</code></td>
+          <td>—</td>
+          <td>Sprawdza czy token nie wygasł (z buforem 10s)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>jwt.service.ts</h3>
+    <p>
+      Dekoduje tokeny JWT bez zewnętrznych bibliotek. Używa wbudowanej funkcji <code>atob()</code>
+      przeglądarki do dekodowania Base64 payloadu. Metody: <code>decodePayload</code>,
+      <code>getExpirationDate</code>, <code>isExpired</code>, <code>getUserId</code>, <code>getRole</code>.
+    </p>
+
+    <h3>auth.guard.ts</h3>
+    <div class="callout orange">
+      <div class="callout-title">Route Guard — ochrona tras</div>
+      Sprawdzany zanim Angular wyrenderuje jakikolwiek chroniony widok. Logika:
+      <ol style="margin-top:8px">
+        <li>Jeśli token ważny + <code>mustChangePassword</code> → przekieruj na <code>/change-password</code></li>
+        <li>Jeśli token ważny → przepuść</li>
+        <li>Jeśli token wygasły → spróbuj odświeżyć z refresh cookie</li>
+        <li>Jeśli refresh się nie powiódł → przekieruj na <code>/login</code></li>
+      </ol>
+    </div>
+
+    <h2>4.2 HTTP Interceptor — interceptors/</h2>
+    <h3>auth.interceptor.ts</h3>
+    <p>
+      Przechwytuje <strong>każde</strong> żądanie HTTP do <code>apiBaseUrl</code>.
+      Automatycznie obsługuje 401 z deduplicją refreshu — wiele jednoczesnych żądań 401
+      wywołuje tylko <strong>jeden</strong> refresh request (dzięki <code>shareReplay(1)</code>
+      i zmiennej <code>refreshInFlight$</code>).
+    </p>
+
+    <h2>4.3 Serwisy API — services/</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Serwis</th>
+          <th>Endpoint backendu</th>
+          <th>Operacje CRUD</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>auth.service.ts</code></td>
+          <td><code>/auth/me</code>, <code>/users/:id/public-key</code></td>
+          <td>Sesja, motyw, avatar, klucz RSA</td>
+        </tr>
+        <tr>
+          <td><code>subjects-api.service.ts</code></td>
+          <td><code>/subjects</code>, <code>/activities</code></td>
+          <td>CRUD przedmiotów i słowników</td>
+        </tr>
+        <tr>
+          <td><code>rooms-api.service.ts</code></td>
+          <td><code>/rooms</code></td>
+          <td>CRUD sal, typów, sprzętu, wydziałów</td>
+        </tr>
+        <tr>
+          <td><code>teaching-loads-api.service.ts</code></td>
+          <td><code>/teaching-loads</code></td>
+          <td>CRUD przydziałów godzin dydaktycznych</td>
+        </tr>
+        <tr>
+          <td><code>dezyderata.service.ts</code></td>
+          <td><code>/dezyderaty</code>, <code>/dezyderaty/semestry</code></td>
+          <td>CRUD dezyderatów i semestrów</td>
+        </tr>
+        <tr>
+          <td><code>unavailability-notes-api.service.ts</code></td>
+          <td><code>/unavailability-notes</code></td>
+          <td>CRUD notatek niedostępności</td>
+        </tr>
+        <tr>
+          <td><code>notifications-api.service.ts</code></td>
+          <td><code>/notifications</code></td>
+          <td>Read + oznacz jako przeczytane</td>
+        </tr>
+        <tr>
+          <td><code>audit-api.service.ts</code></td>
+          <td><code>/audit-logs</code></td>
+          <td>Read + potwierdzenie obejrzenia</td>
+        </tr>
+        <tr>
+          <td><code>rapla-api.service.ts</code></td>
+          <td><code>/rapla</code></td>
+          <td>Import pliku Rapla, pobieranie rezerwacji</td>
+        </tr>
+        <tr>
+          <td><code>users-admin-api.service.ts</code></td>
+          <td><code>/users</code> (admin)</td>
+          <td>CRUD kont użytkowników (admin)</td>
+        </tr>
+        <tr>
+          <td><code>projects-api.service.ts</code></td>
+          <td><code>/api/projects</code></td>
+          <td>Read lista projektów</td>
+        </tr>
+        <tr>
+          <td><code>websocket.service.ts</code></td>
+          <td>Socket.IO WS</td>
+          <td>Real-time: wiadomości, typing, presence</td>
+        </tr>
+        <tr>
+          <td><code>crypto.service.ts</code></td>
+          <td>IndexedDB + <code>/users/:id/public-key</code></td>
+          <td>Generowanie i zarządzanie kluczami RSA</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>4.4 Walidatory formularzy — validators/</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Walidator</th>
+          <th>Reguła</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>nameValidator()</code></td>
+          <td>Polskie znaki, myślnik, spacja, 2–100 znaków</td>
+        </tr>
+        <tr>
+          <td><code>strictEmailValidator()</code></td>
+          <td>Format email wg regex</td>
+        </tr>
+        <tr>
+          <td><code>passwordStrengthValidator()</code></td>
+          <td>Min. 8 znaków, wielka litera, cyfra, znak specjalny</td>
+        </tr>
+        <tr>
+          <td><code>passwordMatchValidator()</code></td>
+          <td>Zgodność dwóch pól hasła (poziom FormGroup)</td>
+        </tr>
+        <tr>
+          <td><code>passwordNotContainsNameValidator()</code></td>
+          <td>Hasło nie może zawierać imienia/nazwiska</td>
+        </tr>
+        <tr>
+          <td><code>calcPasswordStrength()</code></td>
+          <td>Zwraca 0–4 (wskaźnik siły hasła)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ═══════════════════════════════════════════════════════
+     5. STRONY WEJŚCIOWE
+     ═══════════════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="strony-wejsciowe">5. Strony wejściowe — Login i Zmiana hasła</h1>
+
+    <h2>5.1 login.page — ścieżka <code>/login</code></h2>
+    <p>
+      Formularz logowania. Pola: <strong>login</strong> i <strong>hasło</strong> (z przełącznikiem
+      widoczności). Po poprawnym logowaniu: jeśli flaga <code>mustChangePassword</code> jest ustawiona,
+      użytkownik trafia na <code>/change-password</code>, w przeciwnym razie na <code>/home</code>.
+      Błędne dane → komunikat w języku polskim. Spinner podczas oczekiwania na odpowiedź API.
+    </p>
+    <p>Strona dostępna bez uwierzytelnienia — nie jest chroniona przez <code>authGuard</code>.</p>
+
+    <h2>5.2 change-password.page — ścieżka <code>/change-password</code></h2>
+    <p>
+      Wymuszona zmiana hasła przy pierwszym logowaniu (lub gdy administrator zresetuje konto).
+      Używa <strong>reaktywnego formularza</strong> (<code>ReactiveFormsModule</code>):
+    </p>
+    <ul>
+      <li>Pole <strong>Nowe hasło</strong> — walidowane przez <code>passwordStrengthValidator</code>
+        i <code>passwordNotContainsNameValidator</code></li>
+      <li>Pole <strong>Potwierdź hasło</strong> — sprawdzane przez <code>passwordMatchValidator</code></li>
+      <li><strong>Wskaźnik siły hasła</strong> — kolorowy pasek (słabe/średnie/mocne/bardzo mocne)</li>
+    </ul>
+    <p>
+      Po pomyślnej zmianie: flaga <code>mustChangePassword</code> jest zerowana, użytkownik
+      trafia na <code>/home</code>.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════
+     6. FEATURES
+     ═══════════════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="features">6. Moduły funkcjonalne (features/)</h1>
+
+    <h2>6.1 home/ — Dezyderaty</h2>
+    <table>
+      <tbody>
+        <tr>
+          <td><strong>Ścieżka URL</strong></td>
+          <td><code>/home</code></td>
+        </tr>
+        <tr>
+          <td><strong>Dostęp</strong></td>
+          <td>Wszyscy zalogowani użytkownicy</td>
+        </tr>
+        <tr>
+          <td><strong>Cel</strong></td>
+          <td>Wykładowca określa swoją dostępność godzinową per semestr i dzień tygodnia</td>
+        </tr>
+        <tr>
+          <td><strong>API</strong></td>
+          <td><code>DezyderataService</code> → <code>/dezyderaty</code>, <code>/dezyderaty/semestry</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>Dezyderata</strong> to preferencja dostępności: użytkownik określa dla danego semestru,
+      w jakich dniach tygodnia i godzinach jest dostępny lub niedostępny. Planiści uwzględniają
+      te dane przy układaniu harmonogramu.
+    </p>
+
+    <h2>6.2 hermonogram/ — Harmonogram zajęć</h2>
+    <table>
+      <tbody>
+        <tr>
+          <td><strong>Ścieżka URL</strong></td>
+          <td><code>/hermonogram</code></td>
+        </tr>
+        <tr>
+          <td><strong>Dostęp</strong></td>
+          <td>Admin, planer, rapla_editor (nie wykładowca)</td>
+        </tr>
+        <tr>
+          <td><strong>Cel</strong></td>
+          <td>Widok tygodniowego kalendarza z zaplanowanymi zajęciami z systemu Rapla</td>
+        </tr>
+        <tr>
+          <td><strong>API</strong></td>
+          <td><code>RaplaApiService</code> → <code>/rapla/reservations</code>, <code>/rapla/file/import</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Funkcje strony:</p>
+    <ul>
+      <li><strong>Siatka godzinowa</strong> — godziny 7:00–21:00, kolumny = dni tygodnia</li>
+      <li><strong>Mini-kalendarz</strong> — nawigacja po tygodniach, zaznaczenie aktualnego dnia</li>
+      <li><strong>Import Rapla</strong> — wgranie pliku eksportu z systemu Rapla (uczelniany system planowania);
+        rezerwacje renderowane na siatce z obliczoną pozycją i wysokością (offset w minutach)</li>
+      <li><strong>Kolizje</strong> — nakładające się zdarzenia renderowane obok siebie z obliczoną szerokością</li>
+    </ul>
+
+    <h2>6.3 konflikty/ — Konflikty harmonogramu</h2>
+    <table>
+      <tbody>
+        <tr>
+          <td><strong>Ścieżka URL</strong></td>
+          <td><code>/konflikty</code></td>
+        </tr>
+        <tr>
+          <td><strong>Dostęp</strong></td>
+          <td>Admin, planer (nie wykładowca)</td>
+        </tr>
+        <tr>
+          <td><strong>Cel</strong></td>
+          <td>Przeglądanie wykrytych konfliktów w harmonogramie (dwie rezerwacje w tym samym czasie/miejscu)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>6.4 sale/ — Sale wykładowe (CRUD)</h2>
+    <table>
+      <tbody>
+        <tr>
+          <td><strong>Dostęp</strong></td>
+          <td>Tylko admin</td>
+        </tr>
+        <tr>
+          <td><strong>API</strong></td>
+          <td><code>RoomsApiService</code> → <code>/rooms</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Strona</th>
+          <th>Ścieżka</th>
+          <th>Funkcja</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>sale-list.page</code></td>
+          <td><code>/sale</code></td>
+          <td>Lista wszystkich sal z wyszukiwarką, edycja inline, usuwanie</td>
+        </tr>
+        <tr>
+          <td><code>sale.page</code></td>
+          <td><code>/sale/new</code>, <code>/sale/:id/edit</code></td>
+          <td>Formularz tworzenia/edycji: numer sali, liczba miejsc, typ, sprzęt specjalny, wydziały, aktywności</td>
+        </tr>
+        <tr>
+          <td><code>sale-dictionaries.page</code></td>
+          <td><code>/sale/dictionaries</code></td>
+          <td>Zarządzanie słownikami: typy sal, sprzęt specjalny, typy aktywności</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>6.5 subjects/ — Przedmioty (CRUD)</h2>
+    <table>
+      <tbody>
+        <tr>
+          <td><strong>Dostęp</strong></td>
+          <td>Tylko admin</td>
+        </tr>
+        <tr>
+          <td><strong>API</strong></td>
+          <td><code>SubjectsApiService</code> → <code>/subjects</code>, <code>/activities</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Strona / Komponent</th>
+          <th>Ścieżka</th>
+          <th>Funkcja</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>subject-list.page</code></td>
+          <td><code>/subjects</code></td>
+          <td>Lista przedmiotów z filtrowaniem i sortowaniem</td>
+        </tr>
+        <tr>
+          <td><code>subject.page</code></td>
+          <td><code>/subjects/new</code>, <code>/subjects/:id/edit</code></td>
+          <td>Formularz: nazwa, typ aktywności, właściwości wymaganej sali, blokada, cykliczność</td>
+        </tr>
+        <tr>
+          <td><code>subject-dictionaries.page</code></td>
+          <td><code>/subjects/dictionaries</code></td>
+          <td>Słowniki przedmiotów</td>
+        </tr>
+        <tr>
+          <td><code>unavailability-note-modal</code></td>
+          <td>Modal</td>
+          <td>Dodanie notatki o niedostępności z poziomu widoku przedmiotu</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>6.6 teaching-loads/ — Przydział godzin dydaktycznych</h2>
+    <table>
+      <tbody>
+        <tr>
+          <td><strong>Ścieżka URL</strong></td>
+          <td><code>/teaching-loads</code></td>
+        </tr>
+        <tr>
+          <td><strong>Dostęp</strong></td>
+          <td>Tylko admin</td>
+        </tr>
+        <tr>
+          <td><strong>API</strong></td>
+          <td><code>TeachingLoadsApiService</code>, <code>SubjectsApiService</code>, <code>DezyderataService</code>,
+            <code>AuditApiService</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Funkcjonalności strony:</p>
+    <ul>
+      <li><strong>Tabela przydziałów</strong> — kolumny: wykładowca, przedmiot, typ aktywności, semestr, liczba godzin
+      </li>
+      <li><strong>Edycja inline</strong> — kliknięcie wiersza uruchamia tryb edycji bezpośrednio w tabeli (bez
+        otwierania formularza)</li>
+      <li><strong>Filtry wielopoziomowe</strong> — po nauczycielu, przedmiocie, aktywności, semestrze, zakresie godzin
+      </li>
+      <li><strong>Historia zmian per wpis</strong> — przycisk rozwijający audit log dla konkretnego przydziału</li>
+      <li><strong>Tworzenie nowych wierszy</strong> — "nowy wiersz" bezpośrednio w tabeli</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>6.7 admin/ — Panel administratora</h2>
+
+    <h3>Dodawanie użytkowników — <code>/admin/users/new</code></h3>
+    <p>
+      Formularz tworzenia nowego konta użytkownika. Pola:
+      imię, nazwisko, email, hasło, <strong>role</strong> (multi-select),
+      <strong>wydziały</strong> (multi-select), <strong>tytuły naukowe</strong>.
+      Używa serwisu <code>UsersAdminApiService</code> → endpoint <code>/users</code> (POST).
+    </p>
+
+    <h3>Notatki niedostępności — <code>/admin/unavailability-notes</code></h3>
+    <p>
+      Widok listy wszystkich notatek niedostępności zgłoszonych przez wykładowców.
+      Administrator może zmieniać status notatki:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Znaczenie</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>pending</code></td>
+          <td>Oczekuje na decyzję admina</td>
+        </tr>
+        <tr>
+          <td><code>accepted</code></td>
+          <td>Zaakceptowana — wykładowca wolny w tym terminie</td>
+        </tr>
+        <tr>
+          <td><code>rejected</code></td>
+          <td>Odrzucona — wykładowca musi być dostępny</td>
+        </tr>
+        <tr>
+          <td><code>acknowledged</code></td>
+          <td>Przyjęte do wiadomości (notatka wymuszona)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Dwa typy notatek: <code>request</code> (prośba wykładowcy) i <code>forced</code> (narzucona przez admina).
+    </p>
+
+    <h2>6.8 chat/ — Czat real-time z szyfrowaniem E2EE</h2>
+    <table>
+      <tbody>
+        <tr>
+          <td><strong>Ścieżka URL</strong></td>
+          <td><code>/chat</code></td>
+        </tr>
+        <tr>
+          <td><strong>Dostęp</strong></td>
+          <td>Wszyscy zalogowani</td>
+        </tr>
+        <tr>
+          <td><strong>Serwisy</strong></td>
+          <td><code>ChatApiService</code>, <code>WebSocketService</code>, <code>CryptoService</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Architektura komponentów czatu:</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Komponent</th>
+          <th>Rola</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>chat.page</code></td>
+          <td>Strona-wrapper — nagłówek Ionic, osadza ChatComponent</td>
+        </tr>
+        <tr>
+          <td><code>chat.component</code></td>
+          <td>Główna logika — zarządzanie konwersacjami przez WebSocket</td>
+        </tr>
+        <tr>
+          <td><code>chat-rooms-view</code></td>
+          <td>Lista pokojów/konwersacji z podglądem ostatniej wiadomości</td>
+        </tr>
+        <tr>
+          <td><code>chat-contacts-view</code></td>
+          <td>Lista kontaktów użytkownika</td>
+        </tr>
+        <tr>
+          <td><code>chat-create-room-view</code></td>
+          <td>Formularz tworzenia nowego pokoju czatu</td>
+        </tr>
+        <tr>
+          <td><code>chat-panel-tabs</code></td>
+          <td>Zakładki Pokoje / Kontakty / Nowy pokój</td>
+        </tr>
+        <tr>
+          <td><code>chat-panel-header</code></td>
+          <td>Nagłówek panelu z nazwą rozmowy</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Jak działa szyfrowanie E2EE w czacie:</p>
+    <div class="callout purple">
+      <div class="callout-title">Proces szyfrowania wiadomości</div>
+      <ol style="margin-top:8px">
+        <li>Przy logowaniu <code>CryptoService</code> sprawdza, czy w <strong>IndexedDB</strong> istnieje klucz prywatny
+          RSA</li>
+        <li>Jeśli nie — generuje nową parę RSA-OAEP 2048-bit przez <strong>Web Crypto API</strong></li>
+        <li>Klucz prywatny zapisywany w IndexedDB (pozostaje na urządzeniu, nigdy nie wychodzi)</li>
+        <li>Klucz publiczny uploadowany na backend (<code>PUT /users/:id/public-key</code>)</li>
+        <li>Przed wysłaniem wiadomości: pobranie klucza publicznego odbiorcy z backendu</li>
+        <li>Wiadomość zaszyfrowana tym kluczem publicznym — odczytać może tylko odbiorca swoim prywatnym kluczem</li>
+      </ol>
+    </div>
+
+    <p>Strumienie real-time w <code>WebSocketService</code>:</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Observable</th>
+          <th>Zdarzenie Socket.IO</th>
+          <th>Opis</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>messageReceived$</code></td>
+          <td><code>message_received</code></td>
+          <td>Nowa wiadomość w konwersacji</td>
+        </tr>
+        <tr>
+          <td><code>userTyping$</code></td>
+          <td><code>user_typing</code></td>
+          <td>Wskaźnik "pisze..."</td>
+        </tr>
+        <tr>
+          <td><code>messageDelivered$</code></td>
+          <td><code>message_delivered</code></td>
+          <td>Potwierdzenie dostarczenia</td>
+        </tr>
+        <tr>
+          <td><code>messageRead$</code></td>
+          <td><code>message_read</code></td>
+          <td>Potwierdzenie przeczytania</td>
+        </tr>
+        <tr>
+          <td><code>userOnline$</code></td>
+          <td><code>user_online</code></td>
+          <td>Użytkownik dołączył do pokoju</td>
+        </tr>
+        <tr>
+          <td><code>userOffline$</code></td>
+          <td><code>user_offline</code></td>
+          <td>Użytkownik opuścił pokój</td>
+        </tr>
+        <tr>
+          <td><code>notification$</code></td>
+          <td><code>notification</code></td>
+          <td>Powiadomienie push z backendu</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>6.9 audit/ — Historia zmian (Audit Log)</h2>
+    <table>
+      <tbody>
+        <tr>
+          <td><strong>Ścieżka URL</strong></td>
+          <td><code>/audit-logs</code></td>
+        </tr>
+        <tr>
+          <td><strong>Dostęp</strong></td>
+          <td>Admin, rapla_editor, lecturer_rapla_editor</td>
+        </tr>
+        <tr>
+          <td><strong>API</strong></td>
+          <td><code>AuditApiService</code> → <code>/audit-logs</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Funkcjonalności:</p>
+    <ul>
+      <li>Logi pogrupowane po <strong>dacie</strong> i <strong>użytkowniku</strong> — powiązane zmiany w jednej "partii"
+      </li>
+      <li><strong>Oznaczanie nowości</strong> — wpisy dodane od ostatniego odwiedzenia wyróżnione kolorowo</li>
+      <li><strong>Filtry</strong> — po typie encji i akcji (CREATE/UPDATE/DELETE)</li>
+      <li><strong>Polskie etykiety</strong> — mapa <code>entityMap</code> tłumaczy techniczne nazwy modeli na czytelne
+        nazwy (np. <code>TeachingLoadAssignment</code> → "Przydział godzin")</li>
+      <li>Po wejściu na stronę: <code>acknowledgeChanges()</code> informuje backend, że użytkownik widział zmiany</li>
+    </ul>
+
+    <h2>6.10 profile/ — Profil użytkownika</h2>
+    <table>
+      <tbody>
+        <tr>
+          <td><strong>Ścieżka URL</strong></td>
+          <td><code>/profile</code></td>
+        </tr>
+        <tr>
+          <td><strong>Dostęp</strong></td>
+          <td>Wszyscy zalogowani</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Ustawienia konta: zmiana avatara, hasła, przeglądanie danych profilu (email, rola, wydział, tytuły).</p>
+
+    <!-- ═══════════════════════════════════════════════════════
+     7. ROUTING
+     ═══════════════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="routing">7. Routing i ochrona tras</h1>
+
+    <h2>Mapa wszystkich tras</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Ścieżka URL</th>
+          <th>Komponent</th>
+          <th>Guard</th>
+          <th>Dostęp</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>/login</code></td>
+          <td>LoginPage</td>
+          <td>Brak</td>
+          <td>Wszyscy</td>
+        </tr>
+        <tr>
+          <td><code>/change-password</code></td>
+          <td>ChangePasswordPage</td>
+          <td>Brak</td>
+          <td>Wszyscy</td>
+        </tr>
+        <tr>
+          <td><code>/home</code></td>
+          <td>HomePage</td>
+          <td>authGuard</td>
+          <td>Zalogowani</td>
+        </tr>
+        <tr>
+          <td><code>/hermonogram</code></td>
+          <td>HermonogramPage</td>
+          <td>authGuard</td>
+          <td>Admin, planer, rapla_editor</td>
+        </tr>
+        <tr>
+          <td><code>/konflikty</code></td>
+          <td>KonfliktyPage</td>
+          <td>authGuard</td>
+          <td>Admin, planer</td>
+        </tr>
+        <tr>
+          <td><code>/sale</code></td>
+          <td>SaleListPage</td>
+          <td>authGuard</td>
+          <td>Admin</td>
+        </tr>
+        <tr>
+          <td><code>/sale/new</code></td>
+          <td>SalePage</td>
+          <td>authGuard</td>
+          <td>Admin</td>
+        </tr>
+        <tr>
+          <td><code>/sale/:id/edit</code></td>
+          <td>SalePage</td>
+          <td>authGuard</td>
+          <td>Admin</td>
+        </tr>
+        <tr>
+          <td><code>/sale/dictionaries</code></td>
+          <td>SaleDictionariesPage</td>
+          <td>authGuard</td>
+          <td>Admin</td>
+        </tr>
+        <tr>
+          <td><code>/subjects</code></td>
+          <td>SubjectListPage</td>
+          <td>authGuard</td>
+          <td>Admin</td>
+        </tr>
+        <tr>
+          <td><code>/subjects/new</code></td>
+          <td>SubjectPage</td>
+          <td>authGuard</td>
+          <td>Admin</td>
+        </tr>
+        <tr>
+          <td><code>/subjects/:id/edit</code></td>
+          <td>SubjectPage</td>
+          <td>authGuard</td>
+          <td>Admin</td>
+        </tr>
+        <tr>
+          <td><code>/subjects/dictionaries</code></td>
+          <td>SubjectDictionariesPage</td>
+          <td>authGuard</td>
+          <td>Admin</td>
+        </tr>
+        <tr>
+          <td><code>/teaching-loads</code></td>
+          <td>TeachingLoadsPage</td>
+          <td>authGuard</td>
+          <td>Admin</td>
+        </tr>
+        <tr>
+          <td><code>/admin/users/new</code></td>
+          <td>UserCreatePage</td>
+          <td>authGuard</td>
+          <td>Admin</td>
+        </tr>
+        <tr>
+          <td><code>/admin/unavailability-notes</code></td>
+          <td>UnavailabilityNotesListAdminComponent</td>
+          <td>authGuard</td>
+          <td>Admin</td>
+        </tr>
+        <tr>
+          <td><code>/chat</code></td>
+          <td>ChatPage</td>
+          <td>authGuard</td>
+          <td>Zalogowani</td>
+        </tr>
+        <tr>
+          <td><code>/audit-logs</code></td>
+          <td>AuditLogsPage</td>
+          <td>authGuard</td>
+          <td>Admin, rapla_editor</td>
+        </tr>
+        <tr>
+          <td><code>/profile</code></td>
+          <td>ProfilePage</td>
+          <td>authGuard</td>
+          <td>Zalogowani</td>
+        </tr>
+        <tr>
+          <td><code>/</code> (root)</td>
+          <td>—</td>
+          <td>redirect</td>
+          <td>→ <code>/login</code></td>
+        </tr>
+        <tr>
+          <td><code>/**</code> (inne)</td>
+          <td>—</td>
+          <td>redirect</td>
+          <td>→ <code>/login</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Lazy loading</h2>
+    <p>
+      Każda trasa ładuje swój komponent dopiero gdy użytkownik do niej nawiguje — przez
+      <code>loadComponent: () => import('./...')</code>. Dzięki temu przeglądarka pobiera
+      tylko kod niezbędny do wyświetlenia bieżącej strony, co przyspiesza czas inicjalnego
+      ładowania aplikacji.
+    </p>
+
+    <h2>Role użytkowników</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Rola</th>
+          <th>Dostęp do menu</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>admin</code></td>
+          <td>Wszystko: Dezyderaty, Harmonogram, Konflikty, Sale, Przedmioty, Przydziały godzin, Dodaj użytkownika,
+            Notatki niedostępności, Historia zmian, Profil, Czat</td>
+        </tr>
+        <tr>
+          <td><code>planner</code></td>
+          <td>Dezyderaty, Harmonogram, Konflikty, Profil, Czat</td>
+        </tr>
+        <tr>
+          <td><code>rapla_editor</code></td>
+          <td>Dezyderaty, Harmonogram, Historia zmian, Profil, Czat</td>
+        </tr>
+        <tr>
+          <td><code>lecturer</code></td>
+          <td>Dezyderaty, Profil, Czat</td>
+        </tr>
+        <tr>
+          <td><code>lecturer_rapla_editor</code></td>
+          <td>Dezyderaty, Historia zmian, Profil, Czat</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ═══════════════════════════════════════════════════════
+     8. BEZPIECZEŃSTWO
+     ═══════════════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="bezpieczenstwo">8. Bezpieczeństwo</h1>
+
+    <h2>Środki bezpieczeństwa zastosowane w projekcie</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Zagrożenie</th>
+          <th>Zastosowane zabezpieczenie</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>XSS</strong> (Cross-Site Scripting) — wstrzyknięcie złośliwego JS</td>
+          <td>Angular automatycznie escapuje wszystkie wartości interpolowane w szablonach HTML. Refresh Token w
+            HttpOnly Cookie — niedostępny dla JavaScript.</td>
+        </tr>
+        <tr>
+          <td><strong>Kradzież tokenów</strong></td>
+          <td>Access Token przechowywany tylko w pamięci RAM (nie localStorage). Refresh Token tylko w HttpOnly Cookie.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Unauthorized access</strong> — dostęp do chronionych stron</td>
+          <td><code>authGuard</code> blokuje rendering chronionego widoku. Backend weryfikuje token na każdym
+            endpoincie.</td>
+        </tr>
+        <tr>
+          <td><strong>Przechwycenie wiadomości czatu</strong></td>
+          <td>Szyfrowanie end-to-end RSA-OAEP 2048-bit — nawet administrator serwera nie może odczytać treści wiadomości
+            bez klucza prywatnego odbiorcy.</td>
+        </tr>
+        <tr>
+          <td><strong>Słabe hasła</strong></td>
+          <td><code>passwordStrengthValidator</code> wymaga min. 8 znaków, wielkich liter, cyfr, znaków specjalnych.
+            Hasło nie może zawierać imienia/nazwiska.</td>
+        </tr>
+        <tr>
+          <td><strong>Wygaśnięcie sesji</strong></td>
+          <td>Access Token z krótkim TTL + automatyczny refresh. Bufor 10s zapobiega wyścigom.</td>
+        </tr>
+        <tr>
+          <td><strong>Race condition w refresh</strong></td>
+          <td>Singleton <code>refreshInFlight$</code> z <code>shareReplay(1)</code> — wiele równoległych 401 wywołuje
+            tylko jeden request do <code>/auth/refresh</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ═══════════════════════════════════════════════════════
+     9. WDROŻENIE
+     ═══════════════════════════════════════════════════════ -->
+    <h1 id="wdrozenie">9. Wdrożenie (Docker + nginx)</h1>
+
+    <h2>Dockerfile — wieloetapowy build</h2>
+    <p>
+      Proces budowania aplikacji skonteneryzowany w Dockerze — dwa etapy:
+    </p>
+    <div class="callout green">
+      <div class="callout-title">Etap 1 — Build (Node.js)</div>
+      Instalacja zależności npm, uruchomienie <code>ng build --configuration production</code>.
+      Wynikiem są zoptymalizowane pliki statyczne w katalogu <code>www/</code>.
+    </div>
+    <div class="callout">
+      <div class="callout-title">Etap 2 — Serve (nginx)</div>
+      Skopiowanie plików z etapu 1 do obrazu nginx. Skonfigurowano <code>nginx.conf</code>
+      specjalnie dla SPA — każda ścieżka zwraca <code>index.html</code>, Angular Router
+      obsługuje resztę.
+    </div>
+
+    <h2>Polecenia</h2>
+    <pre><code># Tryb deweloperski
+npm run dev                    # ng serve --hmr (Hot Module Replacement)
+
+# Build produkcyjny
+npm run build                  # ng build
+
+# Docker
+docker build -t zpi-desktop .
+docker run -p 80:80 zpi-desktop
+
+# Testy
+npm test                       # Jasmine + Karma</code></pre>
+
+    <br><br>
+    <div style="text-align:center;color:#888;font-size:9pt;border-top:1px solid #ddd;padding-top:16px">
+      ZPI-Desktop-App — Dokumentacja Techniczna &nbsp;|&nbsp; Wygenerowano automatycznie &nbsp;|&nbsp; 2025/2026
+    </div>
+
+  </div><!-- .content -->
+</body>
+
+</html>

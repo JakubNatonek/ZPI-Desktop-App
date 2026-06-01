@@ -58,13 +58,9 @@ export class ChatApiService {
     return this.http.get<MessageApiResponse[]>(`${environment.apiBaseUrl}/api/chat/${conversationId}/messages`, { params });
   }
 
-  getMessagesForUser(userId: number, since?: string) {
-    const params: Record<string, string> = { user_id: String(userId) };
-    if (since) {
-      params['since'] = since;
-    }
+  getMessagesForUser(userId: number) {
     return this.http.get<MessageApiResponse[]>(`${environment.apiBaseUrl}/messages`, {
-      params,
+      params: { user_id: String(userId) },
     });
   }
 
@@ -90,5 +86,9 @@ export class ChatApiService {
 
   getUserAvatarById(userId: number) {
     return this.http.get<{ avatar: string | null }>(`${environment.apiBaseUrl}/users/${userId}/avatar`, { withCredentials: true });
+  }
+
+  setUserPublicKey(userId: number, publicKey: string) {
+    return this.http.put<PublicKeyResponse>(`${environment.apiBaseUrl}/users/${userId}/public-key`, { public_key: publicKey });
   }
 }

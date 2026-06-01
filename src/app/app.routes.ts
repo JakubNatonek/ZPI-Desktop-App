@@ -21,11 +21,6 @@ export const routes: Routes = [
     loadComponent: () => import('./features/hermonogram/pages/hermonogram.page').then((m) => m.HermonogramPage),
   },
   {
-    path: 'konflikty',
-    canActivate: [authGuard],
-    loadComponent: () => import('./features/konflikty/pages/konflikty.page').then((m) => m.KonfliktyPage),
-  },
-  {
     path: 'profile',
     canActivate: [authGuard],
     loadComponent: () => import('./features/profile/pages/profile.page').then((m) => m.ProfilePage),
@@ -76,6 +71,7 @@ export const routes: Routes = [
   },
   {
     path: 'subject-preferences',
+    canActivate: [authGuard],
     loadComponent: () => import('./features/subject-preferences/subject-preferences.page').then((m) => m.SubjectPreferencesPage),
   },
   {

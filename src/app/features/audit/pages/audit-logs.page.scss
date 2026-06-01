@@ -22,6 +22,15 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+.filters-heading {
+    margin: 0 0 10px 4px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #475569;
+}
+
 .filter-row {
     display: flex;
     align-items: center;
@@ -496,7 +505,6 @@
         flex: 1;
         color: #b91c1c;
         background: rgba(220, 38, 38, 0.04);
-        text-decoration: line-through;
         opacity: 0.85;
     }
 
@@ -517,5 +525,213 @@
     .col-single {
         flex: 1;
         color: #1e293b;
+    }
+}
+
+// ── Dark mode ────────────────────────────────────────────────────
+:host-context(html.ion-palette-dark) {
+    .audit-content {
+        --background: #253447;
+    }
+
+    .audit-hero {
+        .eyebrow {
+            color: #22d3ee;
+        }
+
+        h1 {
+            color: #e8eef5;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+        }
+
+        .new-badge-count {
+            background: rgba(212, 168, 67, 0.15);
+            border-color: rgba(212, 168, 67, 0.25);
+            color: #d4a843;
+        }
+    }
+
+    .filters-bar {
+        background: #253447;
+        border-color: rgba(148, 163, 184, 0.2);
+    }
+
+    .filter-label {
+        color: #94a3b8;
+    }
+
+    .filter-select {
+        background: #1c2839;
+        border-color: rgba(148, 163, 184, 0.25);
+        color: #e8eef5;
+    }
+
+    .compact-searchbar {
+        --background: #1c2839;
+        --color: #e8eef5;
+        --placeholder-color: #64748b;
+        border-color: rgba(148, 163, 184, 0.25);
+        background: #1c2839;
+    }
+
+    .clear-btn {
+        background: transparent;
+        border-color: rgba(148, 163, 184, 0.2);
+        color: #94a3b8;
+
+        &:hover {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+    }
+
+    .filter-summary {
+        color: #64748b;
+    }
+
+    .date-separator {
+        span {
+            background: #1c2839;
+            color: #64748b;
+        }
+
+        &::after {
+            background: rgba(148, 163, 184, 0.2);
+        }
+    }
+
+    .log-batch {
+        background: #2d3f56;
+        border-color: rgba(148, 163, 184, 0.2);
+    }
+
+    .log-batch__summary {
+        background: #233555;
+        border-bottom-color: rgba(148, 163, 184, 0.15);
+    }
+
+    .log-batch__meta {
+        color: #94a3b8;
+    }
+
+    .log-batch__count {
+        color: #e8eef5;
+    }
+
+    .tl-line {
+        background: rgba(148, 163, 184, 0.2);
+    }
+
+    .tl-dot {
+        border-color: #253447;
+    }
+
+    .tl-card {
+        background: #2d3f56;
+        border-color: rgba(148, 163, 184, 0.2);
+
+        &:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        &.tl-card-new {
+            border-color: #d4a843;
+            background: rgba(212, 168, 67, 0.07);
+
+            &:hover {
+                background: rgba(212, 168, 67, 0.12);
+            }
+        }
+    }
+
+    .tl-card-title strong {
+        color: #e8eef5;
+    }
+
+    .entity-id {
+        color: #94a3b8;
+    }
+
+    .tl-card-meta {
+        color: #64748b;
+    }
+
+    .entity-chip {
+        &.chip-create {
+            background: rgba(22, 163, 74, 0.15);
+            color: #86efac;
+        }
+
+        &.chip-update {
+            background: rgba(234, 179, 8, 0.15);
+            color: #fde68a;
+        }
+
+        &.chip-delete {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+        }
+    }
+
+    .new-pill {
+        background: #5b21b6;
+    }
+
+    .diff-table {
+        border-color: rgba(148, 163, 184, 0.2);
+
+        .diff-header {
+            background: #233555;
+            color: #94a3b8;
+            border-bottom-color: rgba(148, 163, 184, 0.15);
+        }
+
+        .diff-row {
+            border-bottom-color: rgba(148, 163, 184, 0.1);
+
+            &:hover {
+                background: rgba(148, 163, 184, 0.06);
+            }
+
+            &.diff-row--changed {
+                border-left-color: #d4a843;
+                background: rgba(212, 168, 67, 0.05);
+            }
+        }
+
+        .diff-col {
+            border-right-color: rgba(148, 163, 184, 0.1);
+        }
+
+        .col-field {
+            background: #233555;
+            color: #94a3b8;
+        }
+
+        .col-old {
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.08);
+        }
+
+        .col-arrow {
+            color: #64748b;
+        }
+
+        .col-new {
+            color: #86efac;
+            background: rgba(22, 163, 74, 0.08);
+        }
+
+        .col-single {
+            color: #e8eef5;
+        }
+    }
+
+    .empty-state {
+        color: #64748b;
     }
 }

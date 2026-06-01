@@ -114,7 +114,7 @@
           <div class="field-group">
             <label class="field-label">Wydziały <span class="required-mark">*</span></label>
             <ion-select class="styled-select" formControlName="departmentIds" interface="alert" [multiple]="true"
-              placeholder="Wybierz wydziały">
+              cancelText="Anuluj" okText="Zatwierdź" placeholder="Wybierz wydziały">
               <ion-select-option *ngFor="let department of departments" [value]="department.id">
                 {{ department.name }}
               </ion-select-option>
@@ -124,7 +124,7 @@
           <div class="field-group">
             <label class="field-label">Role <span class="required-mark">*</span></label>
             <ion-select class="styled-select" formControlName="roleIds" interface="alert" [multiple]="true"
-              placeholder="Wybierz role">
+              cancelText="Anuluj" okText="Zatwierdź" placeholder="Wybierz role">
               <ion-select-option *ngFor="let role of roles" [value]="role.id">
                 {{ role.name }}
               </ion-select-option>
@@ -341,7 +341,8 @@
 
             <div class="field-group">
               <label class="field-label">Wydziały</label>
-              <ion-select class="styled-select" formControlName="departmentIds" interface="alert" [multiple]="true">
+              <ion-select class="styled-select" formControlName="departmentIds" interface="alert" [multiple]="true"
+                cancelText="Anuluj" okText="Zatwierdź">
                 <ion-select-option *ngFor="let department of departments" [value]="department.id">
                   {{ department.name }}
                 </ion-select-option>
@@ -350,7 +351,8 @@
 
             <div class="field-group">
               <label class="field-label">Role</label>
-              <ion-select class="styled-select" formControlName="roleIds" interface="alert" [multiple]="true">
+              <ion-select class="styled-select" formControlName="roleIds" interface="alert" [multiple]="true"
+                cancelText="Anuluj" okText="Zatwierdź">
                 <ion-select-option *ngFor="let role of roles" [value]="role.id">
                   {{ role.name }}
                 </ion-select-option>

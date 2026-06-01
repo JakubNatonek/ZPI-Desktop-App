@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   display: block;
 }
 
@@ -594,17 +594,17 @@ ion-toolbar {
 /* Dark mode */
 :host-context(html.ion-palette-dark) {
   .admin-page-content {
-    --background: #0c1524;
+    --background: #253447;
   }
 
   .page-title,
   .section-title {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .form-card {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
   }
 
   .section-heading {
@@ -613,22 +613,22 @@ ion-toolbar {
   }
 
   .field-label {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .styled-input,
   .styled-select,
   .page-size-select {
-    --background: #1a2c42;
-    background: #1a2c42;
-    border-color: rgba(255, 255, 255, 0.08);
-    --color: #e8edf4;
-    color: #e8edf4;
+    --background: #253447;
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
+    --color: #e8eef5;
+    color: #e8eef5;
   }
 
   .user-card {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
     border-left-color: #d4a843;
 
     &:hover {
@@ -637,7 +637,7 @@ ion-toolbar {
   }
 
   .user-name {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .user-role-badge {
@@ -650,11 +650,11 @@ ion-toolbar {
   }
 
   .detail-value {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .section-divider {
-    border-top-color: rgba(255, 255, 255, 0.08);
+    border-top-color: rgba(148, 163, 184, 0.15);
   }
 
   .credentials-panel {
@@ -677,18 +677,18 @@ ion-toolbar {
   }
 
   .credential-value {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .modal-content {
-    --background: #0c1524;
+    --background: #1c2839;
   }
 
   .modal-description {
     color: #94a3b8;
 
     strong {
-      color: #e8edf4;
+      color: #e8eef5;
     }
   }
 
@@ -706,15 +706,15 @@ ion-toolbar {
   }
 
   .user-card-actions {
-    border-top-color: rgba(255, 255, 255, 0.08);
+    border-top-color: rgba(148, 163, 184, 0.15);
   }
 
   .empty-state {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
 
     h3 {
-      color: #e8edf4;
+      color: #e8eef5;
     }
 
     p {

@@ -234,6 +234,11 @@ export class AuthService {
   }
 
   logout() {
+    // Acknowledge all audit changes so next login starts with a fresh baseline
+    this.http
+      .post(`${environment.apiBaseUrl}/audit-logs/acknowledge`, {}, { withCredentials: true })
+      .subscribe({ error: () => { } });
+
     this.http.post(this.logoutUrl, {}, { withCredentials: true }).subscribe({
       error: () => {
         // Local cleanup still runs even if backend cannot revoke current cookie.
@@ -369,7 +374,6 @@ export class AuthService {
     if (this.isBackendSessionActive()) {
       const url = `${environment.apiBaseUrl}/auth/change-one-time-password`;
       return this.http.post<{ message: string }>(url, {
-        current_password: currentPassword,
         new_password: newPassword,
         confirm_new_password: newPassword
       }, { withCredentials: true }).pipe(

@@ -61,9 +61,6 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   private websocket = inject(WebSocketService);
   private cryptoSvc = inject(CryptoService);
 
-  /** Polling interval in milliseconds (10 seconds for dev testing). */
-  private static readonly POLLING_INTERVAL_MS = 10_000;
-
   isOpen = signal(false);
   activeTab = signal<ActiveTab>('messages');
   view = signal<ChatView>('contacts');
@@ -92,11 +89,6 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
   private fetchingAvatarIds = new Set<number>();
   private joinedConversationIds = new Set<number>();
   private wsSubscriptions: Subscription[] = [];
-
-  /** ISO timestamp of last successful poll — used as `since` param for incremental fetches. */
-  private lastPollTimestamp: string | null = null;
-  /** Handle for the setInterval polling timer. */
-  private pollingIntervalId: ReturnType<typeof setInterval> | null = null;
 
   // Wyszukiwanie
   searchQuery = '';
@@ -154,9 +146,6 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.websocket.connect();
     this.setupWebSocketListeners();
     void this.initCryptoKey();
-
-    // --- Polling: co 10 s odpytuj GET /messages?since=... ---
-    this.startMessagePolling();
   }
 
   ngOnDestroy(): void {
@@ -168,8 +157,7 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.unreadToastTimerId = null;
     }
 
-    // Stop polling
-    this.stopMessagePolling();
+
 
     this.wsSubscriptions.forEach((sub) => sub.unsubscribe());
     this.wsSubscriptions = [];
@@ -183,6 +171,9 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   private async initCryptoKey(): Promise<void> {
     try {
+      // Ensure RSA key pair exists (loads from IndexedDB or generates new one)
+      await this.cryptoSvc.ensureRSAKeyPair();
+      // Generate AES session key for outgoing messages
       this.aesKey = await this.cryptoSvc.generateAesKey();
       this.exportedAesKeyBase64 = await this.cryptoSvc.exportKeyToBase64(this.aesKey);
       console.log('AES key generated (base64):', this.exportedAesKeyBase64);
@@ -568,8 +559,26 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
         // Fetch all messages initially or after load
         if (this.currentUserId) {
           this.fetchAllMessages();
+          void this.registerRSAPublicKey(this.currentUserId);
         }
       });
+  }
+
+  private async registerRSAPublicKey(userId: number): Promise<void> {
+    try {
+      const pubPem = await this.cryptoSvc.getPublicPem();
+      await lastValueFrom(
+        this.chatApi.setUserPublicKey(userId, pubPem).pipe(
+          catchError((err) => {
+            console.warn('Failed to register RSA public key:', err);
+            return of(null);
+          }),
+        ),
+      );
+      console.log('RSA public key registered with backend.');
+    } catch (err) {
+      console.error('Failed to register RSA public key:', err);
+    }
   }
 
   private loadAvailableUsers(): void {
@@ -959,18 +968,105 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       .subscribe((messages) => {
         console.log('Raw messages from backend (all):', messages);
 
-        // Record the newest created_at as the polling baseline
+        // Temporary auto-test: unwrap/decrypt first message and log outputs
         if (Array.isArray(messages) && messages.length > 0) {
-          const newest = messages.reduce((latest, m) =>
-            m.created_at > latest ? m.created_at : latest,
-            messages[0].created_at,
-          );
-          this.lastPollTimestamp = newest;
-          console.log('[Chat Polling] Initial lastPollTimestamp set to', newest);
-        } else {
-          this.lastPollTimestamp = new Date().toISOString();
-        }
+          (async () => {
+            try {
+              const m0 = messages[0] as MessageApiResponse;
+              console.log('=== AUTO DECRYPT TEST START ===');
+              console.log('message.iv (base64):', m0.iv);
+              // log wrapped key length and stored key presence to avoid regenerating keys
+              const wrappedB64 = m0.encrypted_aes_key ?? m0.wrapped_key ?? '';
+              const wrappedLen = await this.cryptoSvc.getWrappedKeyByteLength(wrappedB64);
+              console.log('wrapped bytes:', wrappedLen);
+              const hasJwk = await this.cryptoSvc.hasPrivateJwk();
+              const hasEnc = await this.cryptoSvc.hasEncryptedPrivate();
+              console.log('private JWK present in IndexedDB?', hasJwk, 'encrypted private present?', hasEnc);
+              console.log('stored public JWK (localStorage)?', this.cryptoSvc.getStoredPublicJwk());
+              try {
+                const cbytes = new Uint8Array(this.cryptoSvc.base64ToArrayBuffer(m0.encrypted_message ?? (m0.ciphertext as any) ?? ''));
+                console.log('ciphertext bytes:', cbytes.byteLength);
+              } catch (e) {
+                console.log('ciphertext bytes: <invalid base64>');
+              }
+              try {
+                const ivbytes = new Uint8Array(this.cryptoSvc.base64ToArrayBuffer(m0.iv ?? ''));
+                console.log('iv bytes:', ivbytes.byteLength);
+              } catch (e) {
+                console.log('iv bytes: <invalid base64>');
+              }
 
+              // If private JWK is present, use it; if only encrypted private exists we cannot decrypt here.
+              let priv: CryptoKey | null = null;
+              if (hasJwk) {
+                const kp = await this.cryptoSvc.ensureRSAKeyPair();
+                priv = kp.privateKey;
+              } else if (hasEnc) {
+                console.warn('Private key is stored encrypted (rsa_private_encrypted); cannot unwrap without local AES key. Skipping unwrap.');
+              } else {
+                console.warn('No stored private key found; ensure client has the correct private key before attempting unwrap. Skipping unwrap.');
+              }
+
+              if (priv) {
+                // RSA unwrap test (logs separator, TEST and raw AES length)
+                const wrappedTop = m0.encrypted_aes_key ?? m0.wrapped_key ?? '';
+                const candidates: string[] = [];
+                try {
+                  if (typeof wrappedTop === 'string') {
+                    const s = wrappedTop.trim();
+                    if (s.startsWith('{') || s.startsWith('[')) {
+                      try {
+                        const parsed = JSON.parse(s);
+                        if (parsed && typeof parsed === 'object') {
+                          if (this.currentUserId != null) {
+                            const v = parsed[String(this.currentUserId)] ?? parsed[this.currentUserId];
+                            if (typeof v === 'string') candidates.push(v);
+                          }
+                          for (const v of Object.values(parsed)) if (typeof v === 'string') candidates.push(v);
+                        }
+                      } catch (e) {
+                        // not JSON
+                      }
+                    } else {
+                      candidates.push(wrappedTop);
+                    }
+                  } else if (typeof wrappedTop === 'object' && wrappedTop !== null) {
+                    const obj = wrappedTop as any;
+                    if (this.currentUserId != null) {
+                      const v = obj[String(this.currentUserId)] ?? obj[this.currentUserId];
+                      if (typeof v === 'string') candidates.push(v);
+                    }
+                    for (const v of Object.values(obj)) if (typeof v === 'string') candidates.push(v);
+                  }
+                } catch (e) {
+                  console.warn('Error while parsing wrapped key candidates:', e);
+                }
+
+                let rawAes: ArrayBuffer | null = null;
+                for (const cand of [...new Set(candidates)]) {
+                  try {
+                    rawAes = await this.cryptoSvc.rsaDecryptWrappedAesKeyForTest(cand, priv);
+                    break;
+                  } catch (e) {
+                    console.warn('rsa unwrap candidate failed, trying next:', e);
+                    continue;
+                  }
+                }
+
+                if (rawAes) {
+                  const aesKey = await window.crypto.subtle.importKey('raw', rawAes, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+                  await this.cryptoSvc.aesDecryptForTest(m0.encrypted_message ?? (m0.ciphertext as any) ?? '', m0.iv ?? '', aesKey);
+                } else {
+                  console.warn('Auto unwrap test: no wrapped_key candidate decrypted successfully');
+                }
+              }
+
+              console.log('=== AUTO DECRYPT TEST END ===');
+            } catch (e) {
+              console.error('Auto decrypt test failed:', e);
+            }
+          })();
+        }
         // Group by conversation_id
         const byConv: Record<number, MessageApiResponse[]> = {};
         messages.forEach((m) => {
@@ -1092,13 +1188,15 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
           const wrappedB64 = await this.cryptoSvc.wrapAESKeyForRecipient(raw, recipientPubPem);
           console.log('Wrapped AES key for recipient (base64):', wrappedB64);
 
-          // Also wrap AES key for sender (so sender can decrypt their own message)
+          // Also wrap AES key for sender (so sender can decrypt their own message).
+          // Use the original CryptoKey (not the exported ArrayBuffer) to avoid
+          // potential ArrayBuffer detachment issues after the first wrap call.
           let wrappedForSender: string | null = null;
           try {
-            if (this.currentUserId != null) {
+            if (this.currentUserId != null && this.aesKey) {
               const myPubPem = await this.cryptoSvc.getPublicPem();
               if (myPubPem) {
-                wrappedForSender = await this.cryptoSvc.wrapAESKeyForRecipient(raw, myPubPem);
+                wrappedForSender = await this.cryptoSvc.wrapAESKeyForRecipient(this.aesKey as CryptoKey, myPubPem);
                 console.log('Wrapped AES key for sender (base64):', wrappedForSender);
               }
             }
@@ -1174,7 +1272,13 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
 
         this.refreshLastMessageStatus(target, targetId);
 
-        // NOTE: WebSocket sendMessage removed — new messages are delivered via polling.
+        this.websocket.sendMessage(
+          conversationId,
+          message.id,
+          message.sender_id,
+          message.content ?? '',
+          message.created_at,
+        );
 
         this.messageInput = '';
         this.shouldScrollToBottom = true;
@@ -1194,8 +1298,12 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
       })
     );
 
-    // NOTE: messageReceived$ via WebSocket is intentionally NOT subscribed.
-    // New messages are now fetched exclusively via HTTP polling (setInterval every 10 s).
+    this.wsSubscriptions.push(
+      this.websocket.messageReceived$.subscribe((event) => {
+        const ownMessage = this.currentUserId !== null && event.sender_id === this.currentUserId;
+        this.mergeSocketMessage(event.conversation_id, event, ownMessage);
+      }),
+    );
 
     this.wsSubscriptions.push(
       this.websocket.userTyping$.subscribe((event) => {
@@ -1203,120 +1311,6 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
         void event;
       }),
     );
-  }
-
-  // ─── Polling mechanism ───────────────────────────────────────────────
-
-  /**
-   * Start periodic polling for new messages.
-   * Uses setInterval to call GET /messages?since=<lastPollTimestamp> every 10 s.
-   */
-  private startMessagePolling(): void {
-    if (this.pollingIntervalId) {
-      return; // already running
-    }
-    console.log(`[Chat Polling] Starting message polling every ${ChatComponent.POLLING_INTERVAL_MS / 1000}s`);
-    this.pollingIntervalId = setInterval(() => {
-      this.pollForNewMessages();
-    }, ChatComponent.POLLING_INTERVAL_MS);
-  }
-
-  /** Stop the polling timer. */
-  private stopMessagePolling(): void {
-    if (this.pollingIntervalId) {
-      clearInterval(this.pollingIntervalId);
-      this.pollingIntervalId = null;
-      console.log('[Chat Polling] Stopped message polling');
-    }
-  }
-
-  /**
-   * Single poll iteration — fetches messages newer than lastPollTimestamp,
-   * merges them into local state, and advances the timestamp.
-   */
-  private pollForNewMessages(): void {
-    if (!this.currentUserId) {
-      return;
-    }
-
-    const since = this.lastPollTimestamp ?? undefined;
-    console.log(`[Chat Polling] Polling for new messages (since=${since ?? 'initial'})`);
-
-    this.chatApi
-      .getMessagesForUser(this.currentUserId, since)
-      .pipe(
-        catchError((err) => {
-          console.error('[Chat Polling] Błąd podczas pollingu wiadomości:', err);
-          return of([]);
-        })
-      )
-      .subscribe((messages) => {
-        if (!messages || messages.length === 0) {
-          // Update timestamp even when no messages so next poll window moves forward
-          this.lastPollTimestamp = new Date().toISOString();
-          return;
-        }
-
-        console.log(`[Chat Polling] Received ${messages.length} new message(s)`);
-
-        // Update lastPollTimestamp to the newest message's created_at
-        const newest = messages.reduce((latest, m) =>
-          m.created_at > latest ? m.created_at : latest,
-          messages[0].created_at,
-        );
-        this.lastPollTimestamp = newest;
-
-        // Group by conversation_id and merge
-        const byConv: Record<number, MessageApiResponse[]> = {};
-        messages.forEach((m) => {
-          const convId = m.conversation_id;
-          if (convId == null) return;
-          if (!byConv[convId]) byConv[convId] = [];
-          byConv[convId].push(m);
-        });
-
-        (async () => {
-          for (const [convIdStr, msgs] of Object.entries(byConv)) {
-            const convId = Number(convIdStr);
-            const mapped = await Promise.all(
-              msgs.map(async (msg) => {
-                const dec = await this.decryptApiMessageContent(msg);
-                return this.mapMessage({ ...msg, content: dec } as MessageApiResponse);
-              }),
-            );
-            mapped.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-
-            const directEntry = Object.entries(this.directConversationIdByUserId).find(([, id]) => id === convId);
-            if (directEntry) {
-              const targetId = Number(directEntry[0]);
-              const existing = this.conversations[targetId] || [];
-              // Merge: only add messages with IDs not already present
-              const existingIds = new Set(existing.map((m) => m.id));
-              const newMsgs = mapped.filter((m) => !existingIds.has(m.id));
-              if (newMsgs.length > 0) {
-                this.conversations[targetId] = [...existing, ...newMsgs];
-                this.shouldScrollToBottom = true;
-              }
-            } else {
-              const existing = this.roomMessages[convId] || [];
-              const existingIds = new Set(existing.map((m) => m.id));
-              const newMsgs = mapped.filter((m) => !existingIds.has(m.id));
-              if (newMsgs.length > 0) {
-                this.roomMessages[convId] = [...existing, ...newMsgs];
-                this.shouldScrollToBottom = true;
-              }
-            }
-          }
-
-          // Resolve unknown sender names
-          const allSenderIds = messages
-            .map((m) => m.sender_id)
-            .filter((id) => this.currentUserId !== id);
-          this.ensureUsersLoaded(allSenderIds);
-
-          this.updateUnreadIndicators();
-        })();
-      });
   }
 
   private ensureConversationJoined(conversationId: number): void {
@@ -1328,6 +1322,90 @@ export class ChatComponent implements AfterViewChecked, OnInit, OnDestroy {
     this.joinedConversationIds.add(conversationId);
   }
 
+  private mergeSocketMessage(
+    conversationId: number,
+    message: {
+      message_id: number;
+      sender_id: number;
+      content: string;
+      created_at: string;
+    },
+    isOwn: boolean,
+  ): void {
+    const directUserId = Object.entries(this.directConversationIdByUserId)
+      .find(([, id]) => id === conversationId)?.[0];
+
+    const sender = this.usersById[message.sender_id];
+    // If the incoming `content` looks like an encrypted payload (JSON with ciphertext/wrapped_key)
+    // show a placeholder instead of an empty raw JSON string.
+    let displayContent = message.content ?? '';
+    try {
+      if (!displayContent) {
+        // keep empty if truly empty
+      } else if (displayContent.trim().startsWith('{')) {
+        const lower = displayContent.toLowerCase();
+        if (lower.includes('"ciphertext"') || lower.includes('"encrypted"') || lower.includes('"wrapped_key"') || lower.includes('"wrappedkey"') || lower.includes('"encrypted_aes_key"')) {
+          displayContent = '[zaszyfrowana wiadomość]';
+        }
+      }
+    } catch (e) {
+      void e;
+    }
+
+    // For own messages with empty content (encrypted), the HTTP response from
+    // sendMessageToConversation already stores the correct plaintext. Skip the
+    // fetch-and-decrypt path here to avoid overwriting it with a failed decryption.
+    if (isOwn && !displayContent) {
+      return;
+    }
+
+    const mapped: ChatMessage = {
+      id: message.message_id,
+      senderId: isOwn ? 'me' : message.sender_id,
+      senderName: isOwn ? this.currentUserName : (sender ? `${sender.first_name} ${sender.last_name}`.trim() : `Użytkownik #${message.sender_id}`),
+      content: displayContent,
+      timestamp: new Date(message.created_at),
+      isOwn,
+      isRead: false,
+    };
+
+    if (directUserId) {
+      const targetId = Number(directUserId);
+      const existing = this.conversations[targetId] || [];
+      if (existing.some((item) => item.id === mapped.id)) {
+        return;
+      }
+      this.conversations[targetId] = [...existing, mapped];
+      this.refreshLastMessageStatus('direct', targetId);
+    } else {
+      const existing = this.roomMessages[conversationId] || [];
+      if (existing.some((item) => item.id === mapped.id)) {
+        return;
+      }
+      this.roomMessages[conversationId] = [...existing, mapped];
+      this.refreshLastMessageStatus('room', conversationId);
+    }
+
+    this.updateUnreadIndicators();
+    this.shouldScrollToBottom = true;
+
+    // If the message content is empty it means the message is encrypted.
+    // The WebSocket event does not carry ciphertext/iv/wrapped_key, so we
+    // must re-fetch the conversation from the REST API to decrypt it properly.
+    if (!displayContent) {
+      if (directUserId) {
+        this.fetchConversationMessages(conversationId, 'direct', Number(directUserId));
+      } else {
+        this.fetchConversationMessages(conversationId, 'room', conversationId);
+      }
+    }
+
+    // Scroll the page-mode column for this conversation
+    if (this.pageMode) {
+      const chatId = directUserId ? `direct-${Number(directUserId)}` : `room-${conversationId}`;
+      this.chatScrollPending.add(chatId);
+    }
+  }
 
   private refreshLastMessageStatus(target: 'direct' | 'room', targetId: number): void {
     const messages = target === 'direct' ? this.conversations[targetId] : this.roomMessages[targetId];

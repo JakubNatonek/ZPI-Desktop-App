@@ -18,6 +18,7 @@ interface LogBatch {
   timeLabel: string;
   logs: AuditLogDto[];
   hasNew: boolean;
+  isOpen: boolean;
 }
 
 interface LogGroup {
@@ -44,9 +45,16 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
   hasNew: boolean = false;
   newCount: number = 0;
 
+  /** Persistent set of batch keys that are open — survives getter re-evaluation */
+  readonly openBatchKeys = new Set<string>();
+
   filterSearch: string = '';
   filterEntity: string = '';
   filterAction: string = '';
+
+  /** Memoization cache for filteredGroups getter */
+  private _filteredGroupsCache: LogGroup[] = [];
+  private _filteredGroupsCacheKey = '';
 
   readonly entityMap: Record<string, string> = {
     'Subject': 'Przedmiot',
@@ -211,13 +219,26 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
 
   get entityTypes(): string[] {
     const seen = new Set<string>();
-    for (const log of this.logs) seen.add(log.entity_name);
+    for (const log of this.logs) {
+      if (this.isRaplaEditorRole && log.entity_name === 'User' && log.action.toLowerCase() === 'create') continue;
+      seen.add(log.entity_name);
+    }
     return Array.from(seen).sort();
   }
 
+  private get isRaplaEditorRole(): boolean {
+    return this.auth.role === 'rapla_editor' || this.auth.role === 'lecturer_rapla_editor';
+  }
+
   get filteredGroups(): LogGroup[] {
+    const cacheKey = `${this.filterSearch}|${this.filterEntity}|${this.filterAction}|${this.logs.length}`;
+    if (cacheKey === this._filteredGroupsCacheKey) {
+      return this._filteredGroupsCache;
+    }
+    this._filteredGroupsCacheKey = cacheKey;
     const search = this.filterSearch.toLowerCase().trim();
     const filtered = this.logs.filter(log => {
+      if (this.isRaplaEditorRole && log.entity_name === 'User' && log.action.toLowerCase() === 'create') return false;
       if (this.filterEntity && log.entity_name !== this.filterEntity) return false;
       if (this.filterAction && log.action !== this.filterAction) return false;
       if (search) {
@@ -227,7 +248,8 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
       }
       return true;
     });
-    return this._buildGroups(filtered);
+    this._filteredGroupsCache = this._buildGroups(filtered);
+    return this._filteredGroupsCache;
   }
 
   get isFiltered(): boolean {
@@ -282,6 +304,8 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
   }
 
   loadLogs() {
+    this.openBatchKeys.clear();
+    this._filteredGroupsCacheKey = '';
     this.auditApi.getLogs().subscribe(res => {
       this.lastViewedAt = res.last_changes_viewed_at;
       this.logs = res.logs;
@@ -325,18 +349,39 @@ export class AuditLogsPage implements OnInit, ViewWillEnter {
           timeLabel,
           logs: [],
           hasNew: false,
+          isOpen: false,
         });
       }
 
       const batch = batchMap.get(batchKey)!;
       batch.logs.push(log);
-      if (log.isNew) batch.hasNew = true;
+      if (log.isNew) {
+        batch.hasNew = true;
+        this.openBatchKeys.add(batchKey);
+      }
     }
 
     return Array.from(dateMap.entries()).map(([date, batches]) => ({
       date,
       batches: Array.from(batches.values()),
     }));
+  }
+
+  trackByDate(_: number, group: LogGroup): string { return group.date; }
+  trackByBatchKey(_: number, batch: LogBatch): string { return batch.key; }
+  trackByLogId(_: number, log: AuditLogDto): number { return log.id; }
+  trackByIndex(index: number): number { return index; }
+
+  isBatchOpen(batchKey: string): boolean {
+    return this.openBatchKeys.has(batchKey);
+  }
+
+  toggleBatch(batchKey: string): void {
+    if (this.openBatchKeys.has(batchKey)) {
+      this.openBatchKeys.delete(batchKey);
+    } else {
+      this.openBatchKeys.add(batchKey);
+    }
   }
 
   actionLabel(action: string): string {

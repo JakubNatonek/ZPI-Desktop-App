@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   display: block;
 }
 
@@ -216,11 +216,11 @@ ion-toolbar {
 /* Dark mode */
 :host-context(html.ion-palette-dark) {
   .dict-page-content {
-    --background: #0c1524;
+    --background: #253447;
   }
 
   .page-title {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .page-subtitle {
@@ -228,8 +228,8 @@ ion-toolbar {
   }
 
   .dict-card {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
   }
 
@@ -242,16 +242,16 @@ ion-toolbar {
   }
 
   .dict-item {
-    background: #1a2c42;
-    border-color: rgba(255, 255, 255, 0.06);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.10);
 
     &:hover {
-      background: #1e3350;
+      background: #2e4159;
     }
   }
 
   .dict-item-name {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .dict-abbr {

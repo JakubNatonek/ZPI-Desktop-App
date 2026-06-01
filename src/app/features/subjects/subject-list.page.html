@@ -87,8 +87,7 @@
             <ion-icon slot="start" name="pencil-outline"></ion-icon>
             Edytuj
           </ion-button>
-          <ion-button fill="clear" size="small" class="btn-delete" [disabled]="isDeleting"
-            (click)="deleteSubject(subject.id)">
+          <ion-button fill="clear" class="btn-delete" [disabled]="isDeleting" (click)="deleteSubject(subject.id)">
             <ion-icon slot="start" name="trash-outline"></ion-icon>
             Usuń
           </ion-button>

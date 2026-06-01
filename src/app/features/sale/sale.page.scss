@@ -1,4 +1,4 @@
-/* Bazowy blok strony */
+﻿/* Bazowy blok strony */
 :host {
   display: block;
 }
@@ -195,11 +195,11 @@ ion-toolbar {
 /* Dark mode */
 :host-context(html.ion-palette-dark) {
   .form-page-content {
-    --background: #0c1524;
+    --background: #253447;
   }
 
   .form-page-title {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .form-page-subtitle {
@@ -207,8 +207,8 @@ ion-toolbar {
   }
 
   .form-card {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
   }
 
@@ -218,7 +218,7 @@ ion-toolbar {
   }
 
   .field-label {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .field-hint {
@@ -227,11 +227,11 @@ ion-toolbar {
 
   .styled-input,
   .styled-select {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: #1a2c42;
-    --background: #1a2c42;
-    color: #e8edf4;
-    --color: #e8edf4;
+    border-color: rgba(148, 163, 184, 0.15);
+    background: #253447;
+    --background: #253447;
+    color: #e8eef5;
+    --color: #e8eef5;
     --placeholder-color: #64748b;
   }
 

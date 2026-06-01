@@ -1,5 +1,5 @@
-﻿import { Component, OnInit } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+﻿import { Component, OnInit, ViewChild } from '@angular/core';
+import { IonModal, IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
@@ -90,12 +90,13 @@ export class HermonogramPage implements OnInit {
   raplaXmlMessage = '';
   raplaXmlError = false;
 
+  @ViewChild('dayViewModal') dayViewModal!: IonModal;
+  @ViewChild('detailsModal') detailsModal!: IonModal;
+
   selectedPlanEvent: ImportedPlanEvent | null = null;
   selectedRaplaReservation: RaplaReservationDto | null = null;
-  isDetailsOpen = false;
 
   // Day view
-  isDayViewOpen = false;
   dayViewDay: WeekDay | null = null;
   dayViewItems: RaplaRenderedItem[] = [];
   dayViewHours: number[] = [];
@@ -676,7 +677,7 @@ export class HermonogramPage implements OnInit {
   openPlanDetails(event: ImportedPlanEvent) {
     this.selectedPlanEvent = event;
     this.selectedRaplaReservation = null;
-    this.isDetailsOpen = true;
+    this.detailsModal?.present();
   }
 
   openDayView(day: WeekDay) {
@@ -734,11 +735,11 @@ export class HermonogramPage implements OnInit {
     // Always show 7:00 – 21:00 (15 hour rows)
     this.dayViewHours = Array.from({ length: 15 }, (_, k) => k + 7);
 
-    this.isDayViewOpen = true;
+    this.dayViewModal?.present();
   }
 
   closeDayView() {
-    this.isDayViewOpen = false;
+    this.dayViewModal?.dismiss();
   }
 
   getDayViewItemNgStyle(item: RaplaRenderedItem): Record<string, string> {
@@ -768,11 +769,11 @@ export class HermonogramPage implements OnInit {
   openRaplaDetails(reservation: RaplaReservationDto) {
     this.selectedRaplaReservation = reservation;
     this.selectedPlanEvent = null;
-    this.isDetailsOpen = true;
+    this.detailsModal?.present();
   }
 
   closeDetails() {
-    this.isDetailsOpen = false;
+    this.detailsModal?.dismiss();
   }
 
   async onRaplyFileSelected(event: Event) {

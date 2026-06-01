@@ -33,7 +33,7 @@ export class SaleListPage implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.auth.role !== 'admin') {
+    if (this.auth.role !== 'admin' && this.auth.role !== 'rapla_editor' && this.auth.role !== 'lecturer_rapla_editor') {
       this.router.navigateByUrl('/home');
       return;
     }

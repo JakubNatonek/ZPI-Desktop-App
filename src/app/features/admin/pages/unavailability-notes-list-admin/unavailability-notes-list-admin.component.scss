@@ -1,4 +1,4 @@
-.notes-page {
+﻿.notes-page {
 	--background: #f4f6fb;
 }
 
@@ -53,7 +53,7 @@ ion-header ion-toolbar {
 	box-shadow: 0 2px 8px rgba(26, 58, 92, 0.18);
 
 	.notes-searchbar {
-		--background: rgba(255, 255, 255, 0.12);
+		--background: rgba(148, 163, 184, 0.20);
 		--color: #ffffff;
 		--placeholder-color: rgba(255, 255, 255, 0.55);
 		--icon-color: rgba(255, 255, 255, 0.7);
@@ -269,21 +269,21 @@ $col-actions: 80px;
 /* ─── Dark mode ─── */
 :host-context(html.ion-palette-dark) {
 	.notes-page {
-		--background: #0c1524;
+		--background: #1c2839;
 	}
 
 	.controls-bar {
-		background: #0c1524;
+		background: #1c2839;
 	}
 
 	.notes-table {
-		background: #162336;
+		background: #253447;
 		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 	}
 
 	.table-head {
-		background: #1a2c42;
-		border-bottom-color: rgba(255, 255, 255, 0.08);
+		background: #253447;
+		border-bottom-color: rgba(148, 163, 184, 0.15);
 
 		>div {
 			color: #94a3b8;
@@ -307,7 +307,7 @@ $col-actions: 80px;
 	}
 
 	.name-text {
-		color: #e8edf4;
+		color: #e8eef5;
 	}
 
 	.desc-text {
@@ -315,7 +315,7 @@ $col-actions: 80px;
 	}
 
 	.col-date {
-		color: #e8edf4;
+		color: #e8eef5;
 	}
 
 	.results-count {

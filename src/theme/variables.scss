@@ -62,13 +62,43 @@
 }
 
 html.ion-palette-dark {
+  // Toolbar — zachowany kolor marki (granat)
   --ion-toolbar-background: #1a3a5c;
   --ion-toolbar-color: #ffffff;
-  --ion-background-color: #0c1524;
-  --ion-background-color-rgb: 12, 21, 36;
-  --ion-text-color: #e8edf4;
-  --ion-text-color-rgb: 232, 237, 244;
-  --ion-card-background: #162336;
-  --ion-item-background: #162336;
-  --ion-border-color: rgba(255, 255, 255, 0.08);
+
+  // Tło: 3-poziomowa hierarchia — nieco jaśniejsza niebiesko-szara
+  --ion-background-color: #1c2839; // warstwa strony
+  --ion-background-color-rgb: 28, 40, 57;
+
+  // Tekst
+  --ion-text-color: #e8eef5; // lekko jaśniejszy
+  --ion-text-color-rgb: 232, 238, 245;
+
+  // Powierzchnie (karty, itemy, popovery)
+  --ion-card-background: #253447;
+  --ion-item-background: #253447;
+
+  // Obramowania
+  --ion-border-color: rgba(148, 163, 184, 0.18);
+
+  // Kroki kolorów (dla gradientów Ionic)
+  --ion-color-step-50: #1e2a39;
+  --ion-color-step-100: #253447;
+  --ion-color-step-150: #2b3d52;
+  --ion-color-step-200: #2e4159;
+  --ion-color-step-250: #364d69;
+  --ion-color-step-300: #3f5878;
+  --ion-color-step-350: #4a6488;
+  --ion-color-step-400: #557098;
+  --ion-color-step-450: #637da3;
+  --ion-color-step-500: #718bae;
+  --ion-color-step-550: #7f99b9;
+  --ion-color-step-600: #90a8c4;
+  --ion-color-step-650: #a0b8d0;
+  --ion-color-step-700: #b2c7da;
+  --ion-color-step-750: #c5d6e5;
+  --ion-color-step-800: #d7e4ee;
+  --ion-color-step-850: #dee9f2;
+  --ion-color-step-900: #e4edf6;
+  --ion-color-step-950: #ebf2f9;
 }

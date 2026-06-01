@@ -1,4 +1,4 @@
-.modal-toolbar {
+﻿.modal-toolbar {
   --background: #1a3a5c;
   --color: #ffffff;
   --border-color: transparent;
@@ -176,7 +176,7 @@
 /* ─── Dark mode ─── */
 :host-context(html.ion-palette-dark) {
   .unavailability-modal-content {
-    --background: #0c1524;
+    --background: #1c2839;
   }
 
   .input-label {
@@ -184,16 +184,16 @@
   }
 
   .date-field {
-    --background: #162336;
+    --background: #253447;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 
     ion-input {
-      --color: #e8edf4;
+      --color: #e8eef5;
     }
   }
 
   .desc-field {
-    --background: #162336;
+    --background: #253447;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 
     ion-label {
@@ -201,14 +201,14 @@
     }
 
     ion-textarea {
-      --color: #e8edf4;
+      --color: #e8eef5;
       --placeholder-color: #64748b;
     }
   }
 
   .modal-footer {
-    --background: #162336;
-    border-top-color: rgba(255, 255, 255, 0.08);
+    --background: #253447;
+    border-top-color: rgba(148, 163, 184, 0.15);
   }
 
   .error-message {

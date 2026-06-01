@@ -186,146 +186,147 @@
         </div>
       </ion-content>
 
-      <!-- Day View Modal -->
-      <ion-modal [isOpen]="isDayViewOpen" (didDismiss)="closeDayView()"
-        style="--width: 96vw; --height: 94vh; --border-radius: 16px; --box-shadow: 0 24px 64px rgba(0,0,0,0.25);">
-        <ng-template>
-          <ion-header class="ion-no-border">
-            <ion-toolbar>
-              <ion-title *ngIf="dayViewDay">
-                {{ ['Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota','Niedziela'][dayViewDay.date.getDay()
-                === 0 ? 6 : dayViewDay.date.getDay() - 1] }},
-                {{ formatDayViewDate(dayViewDay.date) }}
-              </ion-title>
-              <ion-buttons slot="end">
-                <ion-button fill="clear" (click)="closeDayView()">Zamknij</ion-button>
-              </ion-buttons>
-            </ion-toolbar>
-          </ion-header>
-          <ion-content class="day-view-content">
-            <div class="day-view-grid">
-              <!-- Hour labels column -->
-              <div class="dv-hour-labels">
-                <div class="dv-hour-label" *ngFor="let h of dayViewHours">{{ h }}:00</div>
-              </div>
-              <!-- Events area -->
-              <div class="dv-events-area" style="height: 1050px">
-                <!-- Background hour lines -->
-                <div class="dv-hour-line" *ngFor="let h of dayViewHours; let i = index" [style.top.px]="i * 70"></div>
-                <!-- Half-hour lines -->
-                <div class="dv-half-line" *ngFor="let h of dayViewHours; let i = index" [style.top.px]="i * 70 + 35">
-                </div>
-                <!-- No events message -->
-                <div class="dv-no-events" *ngIf="dayViewItems.length === 0">
-                  Brak zajęć w tym dniu
-                </div>
-                <!-- Events -->
-                <div *ngFor="let item of dayViewItems" class="dv-event"
-                  [class.dv-event--rapla]="!item.reservation.reservation_type || item.reservation.reservation_type === 'dezyderata'"
-                  [class.dv-event--zajecia]="item.reservation.reservation_type === 'zajencia'"
-                  [ngStyle]="getDayViewItemNgStyle(item)" (click)="openRaplaDetails(item.reservation)">
-                  <div class="dv-event-time">{{ item.reservation.start_time | slice:0:5 }}–{{ item.reservation.end_time
-                    | slice:0:5 }}</div>
-                  <div class="dv-event-title">{{ item.reservation.name || '—' }}</div>
-                  <div class="dv-event-badge" *ngIf="item.reservation.activity_type">{{ item.reservation.activity_type
-                    }}</div>
-                  <div class="dv-event-meta" *ngIf="item.reservation.teacher_names?.length">{{
-                    formatRaplaTeachers(item.reservation.teacher_names) }}</div>
-                  <div class="dv-event-meta" *ngIf="item.reservation.room_names?.length">Sala: {{
-                    formatRaplaList(item.reservation.room_names) }}</div>
-                  <div class="dv-event-meta" *ngIf="item.reservation.group_names?.length">Grupy: {{
-                    formatRaplaList(item.reservation.group_names) }}</div>
-                </div>
-              </div>
-            </div>
-          </ion-content>
-        </ng-template>
-      </ion-modal>
-
-      <ion-modal [isOpen]="isDetailsOpen" (didDismiss)="closeDetails()">
-        <ng-template>
-          <ion-header class="ion-no-border">
-            <ion-toolbar>
-              <ion-title>Szczegóły</ion-title>
-              <ion-buttons slot="end">
-                <ion-button fill="clear" (click)="closeDetails()">Zamknij</ion-button>
-              </ion-buttons>
-            </ion-toolbar>
-          </ion-header>
-          <ion-content class="ion-padding details-modal">
-            <ng-container *ngIf="selectedPlanEvent as ev">
-              <h2 class="details-title">{{ ev.subject }}</h2>
-              <div class="details-row">
-                <span class="details-label">Od</span>
-                <span class="details-value">{{ ev.startIso | date:'yyyy-MM-dd' }} {{ ev.startIso | date:'HH:mm'
-                  }}</span>
-              </div>
-              <div class="details-row">
-                <span class="details-label">Do</span>
-                <span class="details-value">{{ ev.endIso | date:'yyyy-MM-dd' }} {{ ev.endIso | date:'HH:mm' }}</span>
-              </div>
-              <div class="details-row">
-                <span class="details-label">Sala</span>
-                <span class="details-value">{{ ev.location || '—' }}</span>
-              </div>
-              <div class="details-row">
-                <span class="details-label">Prowadzący</span>
-                <span class="details-value">{{ ev.instructor || '—' }}</span>
-              </div>
-              <div class="details-row">
-                <span class="details-label">Opis</span>
-                <span class="details-value">{{ ev.description || '—' }}</span>
-              </div>
-            </ng-container>
-
-            <ng-container *ngIf="selectedRaplaReservation as r">
-              <h2 class="details-title">{{ r.name || 'Rezerwacja z Rapli' }}</h2>
-              <div class="details-row" *ngIf="r.reservation_type">
-                <span class="details-label">Typ</span>
-                <span class="details-value">{{ r.reservation_type === 'zajencia' ? 'Zajęcia' : 'Dezyderata' }}</span>
-              </div>
-              <div class="details-row" *ngIf="r.activity_type">
-                <span class="details-label">Rodzaj</span>
-                <span class="details-value">{{ r.activity_type }}</span>
-              </div>
-              <div class="details-row">
-                <span class="details-label">Start</span>
-                <span class="details-value">{{ r.start_date || '—' }} {{ r.start_time | slice:0:5 }}</span>
-              </div>
-              <div class="details-row">
-                <span class="details-label">Koniec</span>
-                <span class="details-value">{{ r.end_date || r.start_date || '—' }} {{ r.end_time | slice:0:5 }}</span>
-              </div>
-              <div class="details-row">
-                <span class="details-label">Nauczyciele</span>
-                <span class="details-value">{{ formatRaplaTeachers(r.teacher_names) }}</span>
-              </div>
-              <div class="details-row">
-                <span class="details-label">Sale</span>
-                <span class="details-value">{{ formatRaplaList(r.room_names) }}</span>
-              </div>
-              <div class="details-row" *ngIf="r.group_names?.length">
-                <span class="details-label">Grupy</span>
-                <span class="details-value">{{ formatRaplaList(r.group_names) }}</span>
-              </div>
-              <div class="details-row" *ngIf="r.semester_names?.length">
-                <span class="details-label">Semestry</span>
-                <span class="details-value">{{ formatRaplaList(r.semester_names) }}</span>
-              </div>
-              <div class="details-row">
-                <span class="details-label">Tytuł</span>
-                <span class="details-value">{{ getRaplaTeacherTitles(r) }}</span>
-              </div>
-              <div class="details-row">
-                <span class="details-label">Powtarzanie</span>
-                <span class="details-value">{{ formatRaplaRepeat(r) }}</span>
-              </div>
-            </ng-container>
-          </ion-content>
-        </ng-template>
-      </ion-modal>
     </div>
   </ng-container>
+
+  <!-- Day View Modal — poza *ngIf, żeby @ViewChild był zawsze resolved -->
+  <ion-modal #dayViewModal (didDismiss)="closeDayView()"
+    style="--width: 96vw; --height: 94vh; --border-radius: 16px; --box-shadow: 0 24px 64px rgba(0,0,0,0.25);">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar>
+          <ion-title *ngIf="dayViewDay">
+            {{ ['Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota','Niedziela'][dayViewDay.date.getDay()
+            === 0 ? 6 : dayViewDay.date.getDay() - 1] }},
+            {{ formatDayViewDate(dayViewDay.date) }}
+          </ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="closeDayView()">Zamknij</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="day-view-content">
+        <div class="day-view-grid">
+          <!-- Hour labels column -->
+          <div class="dv-hour-labels">
+            <div class="dv-hour-label" *ngFor="let h of dayViewHours">{{ h }}:00</div>
+          </div>
+          <!-- Events area -->
+          <div class="dv-events-area" style="height: 1050px">
+            <!-- Background hour lines -->
+            <div class="dv-hour-line" *ngFor="let h of dayViewHours; let i = index" [style.top.px]="i * 70"></div>
+            <!-- Half-hour lines -->
+            <div class="dv-half-line" *ngFor="let h of dayViewHours; let i = index" [style.top.px]="i * 70 + 35">
+            </div>
+            <!-- No events message -->
+            <div class="dv-no-events" *ngIf="dayViewItems.length === 0">
+              Brak zajęć w tym dniu
+            </div>
+            <!-- Events -->
+            <div *ngFor="let item of dayViewItems" class="dv-event"
+              [class.dv-event--rapla]="!item.reservation.reservation_type || item.reservation.reservation_type === 'dezyderata'"
+              [class.dv-event--zajecia]="item.reservation.reservation_type === 'zajencia'"
+              [ngStyle]="getDayViewItemNgStyle(item)" (click)="openRaplaDetails(item.reservation)">
+              <div class="dv-event-time">{{ item.reservation.start_time | slice:0:5 }}–{{ item.reservation.end_time
+                | slice:0:5 }}</div>
+              <div class="dv-event-title">{{ item.reservation.name || '—' }}</div>
+              <div class="dv-event-badge" *ngIf="item.reservation.activity_type">{{ item.reservation.activity_type
+                }}</div>
+              <div class="dv-event-meta" *ngIf="item.reservation.teacher_names?.length">{{
+                formatRaplaTeachers(item.reservation.teacher_names) }}</div>
+              <div class="dv-event-meta" *ngIf="item.reservation.room_names?.length">Sala: {{
+                formatRaplaList(item.reservation.room_names) }}</div>
+              <div class="dv-event-meta" *ngIf="item.reservation.group_names?.length">Grupy: {{
+                formatRaplaList(item.reservation.group_names) }}</div>
+            </div>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <ion-modal #detailsModal (didDismiss)="closeDetails()">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar>
+          <ion-title>Szczegóły</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="closeDetails()">Zamknij</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding details-modal">
+        <ng-container *ngIf="selectedPlanEvent as ev">
+          <h2 class="details-title">{{ ev.subject }}</h2>
+          <div class="details-row">
+            <span class="details-label">Od</span>
+            <span class="details-value">{{ ev.startIso | date:'yyyy-MM-dd' }} {{ ev.startIso | date:'HH:mm'
+              }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Do</span>
+            <span class="details-value">{{ ev.endIso | date:'yyyy-MM-dd' }} {{ ev.endIso | date:'HH:mm' }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Sala</span>
+            <span class="details-value">{{ ev.location || '—' }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Prowadzący</span>
+            <span class="details-value">{{ ev.instructor || '—' }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Opis</span>
+            <span class="details-value">{{ ev.description || '—' }}</span>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="selectedRaplaReservation as r">
+          <h2 class="details-title">{{ r.name || 'Rezerwacja z Rapli' }}</h2>
+          <div class="details-row" *ngIf="r.reservation_type">
+            <span class="details-label">Typ</span>
+            <span class="details-value">{{ r.reservation_type === 'zajencia' ? 'Zajęcia' : 'Dezyderata' }}</span>
+          </div>
+          <div class="details-row" *ngIf="r.activity_type">
+            <span class="details-label">Rodzaj</span>
+            <span class="details-value">{{ r.activity_type }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Start</span>
+            <span class="details-value">{{ r.start_date || '—' }} {{ r.start_time | slice:0:5 }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Koniec</span>
+            <span class="details-value">{{ r.end_date || r.start_date || '—' }} {{ r.end_time | slice:0:5 }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Nauczyciele</span>
+            <span class="details-value">{{ formatRaplaTeachers(r.teacher_names) }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Sale</span>
+            <span class="details-value">{{ formatRaplaList(r.room_names) }}</span>
+          </div>
+          <div class="details-row" *ngIf="r.group_names?.length">
+            <span class="details-label">Grupy</span>
+            <span class="details-value">{{ formatRaplaList(r.group_names) }}</span>
+          </div>
+          <div class="details-row" *ngIf="r.semester_names?.length">
+            <span class="details-label">Semestry</span>
+            <span class="details-value">{{ formatRaplaList(r.semester_names) }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Tytuł</span>
+            <span class="details-value">{{ getRaplaTeacherTitles(r) }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Powtarzanie</span>
+            <span class="details-value">{{ formatRaplaRepeat(r) }}</span>
+          </div>
+        </ng-container>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 
   <ng-template #noAccessState>
     <div class="main-content">

@@ -3,9 +3,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AlertController, IonicModule } from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { alertCircleOutline, checkmarkCircle, closeCircle, timeOutline, trashOutline } from 'ionicons/icons';
+import { alertCircleOutline, checkmarkCircle, closeCircle, funnelOutline, pencilOutline, timeOutline } from 'ionicons/icons';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
@@ -16,42 +16,17 @@ import {
   TeachingLoadAssignmentCreatePayload,
   TeachingLoadAssignmentPatchPayload,
   TeacherOption,
-  FieldOfStudyOption,
 } from '../../core/services/teaching-loads-api.service';
 import { ActivityOption, SubjectDto } from '../../core/services/subjects-api.service';
-import { SubjectPreferencesApiService, SubjectPreferenceResponse } from '../../core/services/subject-preferences-api.service';
 import { DezyderataService, Semestr } from '../../core/services/dezyderata.service';
-import { RoomsApiService, RoomDto } from '../../core/services/rooms-api.service';
 
 type TeachingLoadFilterState = {
   teacher_id?: number | null;
   subject_id?: number | null;
   activity_id?: number | null;
   semester_id?: number | null;
-  room_id?: number | null;
-  field_of_study_id?: number | null;
   hours_min?: number | null;
   hours_max?: number | null;
-};
-
-/** Mapowanie angielskich nazw pól na polskie (dla starych rekordów w bazie). */
-const AUDIT_KEY_TRANSLATIONS: Record<string, string> = {
-  teacher_id: 'Dydaktyk',
-  teacher_title: 'Tytuł',
-  teacher_first_name: 'Imię wykładowcy',
-  teacher_last_name: 'Nazwisko wykładowcy',
-  subject_id: 'Przedmiot',
-  subject_name: 'Nazwa przedmiotu',
-  activity_id: 'Typ zajęć',
-  activity_name: 'Nazwa typu zajęć',
-  semester_id: 'Semestr',
-  semester_name: 'Nazwa semestru',
-  field_of_study_id: 'Rocznik',
-  field_of_study_label: 'Kierunek / rocznik',
-  room_id: 'Sala',
-  room_number: 'Numer sali',
-  hours: 'Liczba godzin',
-  id: 'ID',
 };
 
 @Component({
@@ -74,24 +49,14 @@ export class TeachingLoadsPage implements OnInit {
   filteredAssignments: TeachingLoadAssignmentDto[] = [];
   teachers: TeacherOption[] = [];
   subjects: SubjectDto[] = [];
-  private subjectGroups: Map<string, SubjectDto[]> = new Map();
   activities: ActivityOption[] = [];
   semesters: Semestr[] = [];
-  fieldOfStudies: FieldOfStudyOption[] = [];
-  rooms: RoomDto[] = [];
-  
-  // Subject preferences for filtering
-  teacherPreferences: Map<number, Set<number>> = new Map();
-  selectedTeacherPreferredSubjectIds: Set<number> = new Set();
-  private preferredTeacherId: number | null = null;
 
   filters: TeachingLoadFilterState = {
     teacher_id: null,
     subject_id: null,
     activity_id: null,
     semester_id: null,
-    room_id: null,
-    field_of_study_id: null,
     hours_min: null,
     hours_max: null,
   };
@@ -107,41 +72,51 @@ export class TeachingLoadsPage implements OnInit {
   historyByAssignment: Record<number, AuditLogDto[]> = {};
   newHistoryIds = new Set<number>();
   lastViewedAt: string | null = null;
+  /** Frozen at page entry — used to determine highlights for the whole session */
+  private sessionViewedAt: string | null = null;
+  changedFieldGroupsByAssignment: Record<number, Set<string>> = {};
+  historyModalRowId: number | null = null;
+  historyModalFieldGroup: string | null = null;
+
+  private readonly fieldGroupKeys: Record<string, string[]> = {
+    teacher: ['teacher', 'teacher_id', 'teacher_first_name', 'teacher_last_name', 'teacher_title'],
+    subject: ['subject_id', 'subject_name'],
+    activity: ['activity_id', 'activity_name'],
+    semester: ['semester_id', 'semester_name'],
+    hours: ['hours'],
+  };
 
   constructor(
-    public auth: AuthService,
+    public readonly auth: AuthService,
     private readonly router: Router,
     private readonly teachingLoadsApi: TeachingLoadsApiService,
-    private readonly roomsApi: RoomsApiService,
     private readonly dezyderataService: DezyderataService,
     private readonly auditApi: AuditApiService,
-    private readonly subjectPreferencesApi: SubjectPreferencesApiService,
-    private readonly alertController: AlertController,
   ) {
-    addIcons({ alertCircleOutline, checkmarkCircle, closeCircle, timeOutline, trashOutline });
+    addIcons({ alertCircleOutline, checkmarkCircle, closeCircle, funnelOutline, pencilOutline, timeOutline });
   }
 
   ngOnInit(): void {
-    if (this.auth.role !== 'admin' && this.auth.role !== 'rapla_editor') {
+    if (this.auth.role !== 'admin' && this.auth.role !== 'rapla_editor' && this.auth.role !== 'lecturer_rapla_editor') {
       this.router.navigateByUrl('/home');
       return;
     }
   }
 
   ionViewWillEnter(): void {
-    if (this.auth.role !== 'admin' && this.auth.role !== 'rapla_editor') {
+    if (this.auth.role !== 'admin' && this.auth.role !== 'rapla_editor' && this.auth.role !== 'lecturer_rapla_editor') {
       return;
     }
 
     this.loadData();
   }
 
-  get userDisplayName(): string {
-    return this.auth.displayName;
-  }
-
   get userRoleLabel(): string {
     return this.auth.roleLabel;
+  }
+
+  get userDisplayName(): string {
+    return this.auth.displayName;
   }
 
   toggleProfileMenu(event: Event): void {
@@ -173,8 +148,6 @@ export class TeachingLoadsPage implements OnInit {
       subject_id: null,
       activity_id: null,
       semester_id: null,
-      room_id: null,
-      field_of_study_id: null,
       hours_min: null,
       hours_max: null,
     };
@@ -187,61 +160,27 @@ export class TeachingLoadsPage implements OnInit {
     const subjectId = this.toNumber(this.filters.subject_id);
     const activityId = this.toNumber(this.filters.activity_id);
     const semesterId = this.toNumber(this.filters.semester_id);
-    const roomId = this.toNumber(this.filters.room_id);
-    const fieldOfStudyId = this.toNumber(this.filters.field_of_study_id);
     const hoursMin = this.toNumber(this.filters.hours_min);
     const hoursMax = this.toNumber(this.filters.hours_max);
     const query = this.normalizeSearch(this.searchQuery);
 
     const filtered = this.assignments.filter((item) => {
-      if (teacherId !== null && item.teacher_id !== teacherId) {
-        return false;
-      }
-      if (subjectId !== null) {
-        const allowed = this.getSubjectEntriesById(subjectId).map((s) => s.id);
-        if (!allowed.includes(item.subject_id)) {
-          return false;
-        }
-      }
-      if (activityId !== null && item.activity_id !== activityId) {
-        return false;
-      }
-      if (semesterId !== null && item.semester_id !== semesterId) {
-        return false;
-      }
-      if (roomId !== null && item.room_id !== roomId) {
-        return false;
-      }
-      if (fieldOfStudyId !== null && item.field_of_study_id !== fieldOfStudyId) {
-        return false;
-      }
-      if (hoursMin !== null && item.hours < hoursMin) {
-        return false;
-      }
-      if (hoursMax !== null && item.hours > hoursMax) {
-        return false;
-      }
-      if (query && !this.buildRowSearchText(item).includes(query)) {
-        return false;
-      }
+      if (teacherId !== null && item.teacher_id !== teacherId) { return false; }
+      if (subjectId !== null && item.subject_id !== subjectId) { return false; }
+      if (activityId !== null && item.activity_id !== activityId) { return false; }
+      if (semesterId !== null && item.semester_id !== semesterId) { return false; }
+      if (hoursMin !== null && item.hours < hoursMin) { return false; }
+      if (hoursMax !== null && item.hours > hoursMax) { return false; }
+      if (query && !this.buildRowSearchText(item).includes(query)) { return false; }
       return true;
     });
 
-    filtered.sort((a, b) => {
-      const subjectA = this.normalizeSearch(this.getSubjectLabel(a));
-      const subjectB = this.normalizeSearch(this.getSubjectLabel(b));
-      if (subjectA < subjectB) return -1;
-      if (subjectA > subjectB) return 1;
-
-      const activityA = this.normalizeSearch(this.getActivityLabel(a));
-      const activityB = this.normalizeSearch(this.getActivityLabel(b));
-      if (activityA < activityB) return -1;
-      if (activityA > activityB) return 1;
-
-      return 0;
+    // wiersze ze zmianami od ostatniego logowania na górze
+    this.filteredAssignments = [...filtered].sort((a, b) => {
+      const aNew = this.newHistoryIds.has(a.id) ? 0 : 1;
+      const bNew = this.newHistoryIds.has(b.id) ? 0 : 1;
+      return aNew - bNew;
     });
-
-    this.filteredAssignments = filtered;
   }
 
   startCreating(): void {
@@ -260,7 +199,6 @@ export class TeachingLoadsPage implements OnInit {
     this.isCreating = true;
     this.newRowDraft = this.buildDefaultRow();
     this.rowErrorMessage = '';
-    this.onNewTeacherChange();
   }
 
   cancelCreating(): void {
@@ -289,8 +227,7 @@ export class TeachingLoadsPage implements OnInit {
       .pipe(finalize(() => (this.isSaving = false)))
       .subscribe({
         next: (created) => {
-          const enriched = this.enrichAssignment(created);
-          this.assignments = [enriched, ...this.assignments];
+          this.assignments = [created, ...this.assignments];
           this.applyFilters();
           this.cancelCreating();
           this.refreshAuditIndex();
@@ -317,14 +254,9 @@ export class TeachingLoadsPage implements OnInit {
     }
 
     this.editingRowId = row.id;
-    const editableRow = {
-      ...row,
-      subject_id: this.getRepresentativeSubjectId(row.subject_id) ?? row.subject_id,
-    };
-    this.originalRow = { ...editableRow };
-    this.draftRow = { ...editableRow };
+    this.originalRow = { ...row };
+    this.draftRow = { ...row };
     this.rowErrorMessage = '';
-    this.onEditTeacherChange();
   }
 
   cancelEditing(): void {
@@ -359,8 +291,7 @@ export class TeachingLoadsPage implements OnInit {
       .pipe(finalize(() => (this.isSaving = false)))
       .subscribe({
         next: (updated) => {
-          const enriched = this.enrichAssignment(updated);
-          this.assignments = this.replaceById(this.assignments, enriched, (item) => item.id);
+          this.assignments = this.replaceById(this.assignments, updated, (item) => item.id);
           this.applyFilters();
           this.cancelEditing();
           this.refreshAuditIndex();
@@ -371,69 +302,129 @@ export class TeachingLoadsPage implements OnInit {
       });
   }
 
-  async confirmDelete(row: TeachingLoadAssignmentDto, event?: Event): Promise<void> {
-    event?.stopPropagation();
-    if (this.isSaving) {
-      return;
-    }
-
-    const alert = await this.alertController.create({
-      header: 'Usuń przydział',
-      message: `Czy na pewno usunąć przydział dla ${this.getTeacherLabel(row)} (${this.getSubjectLabel(row)})?`,
-      buttons: [
-        {
-          text: 'Anuluj',
-          role: 'cancel',
-        },
-        {
-          text: 'Usuń',
-          role: 'destructive',
-          handler: () => this.deleteAssignment(row),
-        },
-      ],
-    });
-
-    await alert.present();
+  isFieldChanged(rowId: number, fieldGroup: string): boolean {
+    return this.changedFieldGroupsByAssignment[rowId]?.has(fieldGroup) ?? false;
   }
 
-  private deleteAssignment(row: TeachingLoadAssignmentDto): void {
-    if (this.isSaving) {
+  onCellClick(row: TeachingLoadAssignmentDto, fieldGroup: string, event: Event): void {
+    event.stopPropagation();
+    if (this.editingRowId === row.id) {
       return;
     }
+    this.historyModalRowId = row.id;
+    this.historyModalFieldGroup = fieldGroup;
+  }
 
-    this.isSaving = true;
-    this.rowErrorMessage = '';
+  openHistoryModal(row: TeachingLoadAssignmentDto, event: Event): void {
+    event.stopPropagation();
+    this.historyModalRowId = row.id;
+    this.historyModalFieldGroup = null;
+  }
 
-    this.teachingLoadsApi
-      .deleteTeachingLoad(row.id)
-      .pipe(finalize(() => (this.isSaving = false)))
-      .subscribe({
-        next: () => {
-          this.assignments = this.assignments.filter((item) => item.id !== row.id);
-          this.filteredAssignments = this.filteredAssignments.filter((item) => item.id !== row.id);
-          if (this.editingRowId === row.id) {
-            this.cancelEditing();
-          }
-          if (this.historyOpenRowId === row.id) {
-            this.historyOpenRowId = null;
-          }
-          delete this.historyByAssignment[row.id];
-          this.newHistoryIds.delete(row.id);
-        },
-        error: (error) => {
-          this.rowErrorMessage = this.mapRowError(error, 'Nie udało się usunąć przydziału.');
-        },
-      });
+  closeHistoryModal(): void {
+    this.historyModalRowId = null;
+    this.historyModalFieldGroup = null;
+  }
+
+  startEditingFromModal(): void {
+    const rowId = this.historyModalRowId;
+    this.historyModalRowId = null;
+    this.historyModalFieldGroup = null;
+    if (rowId === null) {
+      return;
+    }
+    const row = this.assignments.find((a) => a.id === rowId);
+    if (row) {
+      this.startEditing(row);
+    }
+  }
+
+  getModalHistory(): AuditLogDto[] {
+    if (this.historyModalRowId === null) {
+      return [];
+    }
+    const logs = this.historyByAssignment[this.historyModalRowId] ?? [];
+
+    if (!this.historyModalFieldGroup) {
+      // Clock button — show full history, all changes
+      return logs;
+    }
+
+    // Cell click — show all changes for this field group (full history)
+    const relevantKeys = this.fieldGroupKeys[this.historyModalFieldGroup] ?? [];
+
+    return logs.filter((log) => {
+      // For UPDATE: only if a relevant key actually changed
+      if (log.action === 'UPDATE') {
+        return relevantKeys.some(
+          (key) => (log.old_values?.[key] ?? null) !== (log.new_values?.[key] ?? null),
+        );
+      }
+      // CREATE / DELETE: include them all
+      return true;
+    });
+  }
+
+  getModalFieldLabel(): string | null {
+    if (!this.historyModalFieldGroup) {
+      return null;
+    }
+    const map: Record<string, string> = {
+      teacher: 'Dydaktyk',
+      subject: 'Przedmiot',
+      activity: 'Typ zajęć',
+      semester: 'Semestr',
+      hours: 'Godziny',
+    };
+    return map[this.historyModalFieldGroup] ?? null;
+  }
+
+  clearModalFieldFilter(event: Event): void {
+    event.stopPropagation();
+    this.historyModalFieldGroup = null;
+  }
+
+  getModalRowLabel(): string {
+    if (this.historyModalRowId === null) {
+      return '';
+    }
+    const row =
+      this.filteredAssignments.find((a) => a.id === this.historyModalRowId) ??
+      this.assignments.find((a) => a.id === this.historyModalRowId);
+    if (!row) {
+      return '';
+    }
+    return `${this.getTeacherLabel(row)} – ${this.getSubjectLabel(row)}`;
+  }
+
+  getDiffFields(log: AuditLogDto): Array<{ label: string; oldVal: string; newVal: string }> {
+    const oldVals = (log.old_values ?? null) as Record<string, unknown> | null;
+    const newVals = (log.new_values ?? null) as Record<string, unknown> | null;
+    if (log.action === 'CREATE') {
+      return this.buildDiffRows(null, newVals);
+    }
+    if (log.action === 'DELETE') {
+      return this.buildDiffRows(oldVals, null);
+    }
+    if (log.action === 'UPDATE') {
+      return this.buildDiffRows(oldVals, newVals);
+    }
+    return [];
+  }
+
+  getDisplayedDiffFields(log: AuditLogDto): Array<{ label: string; oldVal: string; newVal: string }> {
+    const all = this.getDiffFields(log);
+    if (!this.historyModalFieldGroup || log.action !== 'UPDATE') {
+      return all;
+    }
+    const relevantKeys = this.fieldGroupKeys[this.historyModalFieldGroup] ?? [];
+    const relevantLabels = new Set(relevantKeys.map((k) => this.translateAuditKey(k)));
+    const filtered = all.filter((f) => relevantLabels.has(f.label));
+    return filtered.length > 0 ? filtered : all;
   }
 
   toggleHistory(row: TeachingLoadAssignmentDto, event?: Event): void {
-    event?.stopPropagation();
-    if (this.historyOpenRowId === row.id) {
-      this.historyOpenRowId = null;
-      return;
-    }
-
-    this.historyOpenRowId = row.id;
+    this.openHistoryModal(row, event ?? new Event('click'));
   }
 
   getHistoryCount(rowId: number): number {
@@ -481,22 +472,6 @@ export class TeachingLoadsPage implements OnInit {
     return fallback?.name ?? `#${row.activity_id}`;
   }
 
-  getRoomLabel(row: TeachingLoadAssignmentDto): string {
-    if (row.room_number) {
-      return row.room_number;
-    }
-    if (!row.room_id) {
-      return '-';
-    }
-    const fallback = this.rooms.find((room) => room.id === row.room_id);
-    return fallback?.room_number ?? `#${row.room_id}`;
-  }
-
-  getRoomOptionLabel(room: RoomDto): string {
-    const typeSuffix = room.room_type ? ` (${room.room_type})` : '';
-    return `${room.room_number}${typeSuffix}`.trim();
-  }
-
   getSemesterLabel(row: TeachingLoadAssignmentDto): string {
     if (row.semester_name) {
       return row.semester_name;
@@ -506,153 +481,67 @@ export class TeachingLoadsPage implements OnInit {
     return fallback?.nazwa ?? `#${row.semester_id}`;
   }
 
-  getFieldOfStudyOptionLabel(fieldOfStudy: FieldOfStudyOption): string {
-    return fieldOfStudy.label ?? `${fieldOfStudy.name} / ${fieldOfStudy.abbreviation} / ${fieldOfStudy.year}`;
-  }
-
-  getFieldOfStudyLabel(row: TeachingLoadAssignmentDto): string {
-    if (row.field_of_study_label) {
-      return row.field_of_study_label;
-    }
-    if (!row.field_of_study_id) {
-      return '-';
-    }
-    const fallback = this.fieldOfStudies.find((item) => item.id === row.field_of_study_id);
-    return fallback ? this.getFieldOfStudyOptionLabel(fallback) : `#${row.field_of_study_id}`;
-  }
-
   getTeacherOptionLabel(teacher: TeacherOption): string {
     return [teacher.title || teacher.titles[0], `${teacher.first_name} ${teacher.last_name}`.trim()]
       .filter(Boolean)
       .join(' ');
   }
 
-  getActivityOptionsForSubject(
-    subjectId: number | null | undefined,
-    teacherId?: number | null,
-  ): ActivityOption[] {
-    if (!subjectId) {
+  getActivityOptionsForSubject(subjectId: number | null | undefined): ActivityOption[] {
+    const resolvedId = this.resolveSubjectActivityId(subjectId);
+    if (!resolvedId) {
       return this.activities;
     }
 
-    const entries = this.getSubjectEntriesById(subjectId);
-    const shouldFilterByPreferences =
-      teacherId != null &&
-      teacherId > 0 &&
-      this.preferredTeacherId === teacherId &&
-      this.selectedTeacherPreferredSubjectIds.size > 0;
-
-    const filteredEntries = shouldFilterByPreferences
-      ? entries.filter((entry) => this.selectedTeacherPreferredSubjectIds.has(entry.id))
-      : entries;
-
-    const activityIds = Array.from(new Set(filteredEntries.map((e) => Number(e.activity_id)).filter(Boolean)));
-    if (!activityIds.length) {
-      return shouldFilterByPreferences ? [] : this.activities;
-    }
-
-    return this.activities.filter((a) => activityIds.includes(a.id));
+    const match = this.activities.find((activity) => activity.id === resolvedId);
+    return match ? [match] : this.activities;
   }
 
   onNewSubjectChange(): void {
-    const draft = this.newRowDraft;
-    if (!draft) {
+    if (!this.newRowDraft) {
       return;
     }
-    this.ensureActivitySelection(draft, draft.teacher_id);
-  }
 
-  onNewActivityChange(): void {
-    const draft = this.newRowDraft;
-    if (!draft) {
-      return;
+    const resolvedId = this.resolveSubjectActivityId(this.newRowDraft.subject_id);
+    if (resolvedId) {
+      this.newRowDraft.activity_id = resolvedId;
     }
   }
 
   onEditSubjectChange(): void {
-    const draft = this.draftRow;
-    if (!draft) {
+    if (!this.draftRow) {
       return;
     }
-    this.ensureActivitySelection(draft, draft.teacher_id);
-  }
 
-  onEditActivityChange(): void {
-    const draft = this.draftRow;
-    if (!draft) {
-      return;
+    const resolvedId = this.resolveSubjectActivityId(this.draftRow.subject_id);
+    if (resolvedId) {
+      this.draftRow.activity_id = resolvedId;
     }
   }
 
-  /**
-   * Zwraca podsumowanie zmian – wyświetla listę zmienionych pól z wartościami.
-   * Obsługuje zarówno polskie klucze (nowe rekordy), jak i angielskie (stare).
-   */
   getHistorySummary(log: AuditLogDto): string {
     if (!log.old_values || !log.new_values || log.action !== 'UPDATE') {
       return 'Brak szczegółów zmian.';
     }
 
-    const oldKeys = Object.keys(log.old_values);
-    const newKeys = Object.keys(log.new_values);
-    const allKeys = Array.from(new Set([...oldKeys, ...newKeys]));
-
-    const changedKeys = allKeys.filter(
-      (key) => JSON.stringify(log.old_values?.[key]) !== JSON.stringify(log.new_values?.[key]),
+    const changedKeys = Object.keys(log.new_values).filter(
+      (key) => log.old_values?.[key] !== log.new_values?.[key],
     );
 
     if (changedKeys.length === 0) {
       return 'Brak szczegółów zmian.';
     }
 
-    const previewKeys = changedKeys.slice(0, 4);
+    const previewKeys = changedKeys.slice(0, 3);
     const preview = previewKeys
-      .map((key) => {
-        const fieldName = this.resolveAuditFieldName(key);
-        const oldVal = this.formatAuditValue(log.old_values?.[key], key);
-        const newVal = this.formatAuditValue(log.new_values?.[key], key);
-        return `${fieldName}: ${oldVal} → ${newVal}`;
-      })
+      .map((key) => `${this.translateAuditKey(key)}: ${this.formatAuditValue(log.old_values?.[key])} -> ${this.formatAuditValue(log.new_values?.[key])}`)
       .join(' | ');
 
     if (changedKeys.length > previewKeys.length) {
-      return `${preview} | +${changedKeys.length - previewKeys.length} więcej`;
+      return `${preview} | +${changedKeys.length - previewKeys.length}`;
     }
 
     return preview;
-  }
-
-  /**
-   * Zwraca tablicę zmienionych pól dla rozszerzonego widoku historii.
-   * Każdy wpis zawiera: nazwa_pola, stara_wartość, nowa_wartość.
-   */
-  /** Lista pól do ukrycia w historii zmian. */
-  private readonly hiddenHistoryKeys = new Set([
-    'field_of_study_label', 'field_of_study_id',
-    'group_id', 'group_label',
-  ]);
-
-  getHistoryChanges(log: AuditLogDto): { field: string; oldValue: string; newValue: string }[] {
-    if (!log.old_values || !log.new_values) {
-      return [];
-    }
-
-    const oldKeys = Object.keys(log.old_values);
-    const newKeys = Object.keys(log.new_values);
-    const allKeys = Array.from(new Set([...oldKeys, ...newKeys]));
-
-    return allKeys
-      .filter(
-        (key) =>
-          key !== 'id' &&
-          !this.hiddenHistoryKeys.has(key) &&
-          JSON.stringify(log.old_values?.[key]) !== JSON.stringify(log.new_values?.[key]),
-      )
-      .map((key) => ({
-        field: this.resolveAuditFieldName(key),
-        oldValue: this.formatAuditValue(log.old_values?.[key], key),
-        newValue: this.formatAuditValue(log.new_values?.[key], key),
-      }));
   }
 
   getActionLabel(action: string): string {
@@ -666,115 +555,6 @@ export class TeachingLoadsPage implements OnInit {
       return 'Usunięto';
     }
     return action;
-  }
-
-  /**
-   * Zwraca listę kluczy do wyświetlenia w widoku CREATE/DELETE.
-   */
-  getHistoryDetailKeys(log: AuditLogDto): string[] {
-    const values = log.new_values || log.old_values || {};
-    return Object.keys(values).filter(
-      (key) => !['id', 'modified_by', 'modified_by_name', 'timestamp'].includes(key) && !this.hiddenHistoryKeys.has(key),
-    ).slice(0, 12);
-  }
-
-  /** Zwraca przetłumaczoną nazwę pola – dostępny z szablonu. */
-  resolveAuditFieldName(key: string): string {
-    const hasPolish = /[ąćęłńóśźżż]/i.test(key);
-    if (hasPolish) {
-      return key;
-    }
-    return AUDIT_KEY_TRANSLATIONS[key] || key;
-  }
-
-  /** Formatuje wartość do wyświetlenia – dostępny z szablonu. key to nazwa pola (wspomaga rozpoznawanie ID). */
-  formatAuditValue(value: unknown, key?: string): string {
-    if (value === null || value === undefined) {
-      return '-';
-    }
-    if (typeof value === 'boolean') {
-      return value ? 'Tak' : 'Nie';
-    }
-    if (typeof value === 'number') {
-      // Rozpoznawanie ID po nazwie pola
-      if (key) {
-        const resolved = this.resolveAuditIdByKey(key, value);
-        if (resolved) return resolved;
-      }
-      return Number.isFinite(value) ? String(value) : '-';
-    }
-    if (typeof value === 'string') {
-      return value;
-    }
-    return JSON.stringify(value);
-  }
-
-  /** Próbuje rozpoznać ID na czytelną nazwę na podstawie słowników. */
-  private resolveAuditIdByKey(key: string, id: number): string | null {
-    if (key.includes('teacher_id')) {
-      const teacher = this.teachers.find((t) => t.user_id === id);
-      if (teacher) return `${teacher.title ? teacher.title + ' ' : ''}${teacher.first_name} ${teacher.last_name}`.trim();
-    }
-    if (key.includes('subject_id')) {
-      const subject = this.subjects.find((s) => s.id === id);
-      if (subject?.name) return subject.name;
-    }
-    if (key.includes('activity_id')) {
-      const activity = this.activities.find((a) => a.id === id);
-      if (activity?.name) return activity.name;
-    }
-    if (key.includes('semester_id')) {
-      const sem = this.semesters.find((s) => s.id === id);
-      if (sem?.nazwa) return sem.nazwa;
-    }
-    if (key.includes('room_id')) {
-      const room = this.rooms.find((r) => r.id === id);
-      if (room?.room_number) return room.room_number;
-    }
-    if (key.includes('field_of_study_id')) {
-      const fos = this.fieldOfStudies.find((f) => f.id === id);
-      if (fos) return `${fos.name} / ${fos.abbreviation} / ${fos.year}`;
-    }
-    return null;
-  }
-
-  getActionClass(action: string): string {
-    const map: Record<string, string> = {
-      create: 'is-create',
-      update: 'is-update',
-      delete: 'is-delete',
-      CREATE: 'is-create',
-      UPDATE: 'is-update',
-      DELETE: 'is-delete',
-    };
-    return map[action] || '';
-  }
-
-  private buildSubjectGroups(): void {
-    this.subjectGroups = new Map();
-    for (const s of this.subjects) {
-      const name = s.name ?? `#${s.id}`;
-      const list = this.subjectGroups.get(name) ?? [];
-      list.push(s);
-      this.subjectGroups.set(name, list);
-    }
-  }
-
-  getSubjectOptions(): { id: number; name: string; entries: SubjectDto[] }[] {
-    const out: { id: number; name: string; entries: SubjectDto[] }[] = [];
-    for (const [name, entries] of this.subjectGroups.entries()) {
-      out.push({ id: entries[0].id, name, entries });
-    }
-    out.sort((a, b) => a.name.localeCompare(b.name));
-    return out;
-  }
-
-  private getSubjectEntriesById(subjectId: number | null | undefined): SubjectDto[] {
-    if (!subjectId) return [];
-    const subject = this.subjects.find((s) => s.id === subjectId);
-    if (!subject) return [];
-    const name = subject.name ?? `#${subject.id}`;
-    return this.subjectGroups.get(name) ?? [subject];
   }
 
   trackByAssignmentId(_: number, item: TeachingLoadAssignmentDto): number {
@@ -792,14 +572,14 @@ export class TeachingLoadsPage implements OnInit {
     this.historyOpenRowId = null;
     this.isCreating = false;
     this.newRowDraft = null;
+    // Reset frozen session baseline so it is re-captured from server on each page entry
+    this.sessionViewedAt = null;
 
     forkJoin({
       assignments: this.teachingLoadsApi.getTeachingLoads(),
       teachers: this.teachingLoadsApi.getTeachers(),
       subjects: this.teachingLoadsApi.getSubjects(),
       activities: this.teachingLoadsApi.getActivities(),
-      rooms: this.roomsApi.getRooms(),
-      fieldOfStudies: this.teachingLoadsApi.getFieldOfStudies(),
       semesters: this.dezyderataService.getSemestry(),
       audit: this.auditApi.getLogs().pipe(
         catchError(() => of({ last_changes_viewed_at: null, logs: [] })),
@@ -807,24 +587,14 @@ export class TeachingLoadsPage implements OnInit {
     })
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
-        next: ({ assignments, teachers, subjects, activities, rooms, fieldOfStudies, semesters, audit }) => {
+        next: ({ assignments, teachers, subjects, activities, semesters, audit }) => {
           this.assignments = assignments;
+          this.filteredAssignments = assignments;
           this.teachers = teachers;
           this.subjects = subjects;
-          this.buildSubjectGroups();
           this.activities = activities;
-          this.rooms = rooms;
-          this.fieldOfStudies = fieldOfStudies;
           this.semesters = semesters.items ?? [];
-          // Prefill resolved labels so sorting is stable on first render
-          this.assignments = this.assignments.map((a) => ({
-            ...a,
-            subject_name: this.getSubjectLabel(a),
-            activity_name: this.getActivityLabel(a),
-            room_number: a.room_number ?? (this.getRoomLabel(a) === '-' ? null : this.getRoomLabel(a)),
-            field_of_study_label: this.getFieldOfStudyLabel(a),
-          }));
-          this.buildAuditIndex(audit.last_changes_viewed_at, audit.logs ?? []);
+          this.buildAuditIndex(audit.last_changes_viewed_at, audit.logs ?? [], true);
           this.applyFilters();
         },
         error: () => {
@@ -836,7 +606,8 @@ export class TeachingLoadsPage implements OnInit {
   private refreshAuditIndex(): void {
     this.auditApi.getLogs().subscribe({
       next: (audit) => {
-        this.buildAuditIndex(audit.last_changes_viewed_at, audit.logs ?? []);
+        // Pass sessionViewedAt (frozen at login) so highlights are not reset mid-session
+        this.buildAuditIndex(audit.last_changes_viewed_at, audit.logs ?? [], false);
       },
       error: () => {
         this.historyErrorMessage = 'Nie udało się pobrać historii zmian.';
@@ -844,16 +615,34 @@ export class TeachingLoadsPage implements OnInit {
     });
   }
 
-  private buildAuditIndex(lastViewedAt: string | null, logs: AuditLogDto[]): void {
+  private buildAuditIndex(lastViewedAt: string | null, logs: AuditLogDto[], freezeSession = false): void {
     this.lastViewedAt = lastViewedAt;
+    // On first load freeze sessionViewedAt; on refresh keep the frozen value
+    if (freezeSession || this.sessionViewedAt === null) {
+      this.sessionViewedAt = lastViewedAt;
+    }
     this.historyByAssignment = {};
     this.newHistoryIds.clear();
+    this.changedFieldGroupsByAssignment = {};
 
-    const viewedAtMs = lastViewedAt ? new Date(lastViewedAt).getTime() : 0;
+    const viewedAtMs = this.sessionViewedAt ? new Date(this.sessionViewedAt).getTime() : 0;
+
+    const fieldGroupMap: Record<string, string> = {
+      teacher: 'teacher',
+      teacher_id: 'teacher', teacher_first_name: 'teacher',
+      teacher_last_name: 'teacher', teacher_title: 'teacher',
+      subject_id: 'subject', subject_name: 'subject',
+      activity_id: 'activity', activity_name: 'activity',
+      semester_id: 'semester', semester_name: 'semester',
+      hours: 'hours',
+    };
 
     logs
       .filter((log) => log.entity_name === 'TeachingLoadAssignment')
       .forEach((log) => {
+        // Normalize action to uppercase so all comparisons work regardless of backend casing
+        log.action = log.action.toUpperCase();
+
         const assignmentId = Number(log.entity_id);
         if (!this.historyByAssignment[assignmentId]) {
           this.historyByAssignment[assignmentId] = [];
@@ -862,9 +651,29 @@ export class TeachingLoadsPage implements OnInit {
 
         if (new Date(log.timestamp).getTime() > viewedAtMs) {
           this.newHistoryIds.add(assignmentId);
+
+          if (!this.changedFieldGroupsByAssignment[assignmentId]) {
+            this.changedFieldGroupsByAssignment[assignmentId] = new Set();
+          }
+
+          if (log.action === 'UPDATE' && log.new_values) {
+            Object.keys(log.new_values).forEach((key) => {
+              if ((log.old_values?.[key] ?? null) !== (log.new_values?.[key] ?? null)) {
+                const group = fieldGroupMap[key];
+                if (group) {
+                  this.changedFieldGroupsByAssignment[assignmentId].add(group);
+                }
+              }
+            });
+          } else if (log.action === 'CREATE' || log.action === 'DELETE') {
+            ['teacher', 'subject', 'activity', 'hours', 'semester'].forEach((g) =>
+              this.changedFieldGroupsByAssignment[assignmentId].add(g),
+            );
+          }
         }
       });
 
+    // Newest first
     Object.values(this.historyByAssignment).forEach((items) =>
       items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
     );
@@ -877,36 +686,19 @@ export class TeachingLoadsPage implements OnInit {
     const normalizedOriginal = this.normalizeRow(original);
     const normalizedDraft = this.normalizeRow(draft);
 
-    // Resolve subject ids taking activity into account so switching between
-    // subject variants (same name, different activity) is detected.
-    const resolvedOriginalSubject = this.resolveSubjectIdForActivity(
-      normalizedOriginal.subject_id,
-      normalizedOriginal.activity_id,
-    );
-    const resolvedDraftSubject = this.resolveSubjectIdForActivity(
-      normalizedDraft.subject_id,
-      normalizedDraft.activity_id,
-    );
-
     const payload: TeachingLoadAssignmentPatchPayload = {};
 
     if (normalizedDraft.teacher_id !== normalizedOriginal.teacher_id) {
       payload.teacher_id = normalizedDraft.teacher_id;
     }
-    if (resolvedDraftSubject !== resolvedOriginalSubject) {
-      payload.subject_id = Number(resolvedDraftSubject ?? normalizedDraft.subject_id);
+    if (normalizedDraft.subject_id !== normalizedOriginal.subject_id) {
+      payload.subject_id = normalizedDraft.subject_id;
     }
     if (normalizedDraft.activity_id !== normalizedOriginal.activity_id) {
       payload.activity_id = normalizedDraft.activity_id;
     }
     if (normalizedDraft.semester_id !== normalizedOriginal.semester_id) {
       payload.semester_id = normalizedDraft.semester_id;
-    }
-    if (normalizedDraft.room_id !== normalizedOriginal.room_id) {
-      payload.room_id = normalizedDraft.room_id ?? null;
-    }
-    if (normalizedDraft.field_of_study_id !== normalizedOriginal.field_of_study_id) {
-      payload.field_of_study_id = normalizedDraft.field_of_study_id;
     }
     if (normalizedDraft.hours !== normalizedOriginal.hours) {
       payload.hours = normalizedDraft.hours;
@@ -928,12 +720,6 @@ export class TeachingLoadsPage implements OnInit {
     if (payload.semester_id !== undefined && payload.semester_id <= 0) {
       return 'Wybierz poprawny semestr.';
     }
-    if (payload.room_id != null && payload.room_id <= 0) {
-      return 'Wybierz poprawną salę.';
-    }
-    if (payload.field_of_study_id != null && payload.field_of_study_id <= 0) {
-      return 'Wybierz poprawny rocznik.';
-    }
     if (payload.hours !== undefined && (!Number.isFinite(payload.hours) || payload.hours <= 0)) {
       return 'Podaj poprawną liczbę godzin.';
     }
@@ -942,15 +728,13 @@ export class TeachingLoadsPage implements OnInit {
   }
 
   private buildCreatePayload(draft: TeachingLoadAssignmentDto): TeachingLoadAssignmentCreatePayload {
-    const subjectId = this.resolveSubjectIdForActivity(draft.subject_id, draft.activity_id);
     return {
       teacher_id: Number(draft.teacher_id),
-      subject_id: Number(subjectId ?? draft.subject_id),
+      subject_id: Number(draft.subject_id),
       activity_id: Number(draft.activity_id),
       semester_id: Number(draft.semester_id),
-      field_of_study_id: Number(draft.field_of_study_id),
-      room_id: draft.room_id != null ? Number(draft.room_id) : null,
       hours: Number(draft.hours),
+      field_of_study_id: draft.field_of_study_id ?? null,
     };
   }
 
@@ -967,12 +751,6 @@ export class TeachingLoadsPage implements OnInit {
     if (!payload.semester_id || payload.semester_id <= 0) {
       return 'Wybierz poprawny semestr.';
     }
-    if (payload.room_id != null && payload.room_id <= 0) {
-      return 'Wybierz poprawną salę.';
-    }
-    if (!payload.field_of_study_id || payload.field_of_study_id <= 0) {
-      return 'Wybierz poprawny rocznik.';
-    }
     if (!Number.isFinite(payload.hours) || payload.hours <= 0) {
       return 'Podaj poprawną liczbę godzin.';
     }
@@ -984,50 +762,47 @@ export class TeachingLoadsPage implements OnInit {
     return {
       ...row,
       teacher_id: Number(row.teacher_id),
-      subject_id: Number(this.getRepresentativeSubjectId(row.subject_id) ?? row.subject_id),
+      subject_id: Number(row.subject_id),
       activity_id: Number(row.activity_id),
       semester_id: Number(row.semester_id),
-      room_id: row.room_id ? Number(row.room_id) : null,
-      field_of_study_id: row.field_of_study_id ? Number(row.field_of_study_id) : null,
       hours: Number(row.hours),
     };
   }
 
-  private getRepresentativeSubjectId(subjectId: number | null | undefined): number | null {
-    if (!subjectId) {
-      return null;
-    }
+  private translateAuditKey(key: string): string {
+    const map: Record<string, string> = {
+      teacher: 'Dydaktyk',
+      teacher_id: 'Dydaktyk',
+      teacher_first_name: 'Imię dydaktyka',
+      teacher_last_name: 'Nazwisko dydaktyka',
+      teacher_title: 'Tytuł dydaktyka',
+      subject_id: 'Przedmiot',
+      subject_name: 'Przedmiot',
+      activity_id: 'Typ zajęć',
+      activity_name: 'Typ zajęć',
+      semester_id: 'Semestr',
+      semester_name: 'Semestr',
+      hours: 'Godziny',
+    };
 
-    const subject = this.subjects.find((item) => item.id === subjectId);
-    if (!subject) {
-      return subjectId;
-    }
-
-    const groupName = subject.name ?? `#${subject.id}`;
-    const candidates = this.subjectGroups.get(groupName) ?? [subject];
-    return candidates[0]?.id ?? subjectId;
+    return map[key] || key;
   }
 
-  private resolveSubjectIdForActivity(
-    subjectId: number | null | undefined,
-    activityId: number | null | undefined,
-  ): number | null {
-    const representativeSubjectId = this.getRepresentativeSubjectId(subjectId);
-    if (!representativeSubjectId || !activityId) {
-      return representativeSubjectId;
+  private formatAuditValue(value: unknown): string {
+    if (value === null || value === undefined) {
+      return '-';
     }
-
-    const subject = this.subjects.find((item) => item.id === representativeSubjectId);
-    if (!subject) {
-      return representativeSubjectId;
+    if (typeof value === 'boolean') {
+      return value ? 'Tak' : 'Nie';
     }
-
-    const groupName = subject.name ?? `#${subject.id}`;
-    const candidates = this.subjectGroups.get(groupName) ?? [subject];
-    const exact = candidates.find((item) => Number(item.activity_id) === Number(activityId));
-    return exact?.id ?? representativeSubjectId;
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? String(value) : '-';
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    return JSON.stringify(value);
   }
-
 
   private toNumber(value: unknown): number | null {
     if (value === null || value === undefined || value === '') {
@@ -1045,8 +820,7 @@ export class TeachingLoadsPage implements OnInit {
 
   private mapRowError(error: unknown, fallback: string): string {
     if (error instanceof HttpErrorResponse) {
-      const errBody = error.error ?? {};
-      const detail = errBody.detail ?? errBody.message ?? (errBody.detail?.message ?? null);
+      const detail = error.error?.detail;
       if (typeof detail === 'string' && detail.trim()) {
         return detail;
       }
@@ -1056,13 +830,7 @@ export class TeachingLoadsPage implements OnInit {
   }
 
   private ensureDictionariesReady(): boolean {
-    if (
-      !this.teachers.length ||
-      !this.subjects.length ||
-      !this.activities.length ||
-      !this.semesters.length ||
-      !this.fieldOfStudies.length
-    ) {
+    if (!this.teachers.length || !this.subjects.length || !this.activities.length || !this.semesters.length) {
       this.rowErrorMessage = 'Brak słowników do dodania przydziału.';
       return false;
     }
@@ -1088,10 +856,6 @@ export class TeachingLoadsPage implements OnInit {
       activity_name: activity?.name ?? null,
       semester_id: semester?.id ?? 0,
       semester_name: semester?.nazwa ?? null,
-      field_of_study_id: this.fieldOfStudies[0]?.id ?? 0,
-      field_of_study_label: this.fieldOfStudies[0]?.label ?? null,
-      room_id: null,
-      room_number: null,
       hours: 1,
     };
   }
@@ -1123,148 +887,95 @@ export class TeachingLoadsPage implements OnInit {
       this.getTeacherLabel(item),
       this.getSubjectLabel(item),
       this.getActivityLabel(item),
-      this.getRoomLabel(item),
       this.getSemesterLabel(item),
-      this.getFieldOfStudyLabel(item),
       String(item.hours),
     ];
     return this.normalizeSearch(parts.join(' '));
   }
 
-  private enrichAssignment(a: TeachingLoadAssignmentDto): TeachingLoadAssignmentDto {
-    return {
-      ...a,
-      subject_name: this.getSubjectLabel(a),
-      activity_name: this.getActivityLabel(a),
-      room_number: a.room_number ?? (this.getRoomLabel(a) === '-' ? null : this.getRoomLabel(a)),
-      field_of_study_label: this.getFieldOfStudyLabel(a),
-    };
+  private buildDiffRows(
+    oldVals: Record<string, unknown> | null,
+    newVals: Record<string, unknown> | null,
+  ): Array<{ label: string; oldVal: string; newVal: string }> {
+    const combined = { ...(oldVals ?? {}), ...(newVals ?? {}) };
+    const allKeys = Object.keys(combined);
+
+    // Detect presence of human-readable name fields
+    const teacherNameKeys = ['teacher_first_name', 'teacher_last_name', 'teacher_title'];
+    const hasTeacherNames = teacherNameKeys.some((k) => allKeys.includes(k));
+    const hasSubjectName = allKeys.includes('subject_name');
+    const hasActivityName = allKeys.includes('activity_name');
+    const hasSemesterName = allKeys.includes('semester_name');
+
+    // Keys to skip — replaced by human-readable alternatives
+    const skipKeys = new Set<string>();
+    if (hasTeacherNames) {
+      skipKeys.add('teacher_id');
+      teacherNameKeys.forEach((k) => skipKeys.add(k)); // merged into one entry below
+    }
+    if (hasSubjectName) { skipKeys.add('subject_id'); }
+    if (hasActivityName) { skipKeys.add('activity_id'); }
+    if (hasSemesterName) { skipKeys.add('semester_id'); }
+
+    const result: Array<{ label: string; oldVal: string; newVal: string }> = [];
+
+    // Merged teacher name entry
+    if (hasTeacherNames) {
+      const oldName = this.buildTeacherFullName(oldVals);
+      const newName = this.buildTeacherFullName(newVals);
+      if (oldName !== newName) {
+        result.push({ label: 'Dydaktyk', oldVal: oldName, newVal: newName });
+      }
+    }
+
+    for (const key of allKeys) {
+      if (skipKeys.has(key)) { continue; }
+      const oldVal = oldVals?.[key] ?? null;
+      const newVal = newVals?.[key] ?? null;
+      if (oldVal !== newVal) {
+        result.push({
+          label: this.translateAuditKey(key),
+          oldVal: this.resolveDisplayValue(key, oldVal),
+          newVal: this.resolveDisplayValue(key, newVal),
+        });
+      }
+    }
+    return result;
   }
 
-  onNewTeacherChange(): void {
-    const draft = this.newRowDraft;
-    if (!draft) {
-      return;
-    }
-
-    const teacherId = draft.teacher_id;
-    if (!teacherId || teacherId <= 0) {
-      this.selectedTeacherPreferredSubjectIds.clear();
-      this.preferredTeacherId = null;
-      return;
-    }
-
-    this.loadTeacherPreferences(teacherId, draft);
+  private buildTeacherFullName(vals: Record<string, unknown> | null): string {
+    if (!vals) { return '—'; }
+    const parts = [
+      vals['teacher_title'],
+      vals['teacher_first_name'],
+      vals['teacher_last_name'],
+    ]
+      .map((v) => (v !== null && v !== undefined ? String(v) : ''))
+      .filter(Boolean);
+    return parts.length > 0 ? parts.join(' ') : '—';
   }
 
-  onEditTeacherChange(): void {
-    const draft = this.draftRow;
-    if (!draft) {
-      return;
+  private resolveDisplayValue(key: string, value: unknown): string {
+    if (value === null || value === undefined) { return '—'; }
+    if (key === 'teacher_id') {
+      const id = Number(value);
+      const t = this.teachers.find((x) => x.user_id === id);
+      return t
+        ? [t.title || t.titles?.[0], `${t.first_name} ${t.last_name}`.trim()].filter(Boolean).join(' ')
+        : String(value);
     }
-
-    const teacherId = draft.teacher_id;
-    if (!teacherId || teacherId <= 0) {
-      this.selectedTeacherPreferredSubjectIds.clear();
-      this.preferredTeacherId = null;
-      return;
+    if (key === 'subject_id') {
+      return this.subjects.find((x) => x.id === Number(value))?.name ?? String(value);
     }
-
-    this.loadTeacherPreferences(teacherId, draft);
-  }
-
-  private loadTeacherPreferences(teacherId: number, row?: TeachingLoadAssignmentDto | null): void {
-    if (this.teacherPreferences.has(teacherId)) {
-      this.selectedTeacherPreferredSubjectIds = new Set(this.teacherPreferences.get(teacherId)!);
-      this.preferredTeacherId = teacherId;
-      this.syncRowSelection(row ?? null, teacherId);
-      return;
+    if (key === 'activity_id') {
+      return this.activities.find((x) => x.id === Number(value))?.name ?? String(value);
     }
-
-    this.subjectPreferencesApi.getPreferencesForUser(teacherId).subscribe({
-      next: (preferences: SubjectPreferenceResponse[]) => {
-        const subjectIds = new Set(preferences.map((p) => p.subject_id));
-        this.teacherPreferences.set(teacherId, subjectIds);
-        this.selectedTeacherPreferredSubjectIds = subjectIds;
-        this.preferredTeacherId = teacherId;
-        this.syncRowSelection(row ?? null, teacherId);
-      },
-      error: (error) => {
-        console.error(`Failed to load preferences for teacher ${teacherId}:`, error);
-        this.selectedTeacherPreferredSubjectIds.clear();
-        this.preferredTeacherId = null;
-      },
-    });
-  }
-
-  getPreferredSubjectOptions(teacherId: number | null | undefined): { id: number; name: string; entries: SubjectDto[] }[] {
-    if (
-      !teacherId ||
-      teacherId <= 0 ||
-      this.selectedTeacherPreferredSubjectIds.size === 0 ||
-      this.preferredTeacherId !== teacherId
-    ) {
-      return this.getSubjectOptions();
+    if (key === 'semester_id') {
+      return this.semesters.find((x) => x.id === Number(value))?.nazwa ?? String(value);
     }
-
-    // Filter subjects to only those in teacher's preferences.
-    // Match any variant (activity) in the subject group.
-    const all = this.getSubjectOptions();
-    return all.filter((option) =>
-      option.entries.some((entry) => this.selectedTeacherPreferredSubjectIds.has(entry.id)),
-    );
-  }
-
-  private ensureActivitySelection(
-    row: TeachingLoadAssignmentDto,
-    teacherId: number | null | undefined,
-  ): void {
-    const options = this.getActivityOptionsForSubject(row.subject_id, teacherId);
-    if (options.length && !options.some((o) => o.id === row.activity_id)) {
-      row.activity_id = options[0].id;
+    if (key === 'hours') {
+      return `${value} godz.`;
     }
-  }
-
-  private getSubjectGroupBySubjectId(
-    subjectId: number | null | undefined,
-  ): { id: number; name: string; entries: SubjectDto[] } | null {
-    if (!subjectId) {
-      return null;
-    }
-    const entries = this.getSubjectEntriesById(subjectId);
-    if (!entries.length) {
-      return null;
-    }
-    const name = entries[0].name ?? `#${entries[0].id}`;
-    return { id: entries[0].id, name, entries };
-  }
-
-  private syncRowSelection(row: TeachingLoadAssignmentDto | null, teacherId: number): void {
-    if (!row) {
-      return;
-    }
-    if (this.preferredTeacherId !== teacherId || this.selectedTeacherPreferredSubjectIds.size === 0) {
-      return;
-    }
-
-    const preferredGroups = this.getPreferredSubjectOptions(teacherId);
-    if (!preferredGroups.length) {
-      return;
-    }
-
-    const currentGroup = this.getSubjectGroupBySubjectId(row.subject_id);
-    const hasPreferredInCurrent = currentGroup
-      ? currentGroup.entries.some((entry) => this.selectedTeacherPreferredSubjectIds.has(entry.id))
-      : false;
-
-    if (!hasPreferredInCurrent) {
-      row.subject_id = preferredGroups[0].id;
-    }
-
-    this.ensureActivitySelection(row, teacherId);
-  }
-
-  isTeacherSelected(teacherId: number | null | undefined): boolean {
-    return teacherId != null && teacherId > 0;
+    return this.formatAuditValue(value);
   }
 }

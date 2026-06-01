@@ -50,6 +50,7 @@
 
     <!-- Filters bar -->
     <div class="filters-bar" *ngIf="logs.length > 0">
+      <p class="filters-heading">Filtry</p>
       <div class="filter-row">
         <div class="filter-field filter-search">
           <ion-searchbar [(ngModel)]="filterSearch" placeholder="Szukaj po użytkowniku lub encji..." [debounce]="200"
@@ -96,15 +97,16 @@
 
     <!-- Timeline -->
     <div class="timeline" *ngIf="filteredGroups.length > 0">
-      <ng-container *ngFor="let group of filteredGroups">
+      <ng-container *ngFor="let group of filteredGroups; trackBy: trackByDate">
         <!-- Date separator -->
         <div class="date-separator">
           <span>{{ group.date }}</span>
         </div>
 
         <!-- Log entries for this date (grouped by user + time) -->
-        <details class="log-batch" *ngFor="let batch of group.batches" [open]="batch.hasNew">
-          <summary class="log-batch__summary">
+        <details class="log-batch" *ngFor="let batch of group.batches; trackBy: trackByBatchKey"
+          [open]="isBatchOpen(batch.key)">
+          <summary class="log-batch__summary" (click)="$event.preventDefault(); toggleBatch(batch.key)">
             <div class="log-batch__meta">
               <ion-icon name="person-outline"></ion-icon>
               <span class="log-batch__user">{{ batch.userName }}</span>
@@ -119,8 +121,8 @@
           </summary>
 
           <div class="log-batch__body">
-            <div class="timeline-entry" *ngFor="let log of batch.logs; let last = last" [class.is-new]="log.isNew"
-              [class.last-in-group]="last">
+            <div class="timeline-entry" *ngFor="let log of batch.logs; let last = last; trackBy: trackByLogId"
+              [class.is-new]="log.isNew" [class.last-in-group]="last">
 
               <!-- Dot + line -->
               <div class="tl-rail">
@@ -159,7 +161,7 @@
                     <div class="diff-col col-arrow"></div>
                     <div class="diff-col col-new">Jest</div>
                   </div>
-                  <ng-container *ngFor="let key of getParsedKeys(log.new_values)">
+                  <ng-container *ngFor="let key of getParsedKeys(log.new_values); trackBy: trackByIndex">
                     <div class="diff-row diff-row--changed"
                       *ngIf="hasChanged(log.old_values[key], log.new_values[key])">
                       <div class="diff-col col-field">{{ getTranslatedKey(key) }}</div>
@@ -177,7 +179,7 @@
                     <div class="diff-col col-single">Wartość</div>
                   </div>
                   <div class="diff-row"
-                    *ngFor="let key of getParsedKeys(log.action === 'create' ? log.new_values : log.old_values)">
+                    *ngFor="let key of getParsedKeys(log.action === 'create' ? log.new_values : log.old_values); trackBy: trackByIndex">
                     <div class="diff-col col-field">{{ getTranslatedKey(key) }}</div>
                     <div class="diff-col col-single">{{ getDisplayValue((log.action === 'create' ? log.new_values :
                       log.old_values)[key]) }}</div>

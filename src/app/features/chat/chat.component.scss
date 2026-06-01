@@ -1,4 +1,4 @@
-// ── Chat widget variables ──────────────────────────────────────
+﻿// ── Chat widget variables ──────────────────────────────────────
 $chat-primary: #1a3a5c; // navy – spójne z motywem
 $chat-primary-dark: #122946;
 $chat-gold: #d4a843;
@@ -134,7 +134,7 @@ app-chat.chat-page-host .chat-panel--page {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(148, 163, 184, 0.30);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -166,7 +166,7 @@ app-chat.chat-page-host .chat-panel--page {
   transition: background 0.12s, color 0.12s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(148, 163, 184, 0.30);
     color: #fff;
   }
 }
@@ -247,7 +247,7 @@ app-chat.chat-page-host .chat-panel--page {
   position: absolute;
   bottom: 14px;
   right: calc(#{$chat-bubble-size} + 12px);
-  background: #111827;
+  background: #1c2839;
   color: #ffffff;
   font-size: 12px;
   font-weight: 600;
@@ -362,7 +362,7 @@ app-chat.chat-page-host .chat-panel--page {
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(148, 163, 184, 0.30);
   }
 }
 
@@ -457,7 +457,7 @@ app-chat.chat-page-host .chat-panel--page {
   border-radius: 20px;
   border: 1px solid #e5e7eb;
   font-size: 13.5px;
-  color: #111827;
+  color: #1c2839;
   outline: none;
   background-color: #f9fafb;
   transition: border-color 0.2s, background-color 0.2s;
@@ -537,7 +537,7 @@ app-chat.chat-page-host .chat-panel--page {
 .chat-list__name {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: #1c2839;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -554,7 +554,7 @@ app-chat.chat-page-host .chat-panel--page {
 
 .chat-list__preview--unread {
   font-weight: 700;
-  color: #111827;
+  color: #1c2839;
 }
 
 .chat-list__meta {
@@ -637,7 +637,7 @@ app-chat.chat-page-host .chat-panel--page {
 
 .chat-message__bubble {
   background: #f3f4f6;
-  color: #111827;
+  color: #1c2839;
   padding: 8px 13px;
   border-radius: 18px 18px 18px 4px;
   font-size: 13.5px;
@@ -676,7 +676,7 @@ app-chat.chat-page-host .chat-panel--page {
   border-radius: 20px;
   padding: 9px 14px;
   font-size: 13.5px;
-  color: #111827;
+  color: #1c2839;
   resize: none;
   outline: none;
   font-family: inherit;
@@ -704,16 +704,16 @@ html.ion-palette-dark app-chat {
   // Panele i tło
   .chat-panel,
   .chat-sidebar {
-    background: #0f172a;
+    background: #1c2839;
     border-color: rgba(148, 163, 184, 0.2);
   }
 
   .chat-convo-area {
-    background: #080f1a;
+    background: #18212f;
   }
 
   .chat-conversation-placeholder {
-    background: #0c1525;
+    background: #1c2839;
 
     p {
       color: #64748b;
@@ -723,8 +723,8 @@ html.ion-palette-dark app-chat {
   // Tabs i input bar
   .chat-tabs,
   .chat-input-bar {
-    background: #0f172a;
-    border-color: #334155;
+    background: #1c2839;
+    border-color: #2e4159;
   }
 
   .chat-tab {
@@ -745,7 +745,7 @@ html.ion-palette-dark app-chat {
 
   // Panel body (scrollable areas)
   .chat-panel__body {
-    background: #080f1a;
+    background: #18212f;
 
     &::-webkit-scrollbar-thumb {
       background: #475569;
@@ -755,16 +755,16 @@ html.ion-palette-dark app-chat {
   // Header
   .chat-panel__header {
     background: darken(#1a3a5c, 6%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
   }
 
   // Lista kontaktów
   .chat-list__item:hover {
-    background: #1e293b;
+    background: #253447;
   }
 
   .chat-list__item:active {
-    background: #334155;
+    background: #2e4159;
   }
 
   .chat-list__section-title {
@@ -772,7 +772,7 @@ html.ion-palette-dark app-chat {
   }
 
   .chat-list__members-count {
-    background: #1e293b;
+    background: #253447;
     color: #94a3b8;
   }
 
@@ -796,8 +796,8 @@ html.ion-palette-dark app-chat {
 
   // Wiadomości
   .chat-message__bubble {
-    background: #1e293b;
-    color: #e2e8f0;
+    background: #253447;
+    color: #e8eef5;
   }
 
   .chat-message--own .chat-message__bubble {
@@ -807,8 +807,8 @@ html.ion-palette-dark app-chat {
 
   // Wyszukiwanie
   .chat-search__input {
-    background: #111827;
-    border-color: #334155;
+    background: #1c2839;
+    border-color: #2e4159;
     color: #f8fafc;
 
     &::placeholder {
@@ -816,7 +816,7 @@ html.ion-palette-dark app-chat {
     }
 
     &:focus {
-      background: #1e293b;
+      background: #253447;
       border-color: rgba($chat-primary, 0.6);
     }
   }
@@ -828,8 +828,8 @@ html.ion-palette-dark app-chat {
   // Inputs
   .chat-input,
   .chat-form__input {
-    background: #111827;
-    border-color: #334155;
+    background: #1c2839;
+    border-color: #2e4159;
 
     &:focus {
       border-color: rgba($chat-primary, 0.6);
@@ -842,28 +842,28 @@ html.ion-palette-dark app-chat {
 
   // Przycisk wyślij
   .chat-send-btn:disabled {
-    background: #334155;
+    background: #2e4159;
     color: #64748b;
   }
 
   // Create room
   .chat-create-room-btn {
-    background: #1e293b;
+    background: #253447;
     color: #93c5fd;
-    border-color: #334155;
+    border-color: #2e4159;
 
     &:hover {
-      background: #334155;
+      background: #2e4159;
     }
   }
 
   // Member list
   .chat-member-item {
-    background: #111827;
-    border-color: #334155;
+    background: #1c2839;
+    border-color: #2e4159;
 
     &:hover {
-      background: #1e293b;
+      background: #253447;
     }
 
     &.selected {
@@ -879,7 +879,7 @@ html.ion-palette-dark app-chat {
     }
 
     &:disabled {
-      background: #334155;
+      background: #2e4159;
       color: #64748b;
     }
   }
@@ -892,22 +892,22 @@ html.ion-palette-dark app-chat {
 
   // Czat side-by-side kolumny
   .chat-convo-area {
-    background: #080f1a;
+    background: #18212f;
   }
 
   .chat-column {
-    background: #0f172a;
-    border-right-color: #1e293b;
+    background: #1c2839;
+    border-right-color: #253447;
 
     .chat-input-bar {
-      background: #0f172a;
-      border-top-color: #334155;
+      background: #1c2839;
+      border-top-color: #2e4159;
     }
   }
 
   .chat-column-header {
     background: darken(#1a3a5c, 6%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
   }
 }
 
@@ -989,7 +989,7 @@ html.ion-palette-dark app-chat {
   border-radius: 8px;
   padding: 9px 12px;
   font-size: 14px;
-  color: #111827;
+  color: #1c2839;
   outline: none;
   font-family: inherit;
   transition: border-color 0.15s;
@@ -1041,7 +1041,7 @@ html.ion-palette-dark app-chat {
 .chat-member-item__name {
   flex: 1;
   font-size: 13.5px;
-  color: #111827;
+  color: #1c2839;
 }
 
 .chat-member-item__check {

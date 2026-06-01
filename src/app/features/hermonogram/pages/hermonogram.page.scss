@@ -74,7 +74,7 @@
   aspect-ratio: 1;
   border: none;
   background: transparent;
-  color: #0f172a;
+  color: #1c2839;
   border-radius: 50%;
   font-size: 0.72rem;
   cursor: pointer;
@@ -165,7 +165,7 @@
   padding: 8px;
   margin-bottom: 8px;
   background: #ffffff;
-  color: #0f172a;
+  color: #1c2839;
 
   p {
     margin: 0 0 4px;
@@ -316,7 +316,7 @@
     padding-right: 12px;
     margin-top: 0;
     padding-top: 4px;
-    color: #111827;
+    color: #1c2839;
   }
 
   .day-cell {
@@ -587,7 +587,7 @@
     }
 
     .dv-event-title {
-      color: #0f172a;
+      color: #1c2839;
       font-weight: 700;
     }
 
@@ -613,7 +613,7 @@
     }
 
     .dv-event-title {
-      color: #0f172a;
+      color: #1c2839;
       font-weight: 700;
     }
 
@@ -673,7 +673,7 @@
   margin: 0;
   font-size: 0.66rem;
   font-weight: 700;
-  color: #0f172a;
+  color: #1c2839;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -696,7 +696,7 @@
   margin: 0 0 12px;
   font-size: 1rem;
   font-weight: 700;
-  color: #0f172a;
+  color: #1c2839;
 }
 
 .details-row {
@@ -714,34 +714,34 @@
 }
 
 .details-value {
-  color: #0f172a;
+  color: #1c2839;
 }
 
 :host-context(html.ion-palette-dark) {
 
   .harmonogram-shell,
   .main-content {
-    background: #0c1524;
+    background: #1c2839;
   }
 
   ion-content {
-    --background: #0c1524;
-    color: #e8edf4;
+    --background: #1c2839;
+    color: #e8eef5;
   }
 
   .sidebar {
-    background: #0c1524;
-    border-right-color: rgba(255, 255, 255, 0.08);
+    background: #1c2839;
+    border-right-color: rgba(148, 163, 184, 0.15);
   }
 
   .sidebar-content {
-    --background: #0c1524;
+    --background: #1c2839;
 
     h3,
     h4,
     p,
     .plan-summary {
-      color: #e8edf4;
+      color: #e8eef5;
     }
   }
 
@@ -754,7 +754,7 @@
   ion-title,
   ion-label,
   p {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .menu-nav-btn {
@@ -763,24 +763,24 @@
   }
 
   ion-toolbar ion-button {
-    --color: #e8edf4;
-    color: #e8edf4;
-    --border-color: rgba(255, 255, 255, 0.2);
+    --color: #e8eef5;
+    color: #e8eef5;
+    --border-color: rgba(148, 163, 184, 0.30);
   }
 
   .import-row ion-button {
-    --color: #e8edf4;
-    --border-color: rgba(255, 255, 255, 0.2);
+    --color: #e8eef5;
+    --border-color: rgba(148, 163, 184, 0.30);
   }
 
   .calendar-scroll {
-    --background: #0c1524;
+    --background: #1c2839;
   }
 
   .google-calendar-grid {
     .grid-header {
-      background: #162336;
-      border-bottom-color: rgba(255, 255, 255, 0.08);
+      background: #253447;
+      border-bottom-color: rgba(148, 163, 184, 0.15);
     }
 
     .day-col-header {
@@ -798,7 +798,7 @@
     }
 
     .hour-row {
-      border-bottom-color: rgba(255, 255, 255, 0.06);
+      border-bottom-color: rgba(148, 163, 184, 0.10);
     }
 
     .hour-label {
@@ -806,18 +806,18 @@
     }
 
     .day-cell {
-      border-right-color: rgba(255, 255, 255, 0.06);
+      border-right-color: rgba(148, 163, 184, 0.10);
     }
   }
 
   // Mini calendar dark
   .mini-calendar {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.07);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.12);
   }
 
   .mini-calendar-month {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .mini-calendar-weekdays div {
@@ -828,7 +828,7 @@
     color: #94a3b8;
 
     &:hover:not(.other-month) {
-      background: #213654;
+      background: #2e4159;
     }
 
     &.other-month {
@@ -847,13 +847,13 @@
   }
 
   .plan-item {
-    background: #1a2c42;
-    border-color: rgba(255, 255, 255, 0.12);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.20);
   }
 
   .plan-item.legacy {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
   }
 
   .plan-item.rapla-item {
@@ -897,7 +897,7 @@
   }
 
   .plan-subject {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .plan-meta {
@@ -916,12 +916,12 @@
 
   // Mini calendar dark mode
   .mini-calendar {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
   }
 
   .mini-calendar-month {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .mini-calendar-weekdays div {
@@ -934,7 +934,7 @@
     color: #94a3b8;
 
     &:hover:not(.other-month) {
-      background: #213654;
+      background: #2e4159;
     }
 
     &.other-month {
@@ -959,7 +959,7 @@
   .rapla-toggle {
     .layer-toggle {
       &:hover {
-        background: #162336;
+        background: #253447;
       }
     }
 
@@ -970,7 +970,7 @@
 
   // Day view dark mode
   .day-view-content {
-    --background: #0c1524;
+    --background: #1c2839;
   }
 
   .dv-hour-label {
@@ -978,7 +978,7 @@
   }
 
   .dv-hour-line {
-    border-color: rgba(255, 255, 255, 0.07);
+    border-color: rgba(148, 163, 184, 0.12);
   }
 
   .dv-half-line {
@@ -1039,11 +1039,11 @@
 
   // Modal dark mode
   ion-modal {
-    --background: #0c1524;
+    --background: #1c2839;
 
     ion-header ion-toolbar {
-      --background: #162336;
-      --color: #e8edf4;
+      --background: #253447;
+      --color: #e8eef5;
     }
 
     ion-content {
@@ -1056,11 +1056,11 @@
   }
 
   .details-title {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .details-row {
-    border-bottom-color: rgba(255, 255, 255, 0.07);
+    border-bottom-color: rgba(148, 163, 184, 0.12);
   }
 
   .details-label {

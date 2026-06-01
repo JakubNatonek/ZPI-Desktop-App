@@ -91,19 +91,6 @@
       }
     }
 
-    .audit-btn {
-      margin-top: 10px;
-      margin-bottom: 12px;
-      animation: pulse-badge 2s infinite;
-      font-weight: 600;
-    }
-
-    @keyframes pulse-badge {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.02); }
-      100% { transform: scale(1); }
-    }
-
     .role-label {
       color: #4b5563;
       margin-top: 0;
@@ -113,7 +100,7 @@
 
     ion-segment {
       margin-bottom: 12px;
-      --background: #e8edf4;
+      --background: #e2e8f0;
       border-radius: 8px;
     }
 
@@ -769,25 +756,30 @@
 :host-context(html.ion-palette-dark) {
   .sidebar {
     ion-content.no-scroll {
-      --background: #0c1524;
+      --background: #1c2839;
     }
   }
 
+  .rapla-file-btn {
+    --color: #d4a843;
+    --border-color: rgba(212, 168, 67, 0.55);
+  }
+
   .google-calendar-grid {
-    background: #0c1524;
+    background: #1c2839;
 
     .grid-header {
-      background: #162336;
-      border-bottom-color: rgba(255, 255, 255, 0.08);
+      background: #253447;
+      border-bottom-color: rgba(148, 163, 184, 0.15);
 
       .day-col-header {
-        color: #e8edf4;
+        color: #e8eef5;
       }
     }
 
     .grid-body {
       .hour-row {
-        border-bottom-color: rgba(255, 255, 255, 0.06);
+        border-bottom-color: rgba(148, 163, 184, 0.10);
 
         .hour-label {
           color: #94a3b8;
@@ -795,10 +787,10 @@
         }
 
         .day-cell {
-          border-right-color: rgba(255, 255, 255, 0.06);
+          border-right-color: rgba(148, 163, 184, 0.10);
 
           &:hover {
-            background: #162336;
+            background: #253447;
           }
         }
       }
@@ -807,9 +799,9 @@
 
   .sidebar .sidebar-inner {
     .submission-card {
-      background: #162336;
-      border-color: rgba(255, 255, 255, 0.08);
-      color: #e8edf4;
+      background: #253447;
+      border-color: rgba(148, 163, 184, 0.15);
+      color: #e8eef5;
     }
 
     .submission-label {
@@ -817,11 +809,11 @@
     }
 
     .submission-value {
-      color: #e8edf4;
+      color: #e8eef5;
     }
 
     .submission-card.is-clickable:hover {
-      background: #1a2c42;
+      background: #253447;
       border-color: #d4a843;
     }
 
@@ -837,30 +829,30 @@
     }
 
     .lecturer-status-card.status-approved {
-      background: #162336;
-      border-color: rgba(255, 255, 255, 0.08);
+      background: #253447;
+      border-color: rgba(148, 163, 184, 0.15);
       border-left: 3px solid #4ade80;
     }
 
     .lecturer-status-card.status-approved:hover {
       background: rgba(22, 163, 74, 0.12);
-      border-color: rgba(255, 255, 255, 0.08);
+      border-color: rgba(148, 163, 184, 0.15);
       border-left-color: #86efac;
     }
 
     .lecturer-status-card.status-missing {
-      background: #162336;
-      border-color: rgba(255, 255, 255, 0.08);
+      background: #253447;
+      border-color: rgba(148, 163, 184, 0.15);
       border-left: 3px solid #f87171;
     }
 
     .lecturer-extra {
-      border-top-color: rgba(255, 255, 255, 0.12);
+      border-top-color: rgba(148, 163, 184, 0.20);
     }
 
     .lecturer-status-card.status-approved.is-active {
       background: rgba(22, 163, 74, 0.15);
-      border-color: rgba(255, 255, 255, 0.08);
+      border-color: rgba(148, 163, 184, 0.15);
       border-left: 3px solid #86efac;
       box-shadow: 0 1px 4px rgba(134, 239, 172, 0.2);
     }
@@ -920,14 +912,14 @@
 :host-context(html.ion-palette-dark) {
   .semestr-selector {
     ion-label {
-      color: #e8edf4;
+      color: #e8eef5;
     }
 
     ion-select {
-      border-color: rgba(255, 255, 255, 0.08);
-      background: #162336;
-      color: #e8edf4;
-      --color: #e8edf4;
+      border-color: rgba(148, 163, 184, 0.15);
+      background: #253447;
+      color: #e8eef5;
+      --color: #e8eef5;
       --placeholder-color: #94a3b8;
     }
   }
@@ -1107,31 +1099,31 @@
 .tutorial-panel h3 {
   margin: 0 0 6px;
   font-size: 0.95rem;
-  color: #0f172a;
+  color: #1c2839;
 }
 
 .tutorial-panel p {
   margin: 0;
   font-size: 0.86rem;
-  color: #334155;
+  color: #2e4159;
 }
 
 :host-context(html.ion-palette-dark) {
 
   .app-shell,
   .main-content {
-    background: #0c1524;
+    background: #1c2839;
   }
 
   .sidebar {
-    background: #0c1524;
-    border-right-color: rgba(255, 255, 255, 0.08);
+    background: #1c2839;
+    border-right-color: rgba(148, 163, 184, 0.15);
   }
 
 
   .sidebar ion-content.no-scroll {
-    --background: #0c1524;
-    color: #e8edf4;
+    --background: #1c2839;
+    color: #e8eef5;
   }
 
   .sidebar .sidebar-inner .sidebar-collapse-btn {
@@ -1152,7 +1144,7 @@
     .submission-value,
     .folder-name,
     .folder-meta {
-      color: #e2e8f0;
+      color: #e8eef5;
     }
 
     h3 {
@@ -1164,14 +1156,14 @@
   .sidebar .hours-box,
   .sidebar .submission-card,
   .sidebar .preview-box {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
-    color: #e8edf4;
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
+    color: #e8eef5;
   }
 
   .sidebar .hours-box {
     .stat-row {
-      border-bottom-color: rgba(255, 255, 255, 0.06);
+      border-bottom-color: rgba(148, 163, 184, 0.10);
     }
 
     .stat-label {
@@ -1179,7 +1171,7 @@
     }
 
     .stat-value {
-      color: #e2e8f0;
+      color: #e8eef5;
     }
 
     .stat-value--available {
@@ -1196,7 +1188,7 @@
   }
 
   .sidebar ion-segment {
-    --background: #1a2c42;
+    --background: #253447;
 
     ion-segment-button {
       --color: #94a3b8;
@@ -1220,13 +1212,13 @@
 
   .main-content ion-button,
   .main-content ion-chip {
-    --color: #e8edf4;
-    --border-color: rgba(255, 255, 255, 0.2);
+    --color: #e8eef5;
+    --border-color: rgba(148, 163, 184, 0.30);
   }
 
   .google-calendar-grid .grid-header {
-    background: #162336;
-    border-bottom-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-bottom-color: rgba(148, 163, 184, 0.15);
   }
 
   .google-calendar-grid .day-col-header .day-name,
@@ -1235,16 +1227,16 @@
   }
 
   .google-calendar-grid .hour-row {
-    border-bottom-color: rgba(255, 255, 255, 0.06);
+    border-bottom-color: rgba(148, 163, 184, 0.10);
   }
 
   .google-calendar-grid .hour-row .day-cell {
-    border-right-color: rgba(255, 255, 255, 0.06);
+    border-right-color: rgba(148, 163, 184, 0.10);
   }
 
   /* Loading indicator dark mode */
   .loading-indicator {
-    background: #162336;
+    background: #253447;
     border-color: rgba(212, 168, 67, 0.2);
 
     ion-spinner {
@@ -1268,35 +1260,35 @@
 
   /* Preview modal dark mode */
   .preview-modal {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
 
     .preview-modal-header h3 {
-      color: #e8edf4;
+      color: #e8eef5;
     }
 
     .close-modal-btn {
-      background: #1a2c42;
+      background: #253447;
       border-color: rgba(212, 168, 67, 0.4);
-      color: #e8edf4;
+      color: #e8eef5;
 
       &:hover {
-        background: #1e3350;
+        background: #2e4159;
       }
     }
   }
 
   .submission-preview-grid {
     .preview-header-row {
-      border-bottom-color: rgba(255, 255, 255, 0.08);
+      border-bottom-color: rgba(148, 163, 184, 0.15);
 
       .day-col {
-        color: #e8edf4;
+        color: #e8eef5;
       }
     }
 
     .preview-row {
-      border-bottom-color: rgba(255, 255, 255, 0.06);
+      border-bottom-color: rgba(148, 163, 184, 0.10);
     }
 
     .time-col {
@@ -1304,11 +1296,11 @@
     }
 
     .preview-cell {
-      border-right-color: rgba(255, 255, 255, 0.06);
+      border-right-color: rgba(148, 163, 184, 0.10);
     }
 
     p {
-      color: #e8edf4;
+      color: #e8eef5;
     }
   }
 
@@ -1326,11 +1318,11 @@
   }
 
   .history-item {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
 
     &:hover {
-      background: #1a2c42;
+      background: #253447;
       border-color: #d4a843;
       box-shadow: 0 2px 8px rgba(212, 168, 67, 0.15);
     }
@@ -1338,7 +1330,7 @@
 
   .history-item-header {
     .history-date {
-      color: #e8edf4;
+      color: #e8eef5;
     }
   }
 
@@ -1348,11 +1340,11 @@
 
   /* Tutorial panel dark mode */
   .tutorial-panel {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
 
     h3 {
-      color: #e8edf4;
+      color: #e8eef5;
     }
 
     p {

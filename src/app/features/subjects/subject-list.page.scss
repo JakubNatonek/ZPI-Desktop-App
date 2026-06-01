@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   display: block;
 }
 
@@ -232,16 +232,16 @@ ion-toolbar {
 /* Dark mode */
 :host-context(html.ion-palette-dark) {
   .list-page-content {
-    --background: #0c1524;
+    --background: #253447;
   }
 
   .page-title {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .subject-card {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
     border-left-color: #d4a843;
 
     &:hover {
@@ -250,7 +250,7 @@ ion-toolbar {
   }
 
   .subject-name {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .subject-type-badge {
@@ -263,24 +263,39 @@ ion-toolbar {
   }
 
   .detail-value {
-    color: #e8edf4;
+    color: #e8eef5;
   }
 
   .btn-secondary-nav {
-    --border-color: rgba(255, 255, 255, 0.2);
-    --color: #e8edf4;
+    --border-color: rgba(148, 163, 184, 0.30);
+    --color: #e8eef5;
   }
 
   .empty-state {
-    background: #162336;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #253447;
+    border-color: rgba(148, 163, 184, 0.15);
 
     h3 {
-      color: #e8edf4;
+      color: #e8eef5;
     }
 
     p {
       color: #94a3b8;
     }
+  }
+
+  .btn-primary-nav {
+    --background: #1e4d82;
+    --background-activated: #163b66;
+    --background-hover: #163b66;
+  }
+
+  .btn-edit {
+    --border-color: rgba(212, 168, 67, 0.5);
+    --color: #d4a843;
+  }
+
+  .btn-delete {
+    --color: #fca5a5;
   }
 }

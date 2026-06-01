@@ -250,15 +250,15 @@ ion-content.login-view {
 // ─── Dark mode ────────────────────────────────────────────────────────────────
 :host-context(html.ion-palette-dark) {
   ion-content.login-view {
-    --background: #0c1524;
+    --background: #1c2839;
   }
 
   .form-panel {
-    background: #162336;
+    background: #1e293b;
   }
 
   .form-title {
-    color: #e8edf4;
+    color: #e2e8f0;
   }
 
   .form-subtitle {
@@ -266,16 +266,16 @@ ion-content.login-view {
   }
 
   .field-label {
-    color: #e8edf4;
+    color: #e2e8f0;
   }
 
   .input-shell {
-    background: #1a2c42;
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #1e293b;
+    border-color: rgba(148, 163, 184, 0.15);
 
     &:focus-within {
       border-color: rgba(212, 168, 67, 0.4);
-      background: #1a2c42;
+      background: #1e293b;
     }
 
     ion-icon {
@@ -283,7 +283,7 @@ ion-content.login-view {
     }
 
     ion-input {
-      --color: #e8edf4;
+      --color: #e2e8f0;
       --placeholder-color: #64748b;
     }
   }

@@ -67,6 +67,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private lastNotificationIds: Set<number> = new Set();
   selectedTheme: AppTheme = 'light';
   unreadChatCount = 0;
+  newNotificationsCount = 0;
 
   get isChatPage(): boolean {
     return this.router.url.startsWith('/chat');
@@ -148,8 +149,12 @@ export class AppComponent implements OnInit, OnDestroy {
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event) => {
       this.checkRoute();
-      if ((event as NavigationEnd).urlAfterRedirects.startsWith('/chat')) {
+      const url = (event as NavigationEnd).urlAfterRedirects;
+      if (url.startsWith('/chat')) {
         this.unreadChatCount = 0;
+      }
+      if (url.startsWith('/home')) {
+        this.newNotificationsCount = 0;
       }
     });
 
@@ -174,6 +179,9 @@ export class AppComponent implements OnInit, OnDestroy {
         // Ensure we haven't shown it already
         if (!this.lastNotificationIds.has(notification.id)) {
           this.lastNotificationIds.add(notification.id);
+          if (!this.router.url.startsWith('/home')) {
+            this.newNotificationsCount++;
+          }
           void this.displayBlockingNotification(notification);
         }
       } catch (e) {
@@ -272,6 +280,9 @@ export class AppComponent implements OnInit, OnDestroy {
         void (async () => {
           for (const notification of newNotifications) {
             this.lastNotificationIds.add(notification.id);
+            if (!this.router.url.startsWith('/home')) {
+              this.newNotificationsCount++;
+            }
             await this.displayBlockingNotification(notification);
           }
         })();

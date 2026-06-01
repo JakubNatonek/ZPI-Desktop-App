@@ -46,11 +46,11 @@ ion-header ion-toolbar {
 /* Dark mode */
 :host-context(html.ion-palette-dark) {
   ion-content {
-    --background: #0c1524;
+    --background: #1c2839;
   }
 
   .logout-item {
-    --background: #162336;
+    --background: #253447;
     --color: #fca5a5;
   }
 }

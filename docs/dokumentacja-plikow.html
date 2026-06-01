@@ -1,0 +1,2379 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+  <meta charset="UTF-8">
+  <title>ZPI-Desktop-App — Dokumentacja Plików src/</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.6;
+      color: #1a1a2e;
+      background: #fff;
+    }
+
+    /* ── Cover ── */
+    .cover {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #fff;
+      page-break-after: always;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .cover h1 {
+      font-size: 30pt;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .cover .sub {
+      font-size: 14pt;
+      opacity: .75;
+      margin-bottom: 30px;
+    }
+
+    .cover .meta {
+      font-size: 10pt;
+      opacity: .55;
+      border-top: 1px solid rgba(255, 255, 255, .2);
+      padding-top: 18px;
+      margin-top: 50px;
+      width: 100%;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 18px;
+    }
+
+    .badge {
+      background: rgba(255, 255, 255, .15);
+      border: 1px solid rgba(255, 255, 255, .3);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 9.5pt;
+    }
+
+    /* ── Layout ── */
+    .content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px 36px 60px;
+    }
+
+    /* ── Headings ── */
+    h1 {
+      font-size: 20pt;
+      color: #0f3460;
+      border-bottom: 3px solid #e94560;
+      padding-bottom: 6px;
+      margin: 36px 0 16px;
+    }
+
+    h2 {
+      font-size: 14pt;
+      color: #16213e;
+      border-left: 4px solid #e94560;
+      padding-left: 10px;
+      margin: 26px 0 10px;
+    }
+
+    h3 {
+      font-size: 11.5pt;
+      color: #0f3460;
+      margin: 18px 0 8px;
+    }
+
+    /* ── File card ── */
+    .file-card {
+      border: 1px solid #d0d8f0;
+      border-radius: 10px;
+      margin: 14px 0 22px;
+      page-break-inside: avoid;
+      overflow: hidden;
+    }
+
+    .file-header {
+      background: #0f3460;
+      color: #fff;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .file-header .fname {
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 10pt;
+      font-weight: 700;
+    }
+
+    .file-header .fpath {
+      font-size: 8.5pt;
+      opacity: .65;
+      margin-left: auto;
+    }
+
+    .file-body {
+      padding: 12px 16px;
+    }
+
+    /* ── Code block ── */
+    pre {
+      background: #1a1a2e;
+      color: #e8f4f8;
+      border-radius: 7px;
+      padding: 12px 16px;
+      font-size: 8.5pt;
+      font-family: 'Consolas', 'Courier New', monospace;
+      line-height: 1.5;
+      overflow-x: auto;
+      margin: 10px 0 12px;
+    }
+
+    code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      background: #f0f4ff;
+      border: 1px solid #d0d8f0;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 9pt;
+      color: #c0392b;
+    }
+
+    pre code {
+      background: none;
+      border: none;
+      color: inherit;
+      padding: 0;
+      font-size: 8.5pt;
+    }
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 14px;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+
+    thead tr {
+      background: #0f3460;
+      color: #fff;
+    }
+
+    th {
+      padding: 6px 10px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f5f7ff;
+    }
+
+    td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #e0e5f0;
+      vertical-align: top;
+    }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 4px solid #3498db;
+      background: #eef7ff;
+      padding: 10px 14px;
+      border-radius: 0 7px 7px 0;
+      margin: 10px 0;
+      font-size: 9.5pt;
+    }
+
+    .callout.green {
+      border-color: #27ae60;
+      background: #efffee;
+    }
+
+    .callout.orange {
+      border-color: #e67e22;
+      background: #fff8ee;
+    }
+
+    .callout.purple {
+      border-color: #8e44ad;
+      background: #f9f0ff;
+    }
+
+    .callout b {
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    /* ── Chips ── */
+    .chip {
+      display: inline-block;
+      background: #e8eeff;
+      color: #0f3460;
+      border: 1px solid #b0c0f0;
+      border-radius: 12px;
+      padding: 2px 9px;
+      font-size: 8.5pt;
+      margin: 2px;
+    }
+
+    .chip.red {
+      background: #fff0f0;
+      color: #c0392b;
+      border-color: #f0b0b0;
+    }
+
+    .chip.green {
+      background: #efffee;
+      color: #1a7a40;
+      border-color: #a0e0b0;
+    }
+
+    /* ── TOC ── */
+    .toc {
+      background: #f5f7ff;
+      border-radius: 10px;
+      padding: 18px 22px;
+      margin: 16px 0 28px;
+    }
+
+    .toc h2 {
+      margin-top: 0;
+    }
+
+    .toc ol {
+      list-style: none;
+      margin: 0;
+      columns: 2;
+    }
+
+    .toc li {
+      padding: 2px 0;
+      border-bottom: 1px dotted #c0c8e0;
+      font-size: 9.5pt;
+    }
+
+    .toc a {
+      text-decoration: none;
+      color: #0f3460;
+    }
+
+    .section-intro {
+      background: #f8faff;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin: 0 0 14px;
+      font-size: 9.5pt;
+      border: 1px solid #d8e2f8;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    p {
+      margin-bottom: 8px;
+      font-size: 9.5pt;
+    }
+
+    ul {
+      margin: 6px 0 10px 18px;
+      font-size: 9.5pt;
+    }
+
+    li {
+      margin-bottom: 3px;
+    }
+
+    @page {
+      margin: 18mm 16mm;
+
+      @bottom-center {
+        content: counter(page) " / " counter(pages);
+        font-size: 8pt;
+        color: #999;
+      }
+    }
+
+    @media print {
+      .cover {
+        height: 100vh;
+      }
+
+      h1,
+      h2,
+      h3 {
+        page-break-after: avoid;
+      }
+
+      .file-card {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══ COVER ══ -->
+  <div class="cover">
+    <div style="font-size:48px;margin-bottom:24px">📂</div>
+    <h1>ZPI-Desktop-App</h1>
+    <div class="sub">Dokumentacja plików — katalog <code
+        style="background:rgba(255,255,255,.15);border-radius:6px;padding:2px 10px;color:#fff;font-size:12pt">src/</code>
+    </div>
+    <div class="badge-row">
+      <span class="badge">103 pliki .ts/.html/.scss</span>
+      <span class="badge">Angular 20 Standalone</span>
+      <span class="badge">Ionic 8</span>
+      <span class="badge">TypeScript</span>
+    </div>
+    <div class="meta">Projekt Inżynierski — ZPI &nbsp;|&nbsp; 2025/2026 &nbsp;|&nbsp; Wersja 1.0</div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ TOC ══ -->
+    <div class="toc">
+      <h2>📋 Spis treści</h2>
+      <ol>
+        <li><a href="#root">1. Pliki główne src/</a></li>
+        <li><a href="#app-root">2. app.component + app.routes</a></li>
+        <li><a href="#core-auth">3. core/auth/</a></li>
+        <li><a href="#core-interceptors">4. core/interceptors/</a></li>
+        <li><a href="#core-services">5. core/services/</a></li>
+        <li><a href="#core-validators">6. core/validators/</a></li>
+        <li><a href="#pages">7. pages/ (login, change-password)</a></li>
+        <li><a href="#feat-home">8. features/home/</a></li>
+        <li><a href="#feat-hermonogram">9. features/hermonogram/</a></li>
+        <li><a href="#feat-konflikty">10. features/konflikty/</a></li>
+        <li><a href="#feat-sale">11. features/sale/</a></li>
+        <li><a href="#feat-subjects">12. features/subjects/</a></li>
+        <li><a href="#feat-teaching">13. features/teaching-loads/</a></li>
+        <li><a href="#feat-admin">14. features/admin/</a></li>
+        <li><a href="#feat-chat">15. features/chat/</a></li>
+        <li><a href="#feat-audit">16. features/audit/</a></li>
+        <li><a href="#feat-profile">17. features/profile/</a></li>
+      </ol>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     1. PLIKI GŁÓWNE src/
+     ══════════════════════════════════════════════ -->
+    <h1 id="root">1. Pliki główne <code>src/</code></h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">main.ts</span>
+        <span class="fpath">src/main.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Punkt wejścia całej aplikacji.</strong> To pierwszy plik uruchamiany przez przeglądarkę. Inicjalizuje
+          Angulara i rejestruje globalne dostawców.</p>
+        <pre><code>bootstrapApplication(AppComponent, {
+  providers: [
+    { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
+    provideIonicAngular(),
+    provideRouter(routes, withPreloading(PreloadAllModules)),
+    provideHttpClient(withInterceptors([authInterceptor])),
+  ],
+});</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Element</th>
+              <th>Co robi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>bootstrapApplication</code></td>
+              <td>Uruchamia aplikację od komponentu <code>AppComponent</code> (bez modułu NgModule)</td>
+            </tr>
+            <tr>
+              <td><code>IonicRouteStrategy</code></td>
+              <td>Strategia reużywania tras zoptymalizowana pod Ionic (zachowuje stan stron w historii)</td>
+            </tr>
+            <tr>
+              <td><code>provideIonicAngular()</code></td>
+              <td>Rejestruje wszystkie komponenty Ionic w aplikacji</td>
+            </tr>
+            <tr>
+              <td><code>withPreloading(PreloadAllModules)</code></td>
+              <td>Po starcie aplikacji w tle preładuje wszystkie lazy-loaded moduły</td>
+            </tr>
+            <tr>
+              <td><code>withInterceptors([authInterceptor])</code></td>
+              <td>Rejestruje interceptor HTTP globalnie dla wszystkich żądań</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">environment.ts</span>
+        <span class="fpath">src/environments/environment.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Konfiguracja środowiska deweloperskiego.</strong> Definiuje zmienne dostępne w całej aplikacji przez
+          import <code>environment</code>.</p>
+        <pre><code>const apiHost = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
+export const environment = {
+  production: false,
+  apiBaseUrl: `http://${apiHost}:8000`,
+};</code></pre>
+        <div class="callout orange"><b>Kluczowy trick</b>
+          <code>window.location.hostname</code> — adres URL backendu jest automatycznie wykrywany z hosta przeglądarki.
+          Jeśli aplikacja działa na <code>192.168.1.10:4200</code>, API będzie pod
+          <code>http://192.168.1.10:8000</code>. Działa zarówno lokalnie jak i w sieci lokalnej bez reconfiguracji.
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">environment.prod.ts</span>
+        <span class="fpath">src/environments/environment.prod.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Konfiguracja produkcyjna.</strong> Zastępuje <code>environment.ts</code> podczas budowania
+          (<code>ng build --configuration production</code>). Identyczna logika — <code>production: true</code> wyłącza
+          narzędzia deweloperskie Angulara i włącza optymalizacje.</p>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">global.scss</span>
+        <span class="fpath">src/global.scss</span>
+      </div>
+      <div class="file-body">
+        <p>Globalne style CSS aplikowane do wszystkich stron. Zawiera importy zmiennych Ionic, globalne resetry i
+          wspólne klasy pomocnicze.</p>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">theme/variables.scss</span>
+        <span class="fpath">src/theme/variables.scss</span>
+      </div>
+      <div class="file-body">
+        <p>Zmienne CSS (custom properties) dla motywu Ionic — kolory, fonty, rozmiary komponentów. Zawiera definicje
+          <code>--ion-color-primary</code>, <code>--ion-color-secondary</code> itp. dla trybu jasnego i ciemnego
+          (<code>@media (prefers-color-scheme: dark)</code>).</p>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">index.html</span>
+        <span class="fpath">src/index.html</span>
+      </div>
+      <div class="file-body">
+        <p>Jedyna strona HTML aplikacji SPA. Zawiera tag <code>&lt;app-root&gt;</code> (punkt montowania Angulara) oraz
+          meta tagi. Angular CLI automatycznie wstrzykuje do niej tagi <code>&lt;script&gt;</code> wskazujące na chunki
+          JS podczas budowania.</p>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">polyfills.ts</span>
+        <span class="fpath">src/polyfills.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Importuje polyfille — kod uzupełniający brakujące funkcje w starszych przeglądarkach (np.
+          <code>zone.js</code> wymagany przez Angulara do wykrywania zmian).</p>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">zone-flags.ts</span>
+        <span class="fpath">src/zone-flags.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Flagi konfiguracyjne dla <code>zone.js</code> — pozwalają wyłączyć monkeypatching pewnych API (np.
+          <code>__Zone_disable_requestAnimationFrame</code>) w celu poprawy wydajności.</p>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     2. APP.COMPONENT + APP.ROUTES
+     ══════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="app-root">2. <code>app.component</code> + <code>app.routes.ts</code></h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">app.component.ts</span>
+        <span class="fpath">src/app/app.component.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Główny komponent aplikacji — root.</strong> Renderowany jako pierwszy, zawiera globalne elementy UI
+          widoczne na każdej stronie.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Właściwość / Metoda</th>
+              <th>Opis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>showChatFab</code></td>
+              <td>Getter — zwraca <code>true</code> gdy nie jesteśmy na <code>/chat</code> ani
+                <code>/change-password</code>; kontroluje widoczność pływającego przycisku czatu</td>
+            </tr>
+            <tr>
+              <td><code>isChatPage</code></td>
+              <td>Getter — sprawdza czy bieżąca trasa to <code>/chat</code></td>
+            </tr>
+            <tr>
+              <td><code>navigate(path)</code></td>
+              <td>Nawiguje do trasy; jeśli <code>mustChangePassword=true</code> przekierowuje na
+                <code>/change-password</code></td>
+            </tr>
+            <tr>
+              <td><code>onThemeChange(isDark)</code></td>
+              <td>Przełącza motyw jasny/ciemny, zapisuje w preferencjach użytkownika</td>
+            </tr>
+            <tr>
+              <td><code>ngOnInit()</code></td>
+              <td>Subskrybuje router events, obserwuje stan autentykacji, uruchamia polling powiadomień co 60s</td>
+            </tr>
+            <tr>
+              <td><code>ngOnDestroy()</code></td>
+              <td>Anuluje wszystkie subskrypcje RxJS (zapobiega wyciekom pamięci)</td>
+            </tr>
+            <tr>
+              <td><code>unreadChatCount</code></td>
+              <td>Liczba nieprzeczytanych wiadomości — wyświetlana jako badge na FAB czatu</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout"><b>Zaimportowane ikony (addIcons)</b>
+          Rejestruje ~30 ikon Ionicons globalnie, tak aby były dostępne w każdym komponencie aplikacji przez nazwę (np.
+          <code>name="trash-outline"</code>).
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">app.component.html</span>
+        <span class="fpath">src/app/app.component.html</span>
+      </div>
+      <div class="file-body">
+        <p>Szablon głównego komponentu. Zawiera trzy elementy:</p>
+        <ul>
+          <li><strong><code>&lt;ion-menu&gt;</code></strong> — boczne menu nawigacyjne (slide-over); widoczne tylko gdy
+            <code>auth.isAuthenticated$ | async</code> = true; elementy menu filtrowane przez <code>*ngIf</code> na
+            podstawie roli</li>
+          <li><strong><code>&lt;ion-router-outlet&gt;</code></strong> — outlet Angular Routera, tutaj renderowane są
+            strony</li>
+          <li><strong><code>.chat-fab</code></strong> — pływający przycisk SVG czatu, widoczny na wszystkich stronach
+            oprócz <code>/chat</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">app.routes.ts</span>
+        <span class="fpath">src/app/app.routes.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Centralny rejestr wszystkich tras URL aplikacji.</strong> Każda trasa używa
+          <code>loadComponent</code> (lazy loading — ładowanie komponentu dopiero gdy potrzebny).</p>
+        <pre><code>{
+  path: 'sale/:id/edit',
+  canActivate: [authGuard],
+  loadComponent: () => import('./features/sale/sale.page').then(m => m.SalePage),
+}</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Wzorzec trasy</th>
+              <th>Komponent</th>
+              <th>Guard</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/login</code></td>
+              <td>LoginPage</td>
+              <td>brak</td>
+            </tr>
+            <tr>
+              <td><code>/change-password</code></td>
+              <td>ChangePasswordPage</td>
+              <td>brak</td>
+            </tr>
+            <tr>
+              <td><code>/home</code></td>
+              <td>HomePage</td>
+              <td>authGuard</td>
+            </tr>
+            <tr>
+              <td><code>/hermonogram</code></td>
+              <td>HermonogramPage</td>
+              <td>authGuard</td>
+            </tr>
+            <tr>
+              <td><code>/konflikty</code></td>
+              <td>KonfliktyPage</td>
+              <td>authGuard</td>
+            </tr>
+            <tr>
+              <td><code>/sale</code>, <code>/sale/new</code>, <code>/sale/:id/edit</code>,
+                <code>/sale/dictionaries</code></td>
+              <td>Sale*</td>
+              <td>authGuard</td>
+            </tr>
+            <tr>
+              <td><code>/subjects</code>, <code>/subjects/new</code>, <code>/subjects/:id/edit</code>,
+                <code>/subjects/dictionaries</code></td>
+              <td>Subject*</td>
+              <td>authGuard</td>
+            </tr>
+            <tr>
+              <td><code>/teaching-loads</code></td>
+              <td>TeachingLoadsPage</td>
+              <td>authGuard</td>
+            </tr>
+            <tr>
+              <td><code>/admin/users/new</code></td>
+              <td>UserCreatePage</td>
+              <td>authGuard</td>
+            </tr>
+            <tr>
+              <td><code>/admin/unavailability-notes</code></td>
+              <td>UnavailabilityNotesListAdmin</td>
+              <td>authGuard</td>
+            </tr>
+            <tr>
+              <td><code>/chat</code></td>
+              <td>ChatPage</td>
+              <td>authGuard</td>
+            </tr>
+            <tr>
+              <td><code>/audit-logs</code></td>
+              <td>AuditLogsPage</td>
+              <td>authGuard</td>
+            </tr>
+            <tr>
+              <td><code>/profile</code></td>
+              <td>ProfilePage</td>
+              <td>authGuard</td>
+            </tr>
+            <tr>
+              <td><code>''</code> / <code>**</code></td>
+              <td>redirect → <code>/login</code></td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     3. CORE/AUTH
+     ══════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="core-auth">3. <code>core/auth/</code></h1>
+    <div class="section-intro">Trzy pliki zarządzające uwierzytelnianiem JWT — warstwa niskopoziomowa operująca
+      bezpośrednio na tokenach.</div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">auth.service.ts</span>
+        <span class="fpath">src/app/core/auth/auth.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Serwis JWT backendu.</strong> Zarządza tokenami i cyklem życia sesji na poziomie HTTP.</p>
+        <pre><code>@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private accessToken: string | null = null;
+  private readonly currentUserSubject = new BehaviorSubject&lt;AuthUser | null&gt;(null);
+  readonly currentUser$ = this.currentUserSubject.asObservable();
+
+  login(payload: LoginRequest): Observable&lt;LoginResponse&gt; { ... }
+  refreshAccessToken(): Observable&lt;string&gt; { ... }
+  fetchCurrentUser(): Observable&lt;AuthUser&gt; { ... }
+  logout(): Observable&lt;void&gt; { ... }
+  isAuthenticated(): boolean { return !this.jwtService.isExpired(this.accessToken, 10); }
+}</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Metoda / Pole</th>
+              <th>Endpoint</th>
+              <th>Opis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>accessToken</code> (prywatne)</td>
+              <td>—</td>
+              <td>Token JWT przechowywany wyłącznie w pamięci RAM — nie w localStorage</td>
+            </tr>
+            <tr>
+              <td><code>currentUser$</code></td>
+              <td>—</td>
+              <td>BehaviorSubject emitujący dane zalogowanego użytkownika</td>
+            </tr>
+            <tr>
+              <td><code>login(payload)</code></td>
+              <td>POST <code>/auth/</code></td>
+              <td>Logowanie — otrzymuje access token i zapisuje go</td>
+            </tr>
+            <tr>
+              <td><code>refreshAccessToken()</code></td>
+              <td>POST <code>/auth/refresh</code></td>
+              <td>Odświeżenie tokena — używa cookie HttpOnly</td>
+            </tr>
+            <tr>
+              <td><code>fetchCurrentUser()</code></td>
+              <td>GET <code>/auth/me</code></td>
+              <td>Pobiera profil zalogowanego użytkownika</td>
+            </tr>
+            <tr>
+              <td><code>logout()</code></td>
+              <td>POST <code>/auth/logout</code></td>
+              <td>Wylogowanie + <code>clearSession()</code></td>
+            </tr>
+            <tr>
+              <td><code>isAuthenticated()</code></td>
+              <td>—</td>
+              <td>Sprawdza ważność tokena z buforem 10 sekund</td>
+            </tr>
+            <tr>
+              <td><code>mustChangePassword</code></td>
+              <td>—</td>
+              <td>Flaga wymuszająca zmianę hasła przy pierwszym logowaniu</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">jwt.service.ts</span>
+        <span class="fpath">src/app/core/auth/jwt.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Dekoder tokenów JWT.</strong> Nie używa żadnych zewnętrznych bibliotek — korzysta z wbudowanej
+          funkcji przeglądarki <code>atob()</code>.</p>
+        <pre><code>decodePayload(token: string): Record&lt;string, unknown&gt; | null {
+  const parts = token.split('.');   // nagłówek.payload.podpis
+  const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+  return JSON.parse(atob(payload)); // base64 → JSON
+}
+
+isExpired(token: string | null, skewSeconds = 0): boolean {
+  const expiresAt = this.getExpirationDate(token);
+  return expiresAt.getTime() &lt;= Date.now() + skewSeconds * 1000;
+}</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Metoda</th>
+              <th>Zwraca</th>
+              <th>Opis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>decodePayload(token)</code></td>
+              <td><code>Record&lt;string,unknown&gt;</code></td>
+              <td>Dekoduje część środkową JWT (Base64URL → JSON)</td>
+            </tr>
+            <tr>
+              <td><code>getExpirationDate(token)</code></td>
+              <td><code>Date | null</code></td>
+              <td>Czyta pole <code>exp</code> z payloadu i konwertuje Unix timestamp → Date</td>
+            </tr>
+            <tr>
+              <td><code>isExpired(token, skewSec)</code></td>
+              <td><code>boolean</code></td>
+              <td>Sprawdza wygaśnięcie z buforem czasowym (domyślnie 0s)</td>
+            </tr>
+            <tr>
+              <td><code>getUserId(token)</code></td>
+              <td><code>number | null</code></td>
+              <td>Wyciąga <code>user_id</code> z payloadu</td>
+            </tr>
+            <tr>
+              <td><code>getRole(token)</code></td>
+              <td><code>string | null</code></td>
+              <td>Wyciąga pole <code>role</code> z payloadu</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">auth.guard.ts</span>
+        <span class="fpath">src/app/core/auth/auth.guard.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Route Guard.</strong> Wykonywany przez router przed wyrenderowaniem każdej chronionej trasy.</p>
+        <pre><code>export const authGuard: CanActivateFn = () => {
+  // 1. Zalogowany + mustChangePassword → /change-password
+  if (authService.isAuthenticated() &amp;&amp; authService.mustChangePassword)
+    return router.createUrlTree(['/change-password']);
+
+  // 2. Token ważny → przepuść
+  if (authService.isAuthenticated()) return true;
+
+  // 3. Token wygasł → próba refresh
+  return authService.refreshAccessToken().pipe(
+    map(token =&gt; { authService.setAccessToken(token); return true; }),
+    catchError(() =&gt; of(router.createUrlTree(['/login'])))
+  );
+};</code></pre>
+        <div class="callout orange"><b>Funkcja (nie klasa)</b>
+          Nowoczesna forma guardu w Angular 14+ — <code>CanActivateFn</code> to zwykła funkcja używająca
+          <code>inject()</code> zamiast klasy z konstruktorem.
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     4. INTERCEPTORS
+     ══════════════════════════════════════════════ -->
+    <h1 id="core-interceptors">4. <code>core/interceptors/</code></h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">auth.interceptor.ts</span>
+        <span class="fpath">src/app/core/interceptors/auth.interceptor.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Globalny interceptor HTTP.</strong> Przechwytuje każde żądanie do <code>apiBaseUrl</code>,
+          automatycznie obsługuje wygaśnięcie tokenów.</p>
+        <pre><code>let refreshInFlight$: Observable&lt;AuthRefreshResponse&gt; | null = null;
+
+function runRefresh(http): Observable&lt;...&gt; {
+  if (!refreshInFlight$) {
+    refreshInFlight$ = http.post('/auth/refresh', {}, { withCredentials: true }).pipe(
+      finalize(() =&gt; refreshInFlight$ = null),
+      shareReplay(1)          // &lt;-- deduplicja: wiele 401 = jeden refresh
+    );
+  }
+  return refreshInFlight$;
+}</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Sytuacja</th>
+              <th>Zachowanie</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Żądanie spoza <code>apiBaseUrl</code></td>
+              <td>Przepuszczone bez modyfikacji</td>
+            </tr>
+            <tr>
+              <td>Żądanie do API</td>
+              <td>Klonowane z <code>withCredentials: true</code> (wysyła cookie)</td>
+            </tr>
+            <tr>
+              <td>Odpowiedź 401 (nie-auth endpoint)</td>
+              <td>Uruchamia <code>runRefresh()</code>, ponawia żądanie</td>
+            </tr>
+            <tr>
+              <td>401 na <code>/auth/refresh</code> lub <code>/auth/logout</code></td>
+              <td>Przekierowanie na <code>/login</code> (nie próbuje refresh)</td>
+            </tr>
+            <tr>
+              <td>Refresh się nie powiódł</td>
+              <td>Przekierowanie na <code>/login</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout purple"><b>shareReplay(1) — deduplicja refreshu</b>
+          Jeśli 5 żądań dostanie 401 jednocześnie, <code>refreshInFlight$</code> jest ustawiony tylko przy pierwszym
+          wywołaniu. Kolejne 4 dostają ten sam Observable i czekają na jeden refresh request. Zapobiega wysłaniu 5
+          requestów do <code>/auth/refresh</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     5. CORE/SERVICES
+     ══════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="core-services">5. <code>core/services/</code></h1>
+    <div class="section-intro">13 serwisów dostarczających dane z backendu. Każdy jest
+      <code>Injectable({ providedIn: 'root' })</code> — singleton dostępny w całej aplikacji.</div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">auth.service.ts</span>
+        <span class="fpath">src/app/core/services/auth.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Główny serwis sesji frontendowej.</strong> To fasada łącząca JWT auth
+          (<code>core/auth/auth.service.ts</code>) z logiką UI (rola, display name, avatar, motyw). Istnieją DWA serwisy
+          <code>auth.service.ts</code> — ten jest używany przez komponenty UI.</p>
+        <pre><code>export type UserRole = 'admin' | 'lecturer' | 'planner' | 'rapla_editor' | 'lecturer_rapla_editor';
+export type AppTheme = 'light' | 'dark';
+
+private _authenticated = new BehaviorSubject&lt;boolean&gt;(false);
+private _userRole = new BehaviorSubject&lt;UserRole | null&gt;(null);
+private _displayName = new BehaviorSubject&lt;string&gt;('');
+readonly isAuthenticated$ = this._authenticated.asObservable();</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Właściwość / Metoda</th>
+              <th>Opis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>isAuthenticated$</code></td>
+              <td>Observable — menu reaguje automatycznie gdy zmienia się na <code>true/false</code></td>
+            </tr>
+            <tr>
+              <td><code>role</code></td>
+              <td>Getter aktualnej roli użytkownika (<code>'admin'</code>, <code>'lecturer'</code> itp.)</td>
+            </tr>
+            <tr>
+              <td><code>roleLabel</code></td>
+              <td>Polska etykieta roli do wyświetlenia w UI</td>
+            </tr>
+            <tr>
+              <td><code>displayName</code></td>
+              <td>Imię i nazwisko lub login do wyświetlenia w nagłówku</td>
+            </tr>
+            <tr>
+              <td><code>avatarUrl$</code></td>
+              <td>Observable URL avatara (lub domyślny placeholder)</td>
+            </tr>
+            <tr>
+              <td><code>mustChangePassword</code></td>
+              <td>Flaga — przekierowanie na <code>/change-password</code></td>
+            </tr>
+            <tr>
+              <td><code>login(login, password)</code></td>
+              <td>Logowanie — wywołuje backend, ustawia sesję</td>
+            </tr>
+            <tr>
+              <td><code>logout()</code></td>
+              <td>Wylogowanie + czyszczenie stanu + nawigacja do <code>/login</code></td>
+            </tr>
+            <tr>
+              <td><code>restoreBackendSession()</code></td>
+              <td>Przy starcie app próbuje odtworzyć sesję przez <code>GET /auth/me</code></td>
+            </tr>
+            <tr>
+              <td><code>ensureAndUploadPublicKey(userId)</code></td>
+              <td>Po zalogowaniu generuje/uploaduje klucz RSA dla E2EE czatu</td>
+            </tr>
+            <tr>
+              <td><code>updateProfileAvatar(dataUrl)</code></td>
+              <td>Aktualizuje avatar użytkownika</td>
+            </tr>
+            <tr>
+              <td><code>updateCurrentTheme(theme)</code></td>
+              <td>Zmienia motyw i zapisuje w preferencjach</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">websocket.service.ts</span>
+        <span class="fpath">src/app/core/services/websocket.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Serwis WebSocket (Socket.IO).</strong> Zarządza połączeniem real-time i eksponuje strumienie RxJS dla
+          komponentów czatu.</p>
+        <pre><code>this.socket = io(backendUrl, {
+  withCredentials: true,
+  auth: token ? { token } : undefined,
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+});
+
+// Strumienie zdarzeń
+public messageReceived$ = new Subject&lt;ChatMessage&gt;();
+public userTyping$ = new Subject&lt;TypingIndicator&gt;();
+public messageDelivered$ = new Subject&lt;MessageStatus&gt;();</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Observable</th>
+              <th>Typ</th>
+              <th>Zdarzenie WS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>isConnected$</code></td>
+              <td><code>BehaviorSubject&lt;boolean&gt;</code></td>
+              <td>Stan połączenia</td>
+            </tr>
+            <tr>
+              <td><code>messageReceived$</code></td>
+              <td><code>Subject&lt;ChatMessage&gt;</code></td>
+              <td><code>message_received</code></td>
+            </tr>
+            <tr>
+              <td><code>userTyping$</code></td>
+              <td><code>Subject&lt;TypingIndicator&gt;</code></td>
+              <td><code>user_typing</code></td>
+            </tr>
+            <tr>
+              <td><code>messageDelivered$</code></td>
+              <td><code>Subject&lt;MessageStatus&gt;</code></td>
+              <td><code>message_delivered</code></td>
+            </tr>
+            <tr>
+              <td><code>messageRead$</code></td>
+              <td><code>Subject&lt;MessageStatus&gt;</code></td>
+              <td><code>message_read</code></td>
+            </tr>
+            <tr>
+              <td><code>userOnline$</code></td>
+              <td><code>Subject&lt;UserPresence&gt;</code></td>
+              <td><code>user_online</code></td>
+            </tr>
+            <tr>
+              <td><code>userOffline$</code></td>
+              <td><code>Subject&lt;UserPresence&gt;</code></td>
+              <td><code>user_offline</code></td>
+            </tr>
+            <tr>
+              <td><code>notification$</code></td>
+              <td><code>Subject&lt;any&gt;</code></td>
+              <td><code>notification</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">crypto.service.ts</span>
+        <span class="fpath">src/app/core/services/crypto.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Serwis kryptografii end-to-end.</strong> Używa natywnego Web Crypto API przeglądarki — żadnych
+          zewnętrznych bibliotek.</p>
+        <pre><code>// Klucz prywatny w IndexedDB (nigdy nie wychodzi z urządzenia)
+await idbSet('rsa_private_jwk', privateKeyJwk);
+
+// Klucz publiczny na backendzie
+await http.put(`/users/${userId}/public-key`, { public_key: pemString });
+
+// Szyfrowanie wiadomości
+async encryptMessage(plaintext: string, recipientPublicPem: string): Promise&lt;string&gt;
+
+// Odszyfrowanie
+async decryptMessage(ciphertext: string): Promise&lt;string&gt;</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Metoda</th>
+              <th>Opis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>ensureRSAKeyPair()</code></td>
+              <td>Sprawdza IndexedDB — jeśli brak klucza, generuje nową parę RSA-OAEP 2048-bit</td>
+            </tr>
+            <tr>
+              <td><code>getPublicPem()</code></td>
+              <td>Zwraca klucz publiczny w formacie PEM (<code>-----BEGIN PUBLIC KEY-----</code>)</td>
+            </tr>
+            <tr>
+              <td><code>encryptMessage(text, pubPem)</code></td>
+              <td>Szyfruje tekst kluczem publicznym odbiorcy</td>
+            </tr>
+            <tr>
+              <td><code>decryptMessage(cipher)</code></td>
+              <td>Deszyfruje tekst własnym kluczem prywatnym z IndexedDB</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout"><b>Pomocnicze funkcje IndexedDB</b>
+          <code>idbGet(key)</code> i <code>idbSet(key, value)</code> — minimalne wrappery na IndexedDB API (baza
+          <code>zpi-crypto</code>, store <code>kv</code>). Klucz prywatny zapisany jako JWK (JSON Web Key).
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">subjects-api.service.ts</span>
+        <span class="fpath">src/app/core/services/subjects-api.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p>CRUD przedmiotów dydaktycznych i ich słowników.</p>
+        <pre><code>export interface SubjectDto {
+  id: number; name: string; type_id: number | null;
+  activity_id: number | null; activity_name: string | null;
+  type_display: string | null; room_properties: string | null;
+  blocked: boolean; periodic: boolean;
+}</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Metoda</th>
+              <th>HTTP</th>
+              <th>Endpoint</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>getSubjects()</code></td>
+              <td>GET</td>
+              <td><code>/subjects/list</code></td>
+            </tr>
+            <tr>
+              <td><code>getSubjectById(id)</code></td>
+              <td>GET</td>
+              <td><code>/subjects/:id</code></td>
+            </tr>
+            <tr>
+              <td><code>createSubject(payload)</code></td>
+              <td>POST</td>
+              <td><code>/subjects/</code></td>
+            </tr>
+            <tr>
+              <td><code>updateSubject(id, payload)</code></td>
+              <td>PATCH</td>
+              <td><code>/subjects/:id</code></td>
+            </tr>
+            <tr>
+              <td><code>deleteSubject(id)</code></td>
+              <td>DELETE</td>
+              <td><code>/subjects/:id</code></td>
+            </tr>
+            <tr>
+              <td><code>getActivities()</code></td>
+              <td>GET</td>
+              <td><code>/activities/list</code></td>
+            </tr>
+            <tr>
+              <td><code>createActivity(payload)</code></td>
+              <td>POST</td>
+              <td><code>/activities/</code></td>
+            </tr>
+            <tr>
+              <td><code>deleteActivity(id)</code></td>
+              <td>DELETE</td>
+              <td><code>/activities/:id</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout orange"><b>Normalizacja odpowiedzi</b>
+          Backend może zwracać <code>{items: [...]} </code> lub tablicę bezpośrednio — prywatna metoda
+          <code>normalizeSubject()</code> ujednolica oba formaty. Operator <code>map</code> w pipe obsługuje oba
+          przypadki.
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">rooms-api.service.ts</span>
+        <span class="fpath">src/app/core/services/rooms-api.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p>CRUD sal wykładowych ze słownikami typów, sprzętu i wydziałów.</p>
+        <pre><code>export interface RoomDto {
+  id: number; room_number: string; seats_count: number;
+  room_type_id: number | null; room_type: string;
+  special_equipment: number[]; special_equipment_names: string[];
+  activities: number[]; activity_names: string[];
+  departments: number[]; department_names: string[];
+}</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Metoda</th>
+              <th>HTTP</th>
+              <th>Endpoint</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>getRooms()</code></td>
+              <td>GET</td>
+              <td><code>/rooms/list</code></td>
+            </tr>
+            <tr>
+              <td><code>getRoomById(id)</code></td>
+              <td>GET</td>
+              <td><code>/rooms/:id</code></td>
+            </tr>
+            <tr>
+              <td><code>createRoom(payload)</code></td>
+              <td>POST</td>
+              <td><code>/rooms/</code></td>
+            </tr>
+            <tr>
+              <td><code>updateRoom(id, payload)</code></td>
+              <td>PATCH</td>
+              <td><code>/rooms/:id</code></td>
+            </tr>
+            <tr>
+              <td><code>deleteRoom(id)</code></td>
+              <td>DELETE</td>
+              <td><code>/rooms/:id</code></td>
+            </tr>
+            <tr>
+              <td><code>getRoomTypes()</code>, <code>createRoomType()</code>, <code>deleteRoomType(id)</code></td>
+              <td>GET/POST/DELETE</td>
+              <td><code>/room-types</code></td>
+            </tr>
+            <tr>
+              <td><code>getSpecialEquipment()</code>, <code>createSpecialEquipment()</code>,
+                <code>deleteSpecialEquipment(id)</code></td>
+              <td>GET/POST/DELETE</td>
+              <td><code>/special-equipment</code></td>
+            </tr>
+            <tr>
+              <td><code>getDepartments()</code>, <code>createDepartment()</code>, <code>deleteDepartment(id)</code></td>
+              <td>GET/POST/DELETE</td>
+              <td><code>/departments</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">teaching-loads-api.service.ts</span>
+        <span class="fpath">src/app/core/services/teaching-loads-api.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p>CRUD przydziałów godzin dydaktycznych. Łączy dane z kilku serwisów.</p>
+        <pre><code>export interface TeachingLoadAssignmentDto {
+  id: number; teacher_id: number; teacher_first_name: string | null;
+  teacher_last_name: string | null; subject_id: number;
+  subject_name: string | null; activity_id: number;
+  activity_name: string | null; semester_id: number;
+  semester_name: string | null; hours: number;
+}</code></pre>
+        <div class="callout"><b>Importuje z innych serwisów</b>
+          Importuje <code>AuditApiService</code>, <code>SubjectsApiService</code>, <code>UsersAdminApiService</code> —
+          łączy dane z wielu endpointów do jednego widoku tabeli.
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">dezyderata.service.ts</span>
+        <span class="fpath">src/app/core/services/dezyderata.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Zarządzanie dezyderatami (preferencjami dostępności wykładowców) i semestrami.</p>
+        <pre><code>export interface Dezyderata {
+  id: number; user_id: number; semestr_id: number;
+  day_id: number; from_hour: number; to_hour: number;
+  is_available: boolean; day_name?: string;
+}
+
+getSemestry(): Observable&lt;SemestrListResponse&gt;
+getCurrentSemestr(): Observable&lt;Semestr&gt;
+getMyDezyderaty(semestrId?): Observable&lt;DezyderataListResponse&gt;
+createDezyderata(payload: DezyderataCreate): Observable&lt;...&gt;
+deleteDezyderataEntry(id): Observable&lt;void&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">unavailability-notes-api.service.ts</span>
+        <span class="fpath">src/app/core/services/unavailability-notes-api.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p>API notatek o niedostępności wykładowców.</p>
+        <pre><code>export type NoteType = 'request' | 'forced';
+export type NoteStatus = 'pending' | 'accepted' | 'rejected' | 'acknowledged';
+
+createNote(payload): Observable&lt;UnavailabilityNoteDto&gt;    // POST /unavailability-notes/
+getMyNotes(): Observable&lt;UnavailabilityNoteDto[]&gt;          // GET /unavailability-notes/me
+getAllNotes(): Observable&lt;UnavailabilityNoteListDto[]&gt;     // GET /unavailability-notes/all (admin)
+getPendingNotes(): Observable&lt;...&gt;                         // GET /unavailability-notes/all/pending
+updateNoteStatus(id, status): Observable&lt;...&gt;             // PATCH /unavailability-notes/:id/status</code></pre>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">notifications-api.service.ts</span>
+        <span class="fpath">src/app/core/services/notifications-api.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Powiadomienia użytkownika — pobieranie i zarządzanie statusem przeczytania.</p>
+        <pre><code>getNotifications(limit=50, offset=0, unreadOnly=false): Observable&lt;NotificationListDto&gt;
+getUnreadNotifications(): Observable&lt;NotificationListDto&gt;
+markAsRead(id): Observable&lt;NotificationDto&gt;
+markAllAsRead(): Observable&lt;{message: string}&gt;
+getUnreadCount(): Observable&lt;UnreadCountDto&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">audit-api.service.ts</span>
+        <span class="fpath">src/app/core/services/audit-api.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Pobieranie logów audytowych i potwierdzanie ich obejrzenia.</p>
+        <pre><code>export interface AuditLogDto {
+  id: number; entity_name: string; entity_id: number;
+  action: string; old_values: any; new_values: any;
+  modified_by: number; modified_by_name: string;
+  timestamp: string; isNew?: boolean;  // &lt;-- pole frontendowe
+}
+
+getLogs(): Observable&lt;AuditLogResponseDto&gt;         // GET /audit-logs
+acknowledgeChanges(): Observable&lt;{message: string}&gt;  // POST /audit-logs/acknowledge</code></pre>
+        <div class="callout green"><b>Pole <code>isNew</code></b>
+          To pole nie pochodzi z backendu — jest obliczane frontendowo przez porównanie <code>timestamp</code> logu z
+          <code>last_changes_viewed_at</code> z odpowiedzi. Umożliwia wyróżnienie nowych wpisów w UI.
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">rapla-api.service.ts</span>
+        <span class="fpath">src/app/core/services/rapla-api.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Integracja z systemem Rapla (system planowania uczelni).</p>
+        <pre><code>getReservations(): Observable&lt;RaplaReservationDto[]&gt;  // GET /rapla/reservations
+
+importFile(file: File): Observable&lt;ImportSummary&gt; {
+  const fd = new FormData();
+  fd.append('file', file, file.name);
+  return this.http.post('/rapla/file/import', fd, ...);
+}</code></pre>
+        <p>Interfejs <code>RaplaReservationDto</code> zawiera: id, uuid, name, color, reservation_type, start_date,
+          start_time, end_date, end_time, repeating_type, allocate, room_names, teacher_names, semester_names,
+          group_names.</p>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">users-admin-api.service.ts</span>
+        <span class="fpath">src/app/core/services/users-admin-api.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p>API zarządzania użytkownikami — dostępne tylko dla roli admin.</p>
+        <pre><code>export interface AdminUserRow {
+  user_id: number; album_number: string; first_name: string;
+  last_name: string; login: string; email: string;
+  titles: string[]; roles: string[]; departments: string[];
+  must_change_password: boolean;
+}
+
+getUsers(): Observable&lt;AdminUserRow[]&gt;
+createUser(payload: AdminCreateUserPayload): Observable&lt;AdminCreatedUserResponse&gt;
+updateUser(id, payload: AdminUpdateUserPayload): Observable&lt;AdminUserRow&gt;
+deleteUser(id): Observable&lt;void&gt;
+resetUserPassword(id): Observable&lt;{login, one_time_password}&gt;
+getRoles(), getDepartments(), getTitles()  // słowniki</code></pre>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">projects-api.service.ts</span>
+        <span class="fpath">src/app/core/services/projects-api.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Prosty serwis pobierający listę projektów.</p>
+        <pre><code>export interface ProjectDto { id: number; name: string; }
+getProjects(): Observable&lt;ProjectDto[]&gt;  // GET /api/projects</code></pre>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     6. VALIDATORS
+     ══════════════════════════════════════════════ -->
+    <h1 id="core-validators">6. <code>core/validators/form-validators.ts</code></h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">form-validators.ts</span>
+        <span class="fpath">src/app/core/validators/form-validators.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Biblioteka własnych walidatorów Angular Reactive Forms. Każdy walidator zwraca <code>ValidatorFn</code>
+          (funkcję).</p>
+        <pre><code>const NAME_PATTERN = /^[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ][a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ\s\-]{1,99}$/;
+const EMAIL_PATTERN = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Eksportowana funkcja</th>
+              <th>Reguła walidacji</th>
+              <th>Błąd gdy</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>nameValidator()</code></td>
+              <td>Polskie znaki, myślnik, spacja, 2–100 znaków</td>
+              <td><code>{ nameInvalid: true }</code></td>
+            </tr>
+            <tr>
+              <td><code>strictEmailValidator()</code></td>
+              <td>Format email z dokładnym regex</td>
+              <td><code>{ email: true }</code></td>
+            </tr>
+            <tr>
+              <td><code>passwordStrengthValidator()</code></td>
+              <td>≥8 znaków, wielka litera, mała litera, cyfra, znak specjalny</td>
+              <td><code>{ missingUppercase: true }</code> itp.</td>
+            </tr>
+            <tr>
+              <td><code>passwordMatchValidator(key1, key2)</code></td>
+              <td>Dwa pola muszą być równe (poziom FormGroup)</td>
+              <td><code>{ passwordMismatch: true }</code></td>
+            </tr>
+            <tr>
+              <td><code>passwordNotContainsNameValidator(first, last)</code></td>
+              <td>Hasło nie może zawierać imienia ani nazwiska</td>
+              <td><code>{ containsName: true }</code></td>
+            </tr>
+            <tr>
+              <td><code>calcPasswordStrength(value)</code></td>
+              <td>Funkcja pomocnicza (nie walidator) — zwraca 0–4</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     7. PAGES
+     ══════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="pages">7. <code>pages/</code> — Strony wejściowe</h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">login.page.ts</span>
+        <span class="fpath">src/app/pages/login/login.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Strona logowania.</strong> Dostępna bez autoryzacji (<code>/login</code>). Template-driven form.</p>
+        <pre><code>login = ''; password = ''; error = ''; isLoading = false;
+
+ngOnInit() {
+  if (this.auth.isLoggedIn) this.router.navigateByUrl('/home'); // już zalogowany → skip
+}
+
+submit() {
+  this.auth.login(this.login, this.password).subscribe({
+    next: (res) =&gt; {
+      if (res.mustChangePassword) this.router.navigateByUrl('/change-password');
+      else this.router.navigateByUrl('/home');
+    },
+    error: () =&gt; this.error = 'Nieprawidłowe dane logowania'
+  });
+}</code></pre>
+        <ul>
+          <li>Pole hasła z przełącznikiem widoczności (<code>showPassword</code> + ikony
+            <code>eyeOutline</code>/<code>eyeOffOutline</code>)</li>
+          <li>Spinner <code>isLoading</code> blokuje przycisk podczas oczekiwania na API</li>
+          <li>Komunikat błędu <code>error</code> wyświetlany w UI</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">change-password.page.ts</span>
+        <span class="fpath">src/app/pages/change-password/change-password.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Wymuszona zmiana hasła.</strong> Reactive Form z wieloma walidatorami.</p>
+        <pre><code>readonly form = this.fb.group({
+    newPassword: ['', [Validators.required, passwordStrengthValidator()]],
+    confirmPassword: ['', [Validators.required]],
+  },
+  { validators: passwordMatchValidator('newPassword', 'confirmPassword') }
+);
+
+// Dynamicznie dodany walidator po załadowaniu imienia/nazwiska
+this.form.controls.newPassword.addValidators(
+  passwordNotContainsNameValidator(this.auth.firstName, this.auth.lastName)
+);</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Getter</th>
+              <th>Opis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>passwordStrength</code></td>
+              <td>Liczba 0–4 obliczona przez <code>calcPasswordStrength()</code></td>
+            </tr>
+            <tr>
+              <td><code>passwordStrengthLabel</code></td>
+              <td><code>'Słabe'</code> / <code>'Średnie'</code> / <code>'Mocne'</code> / <code>'Bardzo mocne'</code>
+              </td>
+            </tr>
+            <tr>
+              <td><code>passwordStrengthClass</code></td>
+              <td>Klasa CSS do kolorowania paska siły hasła</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     8. FEATURES/HOME
+     ══════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="feat-home">8. <code>features/home/</code> — Dezyderaty</h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">home.page.ts</span>
+        <span class="fpath">src/app/features/home/pages/home.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Najobszerniejszy komponent aplikacji.</strong> Obsługuje pełną funkcjonalność dezyderatów z widokiem
+          tygodniowym kalendarza.</p>
+        <pre><code>type AvailabilityMode = 'available' | 'unavailable';
+
+interface LecturerStatusItem {
+  userId: number; lecturerDisplayName: string;
+  departments: string[]; isApproved: boolean;
+  submission: LecturerSubmission | null;
+  hasActiveUnavailability: boolean;
+}
+
+interface TutorialStep {
+  target: 'mode-selector' | 'calendar-cell' | 'confirm-button' | 'edit-button' | 'clear-button';
+  title: string; description: string;
+}</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Kluczowy element</th>
+              <th>Opis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>AvailabilityMode</code></td>
+              <td>Tryb oznaczania: dostępny / niedostępny</td>
+            </tr>
+            <tr>
+              <td><code>LecturerStatusItem</code></td>
+              <td>Stan dezyderaty jednego wykładowcy (widok admina/planisty)</td>
+            </tr>
+            <tr>
+              <td><code>LecturerSubmission</code></td>
+              <td>Zapisane sloty dostępności: dni × godziny</td>
+            </tr>
+            <tr>
+              <td><code>TutorialStep</code></td>
+              <td>Krok interaktywnego samouczka pierwszego użycia</td>
+            </tr>
+            <tr>
+              <td><code>HistoryWeekItem</code></td>
+              <td>Element historii złożonych dezyderatów (archiwum)</td>
+            </tr>
+            <tr>
+              <td><code>WeekDay</code></td>
+              <td>Dzień tygodnia w siatce kalendarza (nazwa, ISO date, isToday)</td>
+            </tr>
+            <tr>
+              <td><code>DezyderataService</code></td>
+              <td>CRUD dezyderatów i semestrów</td>
+            </tr>
+            <tr>
+              <td><code>UnavailabilityNotesApiService</code></td>
+              <td>Notatki niedostępności powiązane z dezyderatami</td>
+            </tr>
+            <tr>
+              <td><code>UsersAdminApiService</code></td>
+              <td>Lista wykładowców (widok admina)</td>
+            </tr>
+            <tr>
+              <td><code>ModalController</code></td>
+              <td>Otwiera <code>UnavailabilityNoteModalComponent</code></td>
+            </tr>
+            <tr>
+              <td><code>raplaFileUrl</code></td>
+              <td>URL do pobrania pliku Rapla (<code>${apiBaseUrl}/rapla/file</code>)</td>
+            </tr>
+            <tr>
+              <td><code>@HostListener('document:keydown')</code></td>
+              <td>Obsługa skrótów klawiaturowych w siatce</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     9. FEATURES/HERMONOGRAM
+     ══════════════════════════════════════════════ -->
+    <h1 id="feat-hermonogram">9. <code>features/hermonogram/</code> — Harmonogram</h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">hermonogram.page.ts</span>
+        <span class="fpath">src/app/features/hermonogram/pages/hermonogram.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Tygodniowy widok harmonogramu z importem Rapla.</strong></p>
+        <pre><code>interface RaplaRenderedItem {
+  reservation: RaplaReservationDto;
+  topOffsetMinutes: number;   // pozycja Y w siatce
+  durationMinutes: number;    // wysokość bloku
+  startMin: number; endMin: number;
+  colIndex: number; colCount: number; // obsługa kolizji (nakładanie)
+}
+
+hours24 = Array.from({ length: 15 }, (_, i) =&gt; i + 7); // [7, 8, ..., 21]
+weekDays: WeekDay[] = [];  // 5 lub 7 dni tygodnia</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Interfejs / Pole</th>
+              <th>Opis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>RaplaRenderedItem</code></td>
+              <td>Rezerwacja z obliczoną pozycją CSS na siatce czasowej</td>
+            </tr>
+            <tr>
+              <td><code>WeekDay</code></td>
+              <td>Dzień tygodnia z nazwą, ISO datą i flagą <code>isToday</code></td>
+            </tr>
+            <tr>
+              <td><code>ImportedPlanEntry</code></td>
+              <td>Zaimportowany plan z localStorage (legacy)</td>
+            </tr>
+            <tr>
+              <td><code>miniCalendarDays</code></td>
+              <td>Dni mini-kalendarza do nawigacji</td>
+            </tr>
+            <tr>
+              <td><code>RaplaApiService</code></td>
+              <td>Import pliku i pobieranie rezerwacji z backendu</td>
+            </tr>
+            <tr>
+              <td><code>selectedDate</code></td>
+              <td>Aktualnie wybrana data — determinuje wyświetlany tydzień</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     10. FEATURES/KONFLIKTY
+     ══════════════════════════════════════════════ -->
+    <h1 id="feat-konflikty">10. <code>features/konflikty/</code> — Konflikty</h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">konflikty.page.ts</span>
+        <span class="fpath">src/app/features/konflikty/pages/konflikty.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Strona wyświetlająca konflikty harmonogramu. Minimalna logika — głównie UI z menu profilowym.</p>
+        <pre><code>constructor(public readonly auth: AuthService, private readonly router: Router) {}
+
+get userRoleLabel() { return this.auth.roleLabel; }
+get userDisplayName() { return this.auth.displayName; }
+
+logout() { this.auth.logout(); }
+openSettings() { this.router.navigateByUrl('/profile'); }</code></pre>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     11. FEATURES/SALE
+     ══════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="feat-sale">11. <code>features/sale/</code> — Sale wykładowe</h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">sale-list.page.ts</span>
+        <span class="fpath">src/app/features/sale/sale-list.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Lista sal z CRUD. Ochrona ról wewnątrz <code>ngOnInit</code>.</p>
+        <pre><code>ngOnInit(): void {
+  if (this.auth.role !== 'admin') {
+    this.router.navigateByUrl('/home'); return;  // guard wewnętrzny
+  }
+  this.loadRooms();
+}
+
+deleteRoom(roomId: number): void {
+  const accepted = window.confirm('Czy na pewno chcesz usunac te sale?');
+  if (!accepted) return;
+  this.roomsApi.deleteRoom(roomId).pipe(finalize(() =&gt; this.isDeleting = false)).subscribe(...)
+}</code></pre>
+        <p>Pola stanu: <code>isLoading</code>, <code>isDeleting</code>, <code>errorMessage</code>,
+          <code>rooms: RoomDto[]</code>.</p>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">sale.page.ts</span>
+        <span class="fpath">src/app/features/sale/sale.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Formularz tworzenia i edycji sali. Tryb edycji wykrywany przez parametr <code>:id</code> w URL.</p>
+        <pre><code>ngOnInit(): void {
+  const idParam = this.route.snapshot.paramMap.get('id');
+  this.roomId = idParam ? Number(idParam) : null;
+  this.isEditMode = this.roomId !== null;
+  this.loadInitialData();    // forkJoin: typy, sprzęt, wydziały, aktywności
+  if (this.isEditMode) this.loadRoom(this.roomId!);  // wypełnij formularz
+}
+
+loadInitialData(): void {
+  forkJoin([
+    this.roomsApi.getRoomTypes(),
+    this.roomsApi.getActivities(),
+    this.roomsApi.getSpecialEquipment(),
+    this.roomsApi.getDepartments(),
+  ]).subscribe(([types, activities, equipment, departments]) =&gt; { ... })
+}</code></pre>
+        <div class="callout green"><b>forkJoin</b>
+          RxJS operator — odpala wiele żądań HTTP równolegle i czeka aż <strong>wszystkie</strong> się zakończą, zwraca
+          tablicę wyników. Używany do ładowania słowników (zamiast 4 sekwencyjnych requestów).
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">sale-dictionaries.page.ts</span>
+        <span class="fpath">src/app/features/sale/sale-dictionaries.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Zarządzanie słownikami sal: typy, sprzęt specjalny, wydziały, aktywności. CRUD dla każdego słownika z
+          potwierdzeniem przez <code>AlertController</code>.</p>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">sale-dictionaries.ts</span>
+        <span class="fpath">src/app/features/sale/sale-dictionaries.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Plik re-eksportu: <code>export &#123; SaleDictionariesPage &#125; from './sale-dictionaries.page'</code>.
+          Istnieje dla uproszczenia ścieżki importu w <code>app.routes.ts</code>.</p>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     12. FEATURES/SUBJECTS
+     ══════════════════════════════════════════════ -->
+    <h1 id="feat-subjects">12. <code>features/subjects/</code> — Przedmioty</h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">subject-list.page.ts</span>
+        <span class="fpath">src/app/features/subjects/subject-list.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Lista przedmiotów. Używa <code>ionViewWillEnter</code> (Ionic lifecycle hook) zamiast <code>ngOnInit</code>
+          do odświeżania danych — wykonuje się za każdym wejściem na stronę (nie tylko przy pierwszym).</p>
+        <pre><code>ionViewWillEnter(): void {
+  this.loadSubjects();  // odświeża listę przy każdym powrocie na stronę
+}</code></pre>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">subject.page.ts</span>
+        <span class="fpath">src/app/features/subjects/subject.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Formularz tworzenia/edycji przedmiotu. Template-driven form (<code>NgForm</code>).</p>
+        <pre><code>name = ''; activityId: number | null = null;
+typeDisplay = ''; roomProperties = '';
+blocked = false; periodic = true;
+
+onSubmit(form: NgForm): void {
+  if (!form.valid) { this.errorMessage = 'Uzupelnij wszystkie wymagane pola'; return; }
+  const payload: SubjectPayload = {
+    name: this.name.trim(),
+    activity_id: Number(this.activityId),
+    type_display: this.typeDisplay || null,
+    room_properties: this.roomProperties || null,
+    blocked: this.blocked,
+    periodic: this.periodic,
+  };
+  const req$ = this.isEditMode
+    ? this.subjectsApi.updateSubject(this.subjectId!, payload)
+    : this.subjectsApi.createSubject(payload);
+  req$.subscribe(...)
+}</code></pre>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">unavailability-note-modal.component.ts</span>
+        <span class="fpath">src/app/features/subjects/components/unavailability-note-modal/</span>
+      </div>
+      <div class="file-body">
+        <p>Modal Ionic do dodawania notatek niedostępności z poziomu strony przedmiotu. Reactive Form.</p>
+        <pre><code>private initializeForm(): void {
+  this.form = this.fb.group({
+    noteType: ['request', Validators.required],   // 'request' | 'forced'
+    startDate: ['', Validators.required],
+    endDate: [''],
+    description: ['', Validators.maxLength(1000)],
+  });
+}
+
+dismiss() { this.modalController.dismiss(); }  // zamknij bez zapisu
+
+submit() {
+  const payload: CreateUnavailabilityNoteRequest = { ...this.form.value };
+  this.unavailabilityService.createNote(payload).subscribe(
+    result =&gt; this.modalController.dismiss(result)  // zamknij z wynikiem
+  );
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     13. FEATURES/TEACHING-LOADS
+     ══════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="feat-teaching">13. <code>features/teaching-loads/</code> — Przydziały godzin</h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">teaching-loads.page.ts</span>
+        <span class="fpath">src/app/features/teaching-loads/teaching-loads.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Zaawansowana tabela z inline edycją i historią zmian.</strong></p>
+        <pre><code>type TeachingLoadFilterState = {
+  teacher_id?: number | null; subject_id?: number | null;
+  activity_id?: number | null; semester_id?: number | null;
+  hours_min?: number | null; hours_max?: number | null;
+};
+
+// Stan edycji inline
+editingRowId: number | null = null;
+draftRow: TeachingLoadAssignmentDto | null = null;   // kopia edytowanego wiersza
+originalRow: TeachingLoadAssignmentDto | null = null; // oryginał do porównania
+
+// Stan tworzenia nowego wiersza
+isCreating = false;
+newRowDraft: TeachingLoadAssignmentDto | null = null;
+
+// Historia zmian per wiersz
+historyOpenRowId: number | null = null;
+historyByAssignment: Record&lt;number, AuditLogDto[]&gt; = {};</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Kluczowa funkcja</th>
+              <th>Opis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Inline edit</td>
+              <td>Kliknięcie wiersza ustawia <code>editingRowId</code> + klonuje wiersz do <code>draftRow</code>; zapis
+                PATCH tylko jeśli <code>draftRow !== originalRow</code></td>
+            </tr>
+            <tr>
+              <td>Filtry wielopoziomowe</td>
+              <td><code>TeachingLoadFilterState</code> — filtrowanie client-side po 6 kryteriach</td>
+            </tr>
+            <tr>
+              <td>Historia per wpis</td>
+              <td>Klik → GET <code>/audit-logs?entity=TeachingLoadAssignment&amp;id=X</code> → rozwinięcie pod wierszem
+              </td>
+            </tr>
+            <tr>
+              <td><code>forkJoin</code> w <code>ngOnInit</code></td>
+              <td>Ładuje równolegle: przydziały, nauczycieli, przedmioty, aktywności, semestry</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     14. FEATURES/ADMIN
+     ══════════════════════════════════════════════ -->
+    <h1 id="feat-admin">14. <code>features/admin/</code></h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">user-create.page.ts</span>
+        <span class="fpath">src/app/features/admin/pages/user-create.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Panel zarządzania użytkownikami — tworzenie, edycja, reset hasła. Dwa formularze reaktywne.</p>
+        <pre><code>// Formularz tworzenia
+readonly form = this.fb.group({
+  firstName: ['', [nameValidator()]],
+  lastName: ['', [nameValidator()]],
+  email: ['', [strictEmailValidator()]],
+  oneTimePassword: ['', [Validators.required, Validators.minLength(8)]],
+  roleIds: this.fb.control&lt;number[]&gt;([], { validators: [Validators.required] }),
+  departmentIds: this.fb.control&lt;number[]&gt;([], { validators: [Validators.required] }),
+  titleId: this.fb.control&lt;number | null&gt;(null),
+});
+
+// Tabela użytkowników z paginacją
+readonly pageSizeOptions = [5, 10, 25, 50];
+searchQuery = ''; pageSize = 10; currentPage = 1;
+
+// Stan modalów
+isEditModalOpen = false;
+isResetPasswordModalOpen = false;
+selectedUser: AdminUserRow | null = null;</code></pre>
+        <div class="callout green"><b>Shared Credentials</b>
+          Po stworzeniu/resecie hasła backend zwraca jednorazowe dane logowania (<code>login</code> +
+          <code>one_time_password</code>) które admin przekazuje użytkownikowi. Wyświetlane w interfejsie jako
+          <code>createdCredentials</code> / <code>resetCredentials</code>.
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">unavailability-notes-list-admin.component.ts</span>
+        <span class="fpath">src/app/features/admin/pages/unavailability-notes-list-admin/</span>
+      </div>
+      <div class="file-body">
+        <p>Lista notatek niedostępności dla admina. Filtrowanie po statusie przez segmenty.</p>
+        <pre><code>type FilterType = 'all' | 'pending' | 'accepted' | 'rejected' | 'acknowledged';
+filterType: FilterType = 'all';
+
+// Obiekt blokowania — zapobiega kliknięciu przycisku dla tej samej notatki dwa razy
+isProcessing: { [noteId: number]: boolean } = {};
+
+// Zmiana statusu
+updateStatus(noteId: number, status: NoteStatus): void {
+  this.isProcessing[noteId] = true;
+  this.unavailabilityService.updateNoteStatus(noteId, { status })
+    .pipe(finalize(() =&gt; this.isProcessing[noteId] = false))
+    .subscribe(() =&gt; this.ionViewWillEnter()); // odśwież listę
+}</code></pre>
+        <p>Implementuje <code>ViewWillEnter</code> (Ionic) — odświeża dane za każdym wejściem na stronę.</p>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     15. FEATURES/CHAT
+     ══════════════════════════════════════════════ -->
+    <div class="page-break"></div>
+    <h1 id="feat-chat">15. <code>features/chat/</code> — Czat E2EE</h1>
+    <div class="section-intro">7 komponentów + 1 serwis + 1 plik modeli. Najbardziej rozbudowany moduł aplikacji.</div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">chat.models.ts</span>
+        <span class="fpath">src/app/features/chat/models/chat.models.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Centralna definicja wszystkich typów używanych w module czatu.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Interfejs / Typ</th>
+              <th>Opis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>ChatUser</code></td>
+              <td>Użytkownik: <code>user_id</code>, <code>first_name</code>, <code>last_name</code>,
+                <code>public_key?</code>, <code>avatarUrl?</code></td>
+            </tr>
+            <tr>
+              <td><code>ChatRoom</code></td>
+              <td>Pokój grupowy: <code>id</code>, <code>name</code>, <code>members: number[]</code>,
+                <code>createdAt</code></td>
+            </tr>
+            <tr>
+              <td><code>ChatMessage</code></td>
+              <td>Wiadomość: <code>id</code>, <code>senderId</code>, <code>content</code>, <code>isOwn</code>,
+                <code>isRead</code></td>
+            </tr>
+            <tr>
+              <td><code>MessageApiResponse</code></td>
+              <td>Surowa odpowiedź API: <code>ciphertext?</code>, <code>iv?</code>, <code>wrapped_key?</code>,
+                <code>encrypted_aes_key?</code> — pola E2EE</td>
+            </tr>
+            <tr>
+              <td><code>ConversationListResponse</code></td>
+              <td>Konwersacja: <code>type: 'direct' | 'group'</code>, <code>member_ids</code></td>
+            </tr>
+            <tr>
+              <td><code>MessageStatusApiResponse</code></td>
+              <td>Status wiadomości: <code>sent</code>, <code>delivered</code>, <code>read</code> z timestampami</td>
+            </tr>
+            <tr>
+              <td><code>ActiveTab</code></td>
+              <td>Union type: <code>'messages' | 'contacts' | 'create-room'</code></td>
+            </tr>
+            <tr>
+              <td><code>ChatView</code></td>
+              <td>Union type: <code>'contacts' | 'conversation' | 'room' | 'create-room'</code></td>
+            </tr>
+            <tr>
+              <td><code>OpenChat</code></td>
+              <td>Otwarta karta czatu w trybie page: <code>id</code>, <code>user?</code>, <code>room?</code>,
+                <code>messages[]</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">chat-api.service.ts</span>
+        <span class="fpath">src/app/features/chat/services/chat-api.service.ts</span>
+      </div>
+      <div class="file-body">
+        <p>REST API czatu — wszystkie endpointy <code>/api/chat/</code>.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Metoda</th>
+              <th>HTTP</th>
+              <th>Endpoint</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>searchUsers(query)</code></td>
+              <td>GET</td>
+              <td><code>/api/chat/search-users?q=...</code></td>
+            </tr>
+            <tr>
+              <td><code>getAvailableUsers(limit)</code></td>
+              <td>GET</td>
+              <td><code>/api/chat/search-users?limit=100</code></td>
+            </tr>
+            <tr>
+              <td><code>getConversations()</code></td>
+              <td>GET</td>
+              <td><code>/api/chat/conversations</code></td>
+            </tr>
+            <tr>
+              <td><code>startConversation(userId)</code></td>
+              <td>POST</td>
+              <td><code>/api/chat/start-conversation/:userId</code></td>
+            </tr>
+            <tr>
+              <td><code>createGroup(name, userIds)</code></td>
+              <td>POST</td>
+              <td><code>/api/chat/create-group</code></td>
+            </tr>
+            <tr>
+              <td><code>getConversationMessages(convId, beforeId?, limit?)</code></td>
+              <td>GET</td>
+              <td><code>/api/chat/:id/messages</code></td>
+            </tr>
+            <tr>
+              <td><code>sendMessage(convId, content)</code></td>
+              <td>POST</td>
+              <td><code>/api/chat/:id/send-message</code></td>
+            </tr>
+            <tr>
+              <td><code>markMessageAsRead(messageId)</code></td>
+              <td>POST</td>
+              <td><code>/api/chat/messages/:id/read</code></td>
+            </tr>
+            <tr>
+              <td><code>getPublicKey(userId)</code></td>
+              <td>GET</td>
+              <td><code>/users/:id/public-key</code></td>
+            </tr>
+            <tr>
+              <td><code>getUserAvatar(userId)</code></td>
+              <td>GET</td>
+              <td><code>/users/:id/avatar</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">chat.component.ts</span>
+        <span class="fpath">src/app/features/chat/chat.component.ts</span>
+      </div>
+      <div class="file-body">
+        <p><strong>Główny komponent czatu.</strong> Zarządza całą logiką konwersacji, szyfrowania i WebSocket.</p>
+        <pre><code>// Signals (Angular 16+ reactive state)
+isOpen = signal(false);
+activeTab = signal&lt;ActiveTab&gt;('messages');
+view = signal&lt;ChatView&gt;('contacts');
+selectedUser = signal&lt;ChatUser | null&gt;(null);
+selectedRoom = signal&lt;ChatRoom | null&gt;(null);
+openChats = signal&lt;OpenChat[]&gt;([]);  // tryb page — wiele otwartych czatów
+
+// Auto-scroll
+@ViewChild('messagesContainer') messagesContainer!: ElementRef;
+private shouldScrollToBottom = false;
+ngAfterViewChecked() { if (this.shouldScrollToBottom) scrollToBottom(); }
+
+// Wyszukiwanie z debounce
+private searchSubject = new Subject&lt;string&gt;();
+// pipe(debounceTime(300), distinctUntilChanged(), switchMap(q =&gt; search(q)))</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th>Kluczowy mechanizm</th>
+              <th>Opis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Angular Signals</td>
+              <td>Nowy reaktywny prymityw Angular 16+ — <code>signal()</code> zamiast <code>BehaviorSubject</code> dla
+                lokalnego stanu</td>
+            </tr>
+            <tr>
+              <td>debounceTime(300)</td>
+              <td>Wyszukiwanie odpala API dopiero 300ms po ostatnim znaku — redukuje zbędne requesty</td>
+            </tr>
+            <tr>
+              <td>distinctUntilChanged()</td>
+              <td>Pomija duplicate zapytania (identyczna wartość)</td>
+            </tr>
+            <tr>
+              <td>switchMap</td>
+              <td>Anuluje poprzedni request jeśli użytkownik pisze dalej</td>
+            </tr>
+            <tr>
+              <td><code>ViewEncapsulation.None</code></td>
+              <td>Style CSS komponentu działają globalnie (potrzebne dla dynamicznie dodawanego contentu)</td>
+            </tr>
+            <tr>
+              <td><code>@Input() pageMode</code></td>
+              <td>Tryb pełnoekranowy (strona /chat) vs. panel boczny — różne zachowanie</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">Komponenty chat/components/</span>
+        <span class="fpath">src/app/features/chat/components/</span>
+      </div>
+      <div class="file-body">
+        <p>Pięć małych komponentów prezentacyjnych (<strong>"dumb components"</strong>) — nie mają własnej logiki,
+          otrzymują dane przez <code>@Input()</code> i emitują zdarzenia przez <code>@Output()</code>.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Komponent</th>
+              <th>@Input()</th>
+              <th>@Output()</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>chat-panel-header</code></td>
+              <td><code>view</code>, <code>selectedUser</code>, <code>selectedRoom</code>, <code>getInitials</code></td>
+              <td><code>back</code>, <code>close</code></td>
+            </tr>
+            <tr>
+              <td><code>chat-panel-tabs</code></td>
+              <td><code>view</code>, <code>activeTab</code></td>
+              <td><code>tabChange</code></td>
+            </tr>
+            <tr>
+              <td><code>chat-contacts-view</code></td>
+              <td><code>searchQuery</code>, <code>searchResults</code>, <code>isSearching</code>,
+                <code>directContacts</code>, <code>getInitials</code>, <code>getLastMessage</code>,
+                <code>isLastMessageUnread</code></td>
+              <td><code>searchQueryChange</code>, <code>search</code>, <code>openConversation</code></td>
+            </tr>
+            <tr>
+              <td><code>chat-rooms-view</code></td>
+              <td><code>rooms</code>, <code>getLastRoomMessage</code></td>
+              <td><code>showCreateRoom</code>, <code>openRoom</code></td>
+            </tr>
+            <tr>
+              <td><code>chat-create-room-view</code></td>
+              <td><code>newRoomName</code>, <code>newRoomMembers</code>, <code>availableUsers</code>,
+                <code>isMemberSelected</code>, <code>getInitials</code></td>
+              <td><code>newRoomNameChange</code>, <code>toggleRoomMember</code>, <code>createRoom</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout purple"><b>Smart vs. Dumb components</b>
+          <code>chat.component.ts</code> jest "smart" — ma całą logikę i dane. Komponenty w <code>components/</code> są
+          "dumb" — tylko renderują i emitują zdarzenia. Wzorzec poprawia testowalność i czytelność kodu.
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">chat.page.ts</span>
+        <span class="fpath">src/app/features/chat/pages/chat.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Wrapper strony — dodaje Ionic header z menu i osadza <code>&lt;app-chat [pageMode]="true"&gt;</code>.
+          Minimalna logika — tylko menu profilowe i nawigacja.</p>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     16. FEATURES/AUDIT
+     ══════════════════════════════════════════════ -->
+    <h1 id="feat-audit">16. <code>features/audit/</code> — Historia zmian</h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">audit-logs.page.ts</span>
+        <span class="fpath">src/app/features/audit/pages/audit-logs.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Wyświetla audit logi z grupowaniem i translacją nazw na polski.</p>
+        <pre><code>interface LogBatch {
+  key: string;          // "user_id-date"
+  userName: string;     // "Jan Kowalski"
+  timeLabel: string;    // "12:34"
+  logs: AuditLogDto[];
+  hasNew: boolean;      // czy są nieprzeczytane
+}
+interface LogGroup {
+  date: string;         // "2026-05-12"
+  batches: LogBatch[];
+}
+
+// Mapa tłumaczeń technicznych nazw modeli → polskie
+readonly entityMap: Record&lt;string, string&gt; = {
+  'Subject': 'Przedmiot',
+  'Room': 'Sala',
+  'TeachingLoadAssignment': 'Przydział godzin',
+  'UnavailabilityNote': 'Notatka o niedostępności',
+  // ...
+};
+
+// Mapa tłumaczeń nazw pól
+readonly translateMap: Record&lt;string, string&gt; = {
+  'user_id': 'Użytkownik (ID)',
+  'teacher_id': 'Wykładowca (ID)',
+  // ...
+};</code></pre>
+        <p>Implementuje <code>ViewWillEnter</code> — wywołuje <code>acknowledgeChanges()</code> po wejściu na stronę aby
+          zaznaczyć na backendzie że zmiany zostały obejrzane.</p>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     17. FEATURES/PROFILE
+     ══════════════════════════════════════════════ -->
+    <h1 id="feat-profile">17. <code>features/profile/</code> — Profil</h1>
+
+    <div class="file-card">
+      <div class="file-header">
+        <span class="fname">profile.page.ts</span>
+        <span class="fpath">src/app/features/profile/pages/profile.page.ts</span>
+      </div>
+      <div class="file-body">
+        <p>Strona ustawień profilu użytkownika.</p>
+        <pre><code>triggerAvatarUpload(fileInput: HTMLInputElement) {
+  fileInput.click();  // programatyczne otwarcie dialogu wyboru pliku
+}
+
+async onAvatarFileSelected(event: Event) {
+  const file = input.files?.[0];
+  const dataUrl = await this.readFileAsDataUrl(file);  // FileReader API
+  this.auth.updateProfileAvatar(dataUrl).subscribe();  // upload na backend
+}
+
+ionViewWillEnter() {
+  this.selectedTheme = this.auth.getCurrentTheme();  // synchronizacja motywu
+}
+
+onThemeChange(isDark: boolean) {
+  this.selectedTheme = isDark ? 'dark' : 'light';
+  this.auth.updateCurrentTheme(this.selectedTheme);
+}</code></pre>
+        <p>Pola formularza zmiany hasła: <code>currentPassword</code>, <code>newPassword</code>,
+          <code>confirmPassword</code>.</p>
+      </div>
+    </div>
+
+    <br><br>
+    <div style="text-align:center;color:#888;font-size:8.5pt;border-top:1px solid #ddd;padding-top:14px">
+      ZPI-Desktop-App — Dokumentacja Plików src/ &nbsp;|&nbsp; Wygenerowano automatycznie &nbsp;|&nbsp; 2025/2026
+    </div>
+
+  </div>
+</body>
+
+</html>

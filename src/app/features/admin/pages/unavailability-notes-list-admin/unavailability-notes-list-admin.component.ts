@@ -255,7 +255,7 @@ export class UnavailabilityNotesListAdminComponent implements ViewWillEnter {
    * Sprawdza, czy powinien wyświetlić przyciski akcji
    */
   shouldShowActions(note: UnavailabilityNoteListDto): boolean {
-    return note.status === 'pending';
+    return note.status === 'pending' && this.auth.role === 'admin';
   }
 
   /**
