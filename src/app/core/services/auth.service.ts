@@ -46,7 +46,7 @@ interface ApiCurrentUserResponse {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly userPreferencesStorageKey = 'userPreferencesByEmail';
-  private readonly defaultAvatarUrl = 'https://ionicframework.com/docs/img/demos/avatar.svg';
+  private readonly defaultAvatarUrl = 'assets/default-avatar.svg';
   private readonly accounts: UserAccount[] = [
     {
       email: 'admin@ans.local',
