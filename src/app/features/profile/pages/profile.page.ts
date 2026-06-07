@@ -36,6 +36,7 @@ export class ProfilePage {
 
   error = '';
   success = '';
+  avatarError = '';
 
   get passwordStrength(): number {
     return calcPasswordStrength(this.form.controls.newPassword.value ?? '');
@@ -97,15 +98,35 @@ export class ProfilePage {
   }
 
   async onAvatarFileSelected(event: Event) {
+    this.avatarError = '';
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) {
       return;
     }
 
-    const dataUrl = await this.readFileAsDataUrl(file);
-    this.auth.updateProfileAvatar(dataUrl).subscribe();
-    input.value = '';
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+      this.avatarError = 'Dozwolone są tylko pliki JPG i PNG.';
+      input.value = '';
+      return;
+    }
+
+    const maxSize = 10 * 1024 * 1024; // 10 MB
+    if (file.size > maxSize) {
+      this.avatarError = 'Rozmiar pliku nie może przekraczać 10 MB.';
+      input.value = '';
+      return;
+    }
+
+    try {
+      const dataUrl = await this.readFileAsDataUrl(file);
+      this.auth.updateProfileAvatar(dataUrl).subscribe();
+    } catch (e: any) {
+      this.avatarError = e.message || 'Wystąpił błąd podczas wczytywania pliku.';
+    } finally {
+      input.value = '';
+    }
   }
 
   onThemeChange(isDark: boolean) {

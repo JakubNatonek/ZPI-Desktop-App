@@ -36,6 +36,7 @@ export interface TeachingLoadAssignmentPatchPayload {
   hours?: number;
   field_of_study_id?: number | null;
   room_id?: number | null;
+  group_id?: number | null;
 }
 
 export interface TeachingLoadAssignmentCreatePayload {
@@ -46,6 +47,7 @@ export interface TeachingLoadAssignmentCreatePayload {
   hours: number;
   field_of_study_id: number | null;
   room_id?: number | null;
+  group_id?: number | null;
 }
 
 export interface FieldOfStudyOption {
@@ -62,6 +64,7 @@ export interface TeachingLoadFilters {
   activity_id?: number;
   semester_id?: number;
   room_id?: number;
+  group_id?: number;
   hours?: number;
   hours_min?: number;
   hours_max?: number;
@@ -77,6 +80,11 @@ export interface TeacherOption {
 
 interface TeachingLoadListResponse {
   items?: TeachingLoadAssignmentDto[];
+}
+
+export interface GroupOption {
+  id: number;
+  code: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -172,6 +180,34 @@ export class TeachingLoadsApiService {
               label: String(item.label ?? `${item.name} / ${rawAbbrev} / ${item.year}`),
             };
           })
+        ),
+        catchError((error: HttpErrorResponse) => this.handleError(error)),
+      );
+  }
+
+  getGroups(): Observable<GroupOption[]> {
+    return this.http
+      .get<GroupOption[]>(`${environment.apiBaseUrl}/groups/list`)
+      .pipe(
+        map((items) =>
+          items.map((item) => ({
+            id: Number(item.id),
+            code: String((item as any).code ?? ''),
+          }))
+        ),
+        catchError((error: HttpErrorResponse) => this.handleError(error)),
+      );
+  }
+
+  getGroupsByFieldOfStudy(fieldOfStudyId: number): Observable<GroupOption[]> {
+    return this.http
+      .get<GroupOption[]>(`${environment.apiBaseUrl}/groups/by-field-of-study/${fieldOfStudyId}`)
+      .pipe(
+        map((items) =>
+          items.map((item) => ({
+            id: Number(item.id),
+            code: String((item as any).code ?? ''),
+          }))
         ),
         catchError((error: HttpErrorResponse) => this.handleError(error)),
       );

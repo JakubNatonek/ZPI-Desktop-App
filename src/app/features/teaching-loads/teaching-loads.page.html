@@ -80,6 +80,8 @@
               <th class="room-col">Sala</th>
               <th class="hours-col">Godziny</th>
               <th>Semestr</th>
+              <th>Grupa</th>
+              <th>Kierunek</th>
               <th class="history-col">Historia</th>
               <th class="actions-col">Akcje</th>
             </tr>
@@ -137,6 +139,16 @@
                   </ion-select-option>
                 </ion-select>
               </th>
+              <th>
+                <ion-select interface="popover" class="filter-select" [(ngModel)]="filters.group_id"
+                  (ionChange)="applyFilters()">
+                  <ion-select-option [value]="null">Wszystkie</ion-select-option>
+                  <ion-select-option *ngFor="let group of groups" [value]="group.id">
+                    {{ getGroupOptionLabel(group) }}
+                  </ion-select-option>
+                </ion-select>
+              </th>
+              <th></th>
               <th></th>
               <th></th>
             </tr>
@@ -184,6 +196,17 @@
                     {{ semester.nazwa }}
                   </ion-select-option>
                 </ion-select>
+              </td>
+              <td class="cell">
+                <ion-select interface="popover" class="cell-select" [(ngModel)]="newRowDraft.group_id">
+                  <ion-select-option [value]="null">Brak</ion-select-option>
+                  <ion-select-option *ngFor="let group of groups" [value]="group.id">
+                    {{ getGroupOptionLabel(group) }}
+                  </ion-select-option>
+                </ion-select>
+              </td>
+              <td class="cell">
+                <div class="cell-display">—</div>
               </td>
               <td class="cell history-cell">
                 <span class="history-empty">--</span>
@@ -292,6 +315,27 @@
                   <ng-template #semesterDisplay>
                     <div class="cell-display">{{ getSemesterLabel(row) }}</div>
                   </ng-template>
+                </td>
+                <td class="cell editable" [class.is-field-changed]="isFieldChanged(row.id, 'group')"
+                  [class.is-cell-active]="historyModalRowId === row.id && historyModalFieldGroup === 'group'"
+                  (click)="onCellClick(row, 'group', $event)">
+                  <ng-container *ngIf="editingRowId === row.id && draftRow; else groupDisplay">
+                    <ion-select interface="popover" class="cell-select" [(ngModel)]="draftRow.group_id"
+                      (click)="$event.stopPropagation()">
+                      <ion-select-option [value]="null">Brak</ion-select-option>
+                      <ion-select-option *ngFor="let group of groupsForEdit" [value]="group.id">
+                        {{ getGroupOptionLabel(group) }}
+                      </ion-select-option>
+                    </ion-select>
+                  </ng-container>
+                  <ng-template #groupDisplay>
+                    <div class="cell-display">{{ getGroupLabel(row) }}</div>
+                  </ng-template>
+                </td>
+                <td class="cell" [class.is-field-changed]="isFieldChanged(row.id, 'field_of_study')"
+                  [class.is-cell-active]="historyModalRowId === row.id && historyModalFieldGroup === 'field_of_study'"
+                  (click)="onCellClick(row, 'field_of_study', $event)">
+                  <div class="cell-display">{{ getFieldOfStudyLabel(row) }}</div>
                 </td>
                 <td class="cell history-cell">
                   <ion-button fill="clear" size="small" class="history-button" [class.is-new]="isHistoryNew(row.id)"

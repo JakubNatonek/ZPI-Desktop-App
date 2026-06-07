@@ -16,6 +16,8 @@ import {
   TeachingLoadAssignmentCreatePayload,
   TeachingLoadAssignmentPatchPayload,
   TeacherOption,
+  FieldOfStudyOption,
+  GroupOption,
 } from '../../core/services/teaching-loads-api.service';
 import { ActivityOption, SubjectDto } from '../../core/services/subjects-api.service';
 import { DezyderataService, Semestr } from '../../core/services/dezyderata.service';
@@ -27,6 +29,7 @@ type TeachingLoadFilterState = {
   activity_id?: number | null;
   room_id?: number | null;
   semester_id?: number | null;
+  group_id?: number | null;
   hours_min?: number | null;
   hours_max?: number | null;
 };
@@ -54,6 +57,9 @@ export class TeachingLoadsPage implements OnInit {
   activities: ActivityOption[] = [];
   semesters: Semestr[] = [];
   rooms: RoomDto[] = [];
+  groups: GroupOption[] = [];
+  groupsForEdit: GroupOption[] = [];
+  fieldsOfStudy: FieldOfStudyOption[] = [];
 
   filters: TeachingLoadFilterState = {
     teacher_id: null,
@@ -61,6 +67,7 @@ export class TeachingLoadsPage implements OnInit {
     activity_id: null,
     room_id: null,
     semester_id: null,
+    group_id: null,
     hours_min: null,
     hours_max: null,
   };
@@ -89,6 +96,8 @@ export class TeachingLoadsPage implements OnInit {
     room: ['room_id', 'room_number'],
     semester: ['semester_id', 'semester_name'],
     hours: ['hours'],
+    group: ['group_id', 'group_label'],
+    field_of_study: ['field_of_study_id', 'field_of_study_label'],
   };
 
   constructor(
@@ -155,6 +164,7 @@ export class TeachingLoadsPage implements OnInit {
       activity_id: null,
       room_id: null,
       semester_id: null,
+      group_id: null,
       hours_min: null,
       hours_max: null,
     };
@@ -168,6 +178,7 @@ export class TeachingLoadsPage implements OnInit {
     const activityId = this.toNumber(this.filters.activity_id);
     const roomId = this.toNumber(this.filters.room_id);
     const semesterId = this.toNumber(this.filters.semester_id);
+    const groupId = this.toNumber(this.filters.group_id);
     const hoursMin = this.toNumber(this.filters.hours_min);
     const hoursMax = this.toNumber(this.filters.hours_max);
     const query = this.normalizeSearch(this.searchQuery);
@@ -178,6 +189,7 @@ export class TeachingLoadsPage implements OnInit {
       if (activityId !== null && item.activity_id !== activityId) { return false; }
       if (roomId !== null && item.room_id !== roomId) { return false; }
       if (semesterId !== null && item.semester_id !== semesterId) { return false; }
+      if (groupId !== null && item.group_id !== groupId) { return false; }
       if (hoursMin !== null && item.hours < hoursMin) { return false; }
       if (hoursMax !== null && item.hours > hoursMax) { return false; }
       if (query && !this.buildRowSearchText(item).includes(query)) { return false; }
@@ -266,6 +278,19 @@ export class TeachingLoadsPage implements OnInit {
     this.originalRow = { ...row };
     this.draftRow = { ...row };
     this.rowErrorMessage = '';
+
+    if (this.draftRow.field_of_study_id) {
+      this.teachingLoadsApi.getGroupsByFieldOfStudy(this.draftRow.field_of_study_id).subscribe({
+        next: (groups) => {
+          this.groupsForEdit = groups;
+        },
+        error: () => {
+          this.groupsForEdit = [];
+        }
+      });
+    } else {
+      this.groupsForEdit = [];
+    }
   }
 
   cancelEditing(): void {
@@ -273,6 +298,7 @@ export class TeachingLoadsPage implements OnInit {
     this.draftRow = null;
     this.originalRow = null;
     this.rowErrorMessage = '';
+    this.groupsForEdit = [];
   }
 
   saveEditing(): void {
@@ -385,6 +411,8 @@ export class TeachingLoadsPage implements OnInit {
       room: 'Sala',
       semester: 'Semestr',
       hours: 'Godziny',
+      group: 'Grupa',
+      field_of_study: 'Kierunek',
     };
     return map[this.historyModalFieldGroup] ?? null;
   }
@@ -523,6 +551,32 @@ export class TeachingLoadsPage implements OnInit {
     return room.room_number || `#${room.id}`;
   }
 
+  getGroupLabel(row: TeachingLoadAssignmentDto): string {
+    if (row.group_label) {
+      return row.group_label;
+    }
+    if (row.group_id) {
+      const fallback = this.groups.find((g) => g.id === row.group_id);
+      return fallback?.code ?? `#${row.group_id}`;
+    }
+    return '—';
+  }
+
+  getFieldOfStudyLabel(row: TeachingLoadAssignmentDto): string {
+    if (row.field_of_study_label) {
+      return row.field_of_study_label;
+    }
+    if (row.field_of_study_id) {
+      const fallback = this.fieldsOfStudy.find((f) => f.id === row.field_of_study_id);
+      return fallback?.label ?? `#${row.field_of_study_id}`;
+    }
+    return '—';
+  }
+
+  getGroupOptionLabel(group: GroupOption): string {
+    return group.code || `#${group.id}`;
+  }
+
   getTeacherOptionLabel(teacher: TeacherOption): string {
     return [teacher.title || teacher.titles[0], `${teacher.first_name} ${teacher.last_name}`.trim()]
       .filter(Boolean)
@@ -624,13 +678,15 @@ export class TeachingLoadsPage implements OnInit {
       activities: this.teachingLoadsApi.getActivities(),
       rooms: this.roomsApi.getRooms(),
       semesters: this.dezyderataService.getSemestry(),
+      groups: this.teachingLoadsApi.getGroups().pipe(catchError(() => of([]))),
+      fieldsOfStudy: this.teachingLoadsApi.getFieldOfStudies().pipe(catchError(() => of([]))),
       audit: this.auditApi.getLogs().pipe(
         catchError(() => of({ last_changes_viewed_at: null, logs: [] })),
       ),
     })
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
-        next: ({ assignments, teachers, subjects, activities, rooms, semesters, audit }) => {
+        next: ({ assignments, teachers, subjects, activities, rooms, semesters, groups, fieldsOfStudy, audit }) => {
           this.assignments = assignments;
           this.filteredAssignments = assignments;
           this.teachers = teachers;
@@ -638,6 +694,8 @@ export class TeachingLoadsPage implements OnInit {
           this.activities = activities;
           this.rooms = rooms;
           this.semesters = semesters.items ?? [];
+          this.groups = groups;
+          this.fieldsOfStudy = fieldsOfStudy;
           this.buildAuditIndex(audit.last_changes_viewed_at, audit.logs ?? [], true);
           this.applyFilters();
         },
@@ -680,6 +738,8 @@ export class TeachingLoadsPage implements OnInit {
       room_id: 'room', room_number: 'room',
       semester_id: 'semester', semester_name: 'semester',
       hours: 'hours',
+      group_id: 'group', group_label: 'group',
+      field_of_study_id: 'field_of_study', field_of_study_label: 'field_of_study',
     };
 
     logs
@@ -711,7 +771,7 @@ export class TeachingLoadsPage implements OnInit {
               }
             });
           } else if (log.action === 'CREATE' || log.action === 'DELETE') {
-            ['teacher', 'subject', 'activity', 'room', 'hours', 'semester'].forEach((g) =>
+            ['teacher', 'subject', 'activity', 'room', 'hours', 'semester', 'group', 'field_of_study'].forEach((g) =>
               this.changedFieldGroupsByAssignment[assignmentId].add(g),
             );
           }
@@ -751,6 +811,9 @@ export class TeachingLoadsPage implements OnInit {
     if (normalizedDraft.hours !== normalizedOriginal.hours) {
       payload.hours = normalizedDraft.hours;
     }
+    if ((normalizedDraft.group_id ?? null) !== (normalizedOriginal.group_id ?? null)) {
+      payload.group_id = normalizedDraft.group_id ?? null;
+    }
 
     return Object.keys(payload).length > 0 ? payload : null;
   }
@@ -787,6 +850,7 @@ export class TeachingLoadsPage implements OnInit {
       semester_id: Number(draft.semester_id),
       hours: Number(draft.hours),
       field_of_study_id: draft.field_of_study_id ?? null,
+      group_id: draft.group_id ?? null,
     };
   }
 
@@ -841,6 +905,10 @@ export class TeachingLoadsPage implements OnInit {
       semester_id: 'Semestr',
       semester_name: 'Semestr',
       hours: 'Godziny',
+      group_id: 'Grupa',
+      group_label: 'Grupa',
+      field_of_study_id: 'Kierunek',
+      field_of_study_label: 'Kierunek',
     };
 
     return map[key] || key;
@@ -914,6 +982,8 @@ export class TeachingLoadsPage implements OnInit {
       activity_name: activity?.name ?? null,
       room_id: null,
       room_number: null,
+      group_id: null,
+      group_label: null,
       semester_id: semester?.id ?? 0,
       semester_name: semester?.nazwa ?? null,
       hours: 1,
@@ -953,6 +1023,8 @@ export class TeachingLoadsPage implements OnInit {
       roomDepartment ?? '',
       this.getSemesterLabel(item),
       String(item.hours),
+      this.getGroupLabel(item),
+      this.getFieldOfStudyLabel(item),
     ].filter(Boolean);
     return this.normalizeSearch(parts.join(' '));
   }
@@ -1056,6 +1128,20 @@ export class TeachingLoadsPage implements OnInit {
     }
     if (key === 'hours') {
       return `${value} godz.`;
+    }
+    if (key === 'group_id') {
+      const id = Number(value);
+      return this.groups.find((x) => x.id === id)?.code ?? String(value);
+    }
+    if (key === 'group_label') {
+      return String(value);
+    }
+    if (key === 'field_of_study_id') {
+      const id = Number(value);
+      return this.fieldsOfStudy.find((x) => x.id === id)?.label ?? String(value);
+    }
+    if (key === 'field_of_study_label') {
+      return String(value);
     }
     return this.formatAuditValue(value);
   }
