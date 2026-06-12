@@ -82,6 +82,8 @@ export class HomePage implements OnInit {
   private readonly maxSidebarWidth = 500;
   private readonly collapsedThreshold = 160;
   private readonly lecturerWeeklyHours = 30;
+  private readonly calendarStartMinutes = 7 * 60;
+  private readonly calendarEndMinutes = 22 * 60;
   private readonly lecturerRoleNames = new Set(['wykladowca', 'wykładowca', 'lecturer', 'cwiczenia', 'laboratorium', 'seminarium']);
 
   sidebarWidth = signal(280);
@@ -94,6 +96,7 @@ export class HomePage implements OnInit {
   selectionMode: AvailabilityMode = 'available';
   slotSelections = new Map<string, AvailabilityMode>();
   selectionStrategy: AvailabilityMode | null = null;
+  gridDensity: 'five-min' | 'hour' = 'five-min';
   isHoursConfirmed = false;
   lecturerMessage = '';
   adminPanelMessage = '';
@@ -148,7 +151,20 @@ export class HomePage implements OnInit {
       description: 'Na koniec kliknij Wyczyść zaznaczenia, aby zresetować swój wybór.',
     },
   ];
-  hours24 = Array.from({ length: 15 }, (_, i) => i + 7);
+  get slotMinutes(): number {
+    return this.gridDensity === 'five-min' ? 5 : 60;
+  }
+
+  get slotsPerHour(): number {
+    return 60 / this.slotMinutes;
+  }
+
+  get calendarSlots(): number[] {
+    return Array.from(
+      { length: (this.calendarEndMinutes - this.calendarStartMinutes) / this.slotMinutes },
+      (_, i) => this.calendarStartMinutes + (i * this.slotMinutes),
+    );
+  }
   selectedDate: Date = new Date();
   weekDays: WeekDay[] = [];
 
@@ -192,11 +208,11 @@ export class HomePage implements OnInit {
   }
 
   get totalWeekHours(): number {
-    return this.hours24.length * this.weekDays.length;
+    return this.slotCountToHours(this.calendarSlots.length * this.weekDays.length);
   }
 
   get markedHours(): number {
-    return this.slotSelections.size;
+    return this.slotCountToHours(this.slotSelections.size);
   }
 
   get availableHours(): number {
@@ -280,6 +296,10 @@ export class HomePage implements OnInit {
 
   get currentSemestrLabel(): string {
     return this.currentSemestr?.nazwa ?? 'Brak aktywnego semestru';
+  }
+
+  get calendarGridTemplateRows(): string {
+    return `repeat(${this.calendarSlots.length}, minmax(${this.gridDensity === 'five-min' ? '10px' : '24px'}, 1fr))`;
   }
 
   constructor(
@@ -454,9 +474,10 @@ export class HomePage implements OnInit {
         continue;
       }
 
-      const displayToHour = this.getDisplayToHour(entry);
-      for (let hour = entry.from_hour; hour <= displayToHour; hour++) {
-        coveredSlots.add(`${dayIso}-${hour}`);
+      const startMinute = this.parseTimeToMinutes(entry.start_time);
+      const endMinute = this.parseTimeToMinutes(entry.end_time);
+      for (let minute = startMinute; minute < endMinute; minute += this.slotMinutes) {
+        coveredSlots.add(`${dayIso}-${minute}`);
       }
     }
 
@@ -471,8 +492,8 @@ export class HomePage implements OnInit {
     if (strategy === 'available') {
       // Dla 'available': zaznacz NIEZAZNACZONE sloty (dostępne)
       for (const day of this.weekDays) {
-        for (const hour of this.hours24) {
-          const slotKey = this.getSlotKey(day, hour);
+        for (const minute of this.calendarSlots) {
+          const slotKey = this.getSlotKey(day, minute);
           if (!coveredSlots.has(slotKey)) {
             this.slotSelections.set(slotKey, 'available');
           }
@@ -551,9 +572,10 @@ export class HomePage implements OnInit {
         continue;
       }
 
-      const displayToHour = this.getDisplayToHour(entry);
-      for (let hour = entry.from_hour; hour <= displayToHour; hour++) {
-        coveredSlots.add(`${dayIso}-${hour}`);
+      const startMinute = this.parseTimeToMinutes(entry.start_time);
+      const endMinute = this.parseTimeToMinutes(entry.end_time);
+      for (let minute = startMinute; minute < endMinute; minute += this.slotMinutes) {
+        coveredSlots.add(`${dayIso}-${minute}`);
       }
     }
 
@@ -565,8 +587,8 @@ export class HomePage implements OnInit {
     if (strategy === 'available') {
       // Zaznacz wszystkie niezaznaczone
       for (const day of weekDays) {
-        for (const hour of this.hours24) {
-          const slotKey = this.getSlotKey(day, hour);
+        for (const minute of this.calendarSlots) {
+          const slotKey = this.getSlotKey(day, minute);
           if (!coveredSlots.has(slotKey)) {
             this.slotSelections.set(slotKey, 'available');
           }
@@ -722,7 +744,27 @@ export class HomePage implements OnInit {
     }
   }
 
-  startCellSelection(day: WeekDay, hour: number, event: MouseEvent) {
+  onGridDensityChange(event: CustomEvent) {
+    const requestedDensity = event.detail.value as 'five-min' | 'hour';
+
+    if (requestedDensity !== 'five-min' && requestedDensity !== 'hour') {
+      return;
+    }
+
+    if (this.gridDensity === requestedDensity) {
+      return;
+    }
+
+    this.gridDensity = requestedDensity;
+    if (this.slotSelections.size > 0) {
+      this.clearSelection();
+      this.lecturerMessage = requestedDensity === 'five-min'
+        ? 'Przełączono na siatkę 5-minutową.'
+        : 'Przełączono na siatkę godzinową.';
+    }
+  }
+
+  startCellSelection(day: WeekDay, minute: number, event: MouseEvent) {
     event.preventDefault();
 
     if (!this.isLecturer || this.isHoursConfirmed) {
@@ -740,16 +782,16 @@ export class HomePage implements OnInit {
 
     this.isDragging = true;
     this.dragDayIso = day.iso;
-    this.applySelection(day, hour, true);
+    this.applySelection(day, minute, true);
     this.handleTutorialCalendarProgress();
   }
 
-  onCellHover(day: WeekDay, hour: number) {
+  onCellHover(day: WeekDay, minute: number) {
     if (!this.isDragging || !this.dragDayIso || this.dragDayIso !== day.iso) {
       return;
     }
 
-    this.applySelection(day, hour, false);
+    this.applySelection(day, minute, false);
     this.handleTutorialCalendarProgress();
   }
 
@@ -764,15 +806,15 @@ export class HomePage implements OnInit {
     }
   }
 
-  getSlotState(day: WeekDay, hour: number): AvailabilityMode | null {
-    return this.slotSelections.get(this.getSlotKey(day, hour)) ?? null;
+  getSlotState(day: WeekDay, minute: number): AvailabilityMode | null {
+    return this.slotSelections.get(this.getSlotKey(day, minute)) ?? null;
   }
 
   confirmHours() {
     const isTutorialConfirmStep = this.isTutorialStepTarget('confirm-button');
 
     if ((!this.canConfirmHours || !this.selectionStrategy) && !isTutorialConfirmStep) {
-      this.lecturerMessage = `Brakuje jeszcze ${this.remainingAvailabilityHours} h do wymaganych ${this.requiredAvailabilityHours} h dla planisty.`;
+      this.lecturerMessage = `Brakuje jeszcze ${this.formatHours(this.remainingAvailabilityHours)} do wymaganych ${this.formatHours(this.requiredAvailabilityHours)} dla planisty.`;
       return;
     }
 
@@ -782,9 +824,9 @@ export class HomePage implements OnInit {
 
     if (isTutorialConfirmStep && this.slotSelections.size === 0) {
       const firstDay = this.weekDays[0];
-      const firstHour = this.hours24[0];
-      if (firstDay && typeof firstHour === 'number' && this.selectionStrategy) {
-        this.slotSelections.set(this.getSlotKey(firstDay, firstHour), this.selectionStrategy);
+      const firstMinute = this.calendarSlots[0];
+      if (firstDay && typeof firstMinute === 'number' && this.selectionStrategy) {
+        this.slotSelections.set(this.getSlotKey(firstDay, firstMinute), this.selectionStrategy);
       }
     }
 
@@ -823,7 +865,7 @@ export class HomePage implements OnInit {
       next: () => {
         this.isSaving = false;
         this.isHoursConfirmed = true;
-        this.lecturerMessage = `Godziny zatwierdzone i zapisane. Planista widzi ${this.plannerAvailabilityHours} h do dyspozycji.`;
+        this.lecturerMessage = `Godziny zatwierdzone i zapisane. Planista widzi ${this.formatHours(this.plannerAvailabilityHours)} do dyspozycji.`;
       },
       error: (err) => {
         this.isSaving = false;
@@ -914,22 +956,22 @@ export class HomePage implements OnInit {
     this.isSubmissionModalOpen = false;
   }
 
-  getSubmissionSlotState(day: WeekDay, hour: number): AvailabilityMode | null {
+  getSubmissionSlotState(day: WeekDay, minute: number): AvailabilityMode | null {
     if (!this.selectedSubmissionPreview) {
       return null;
     }
 
-    const key = this.getSlotKey(day, hour);
+    const key = this.getSlotKey(day, minute);
     return this.resolveSubmissionSlotState(this.selectedSubmissionPreview, key);
   }
 
-  getPlannerSlotState(day: WeekDay, hour: number): AvailabilityMode | null {
+  getPlannerSlotState(day: WeekDay, minute: number): AvailabilityMode | null {
     const activeSubmission = this.activePlannerSubmission;
     if (!activeSubmission) {
       return null;
     }
 
-    const key = this.getSlotKey(day, hour);
+    const key = this.getSlotKey(day, minute);
     return this.resolveSubmissionSlotState(activeSubmission, key);
   }
 
@@ -942,8 +984,9 @@ export class HomePage implements OnInit {
 
   countWeekHours(entries: Dezyderata[]): number {
     return entries.reduce((sum, entry) => {
-      const displayToHour = this.getDisplayToHour(entry);
-      return sum + (displayToHour - entry.from_hour + 1);
+      const startMinute = this.parseTimeToMinutes(entry.start_time);
+      const endMinute = this.parseTimeToMinutes(entry.end_time);
+      return sum + this.slotCountToHours((endMinute - startMinute) / this.slotMinutes);
     }, 0);
   }
 
@@ -1116,9 +1159,10 @@ export class HomePage implements OnInit {
         continue;
       }
 
-      const displayToHour = this.getDisplayToHour(entry);
-      for (let hour = entry.from_hour; hour <= displayToHour; hour++) {
-        allSlots.add(`${dayIso}-${hour}`);
+      const startMinute = this.parseTimeToMinutes(entry.start_time);
+      const endMinute = this.parseTimeToMinutes(entry.end_time);
+      for (let minute = startMinute; minute < endMinute; minute += this.slotMinutes) {
+        allSlots.add(`${dayIso}-${minute}`);
       }
     }
 
@@ -1130,7 +1174,7 @@ export class HomePage implements OnInit {
 
     // Interpretacja markedHours: zawsze to total - covered
     const coveredSlotCount = allSlots.size;
-    const availabilityHours = Math.max(0, this.totalWeekHours - coveredSlotCount);
+    const availabilityHours = Math.max(0, this.totalWeekHours - this.slotCountToHours(coveredSlotCount));
 
     return {
       id: `${lecturer.user_id}-${latestWeekStartIso}`,
@@ -1139,7 +1183,7 @@ export class HomePage implements OnInit {
       weekStartIso: latestWeekStartIso,
       strategy,
       selectedSlots: Array.from(allSlots),
-      markedHours: coveredSlotCount,
+      markedHours: this.slotCountToHours(coveredSlotCount),
       plannerAvailabilityHours: availabilityHours,
       requiredHours: this.requiredAvailabilityHours,
       timestamp: `${latestWeekStartIso}T00:00:00`,
@@ -1148,7 +1192,7 @@ export class HomePage implements OnInit {
     };
   }
 
-  private applySelection(day: WeekDay, hour: number, isStart: boolean) {
+  private applySelection(day: WeekDay, minute: number, isStart: boolean) {
     if (!this.isLecturer || this.isHoursConfirmed) {
       return;
     }
@@ -1161,7 +1205,7 @@ export class HomePage implements OnInit {
       return;
     }
 
-    const key = this.getSlotKey(day, hour);
+    const key = this.getSlotKey(day, minute);
     const hasSlot = this.slotSelections.has(key);
 
     if (isStart) {
@@ -1179,8 +1223,8 @@ export class HomePage implements OnInit {
     }
   }
 
-  private getSlotKey(day: WeekDay, hour: number): string {
-    return `${day.iso}-${hour}`;
+  private getSlotKey(day: WeekDay, minute: number): string {
+    return `${day.iso}-${minute}`;
   }
 
   private resolveSubmissionSlotState(submission: LecturerSubmission, slotKey: string): AvailabilityMode {
@@ -1196,9 +1240,40 @@ export class HomePage implements OnInit {
     return isInSelectedSlots ? 'unavailable' : 'available';
   }
 
-  private getDisplayToHour(entry: Pick<Dezyderata, 'from_hour' | 'to_hour'>): number {
-    // Backend persists to_hour with +1, so normalize only for UI rendering.
-    return Math.max(entry.from_hour, entry.to_hour - 1);
+  private parseTimeToMinutes(value: string): number {
+    const [hourText, minuteText] = String(value).split(':');
+    const hour = Number.parseInt(hourText ?? '', 10);
+    const minute = Number.parseInt(minuteText ?? '', 10);
+
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+      return 0;
+    }
+
+    return hour * 60 + minute;
+  }
+
+  private formatMinutesToTimeText(minutes: number): string {
+    const normalizedMinutes = Math.max(0, Math.min(23 * 60 + 55, minutes));
+    const hour = Math.floor(normalizedMinutes / 60);
+    const minute = normalizedMinutes % 60;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+  }
+
+  formatSlotLabel(minutes: number): string {
+    const hour = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  }
+
+  formatHours(hours: number): string {
+    const totalMinutes = Math.round(hours * 60);
+    const wholeHours = Math.floor(totalMinutes / 60);
+    const remainingMinutes = totalMinutes % 60;
+    return remainingMinutes === 0 ? `${wholeHours} h` : `${wholeHours} h ${String(remainingMinutes).padStart(2, '0')} min`;
+  }
+
+  private slotCountToHours(slotCount: number): number {
+    return slotCount / this.slotsPerHour;
   }
 
   private dayIdToIso(dayId: number): string | null {
@@ -1221,82 +1296,81 @@ export class HomePage implements OnInit {
   }
 
   private buildEntriesForAvailabilityMode(): DezyderataCreateEntry[] {
-    // Dla trybu 'available', zapisujemy NIEZAZNACZONE godziny jako niedostępne (is_available=false)
-    const hoursByDayIso = new Map<string, Set<number>>();
+    // Dla trybu 'available', zapisujemy NIEZAZNACZONE sloty jako niedostępne (is_available=false)
+    const slotsByDayIso = new Map<string, Set<number>>();
 
     // Najpierw zbierz wszystkie zaznaczone sloty
     const markedSlots = new Set<string>(this.slotSelections.keys());
 
     // Dla każdego dnia i godziny, jeśli NIEZNACZONE, dodaj do hoursByDayIso
     for (const day of this.weekDays) {
-      const dayHours = new Set<number>();
-      for (const hour of this.hours24) {
-        const slotKey = this.getSlotKey(day, hour);
+      const daySlots = new Set<number>();
+      for (const minute of this.calendarSlots) {
+        const slotKey = this.getSlotKey(day, minute);
         if (!markedSlots.has(slotKey)) {
-          // Nieznaczone godziny
-          dayHours.add(hour);
+          // Nieznaczone sloty
+          daySlots.add(minute);
         }
       }
-      if (dayHours.size > 0) {
-        hoursByDayIso.set(day.iso, dayHours);
+      if (daySlots.size > 0) {
+        slotsByDayIso.set(day.iso, daySlots);
       }
     }
 
-    // Teraz zbuduj wpisy z niezaznaczonych godzin
-    return this.buildEntriesFromHoursByDay(hoursByDayIso, false);
+    // Teraz zbuduj wpisy z niezaznaczonych slotów
+    return this.buildEntriesFromHoursByDay(slotsByDayIso, false);
   }
 
   private buildEntriesForUnavailabilityMode(): DezyderataCreateEntry[] {
-    // Dla trymu 'unavailable', zapisujemy ZAZNACZONE godziny jako niedostępne (is_available=false)
-    // To działa jak stary system
-    const hoursByDayIso = new Map<string, Set<number>>();
+    // Dla trybu 'unavailable', zapisujemy ZAZNACZONE sloty jako niedostępne (is_available=false)
+    const slotsByDayIso = new Map<string, Set<number>>();
 
     for (const slotKey of this.slotSelections.keys()) {
-      const [iso, hourText] = slotKey.split('-').length >= 4
+      const [iso, minuteText] = slotKey.split('-').length >= 4
         ? [slotKey.slice(0, 10), slotKey.slice(11)]
         : ['', ''];
-      const hour = Number.parseInt(hourText, 10);
+      const minute = Number.parseInt(minuteText, 10);
 
-      if (!iso || Number.isNaN(hour)) {
+      if (!iso || Number.isNaN(minute)) {
         continue;
       }
 
-      if (!hoursByDayIso.has(iso)) {
-        hoursByDayIso.set(iso, new Set<number>());
+      if (!slotsByDayIso.has(iso)) {
+        slotsByDayIso.set(iso, new Set<number>());
       }
 
-      hoursByDayIso.get(iso)?.add(hour);
+      slotsByDayIso.get(iso)?.add(minute);
     }
 
-    return this.buildEntriesFromHoursByDay(hoursByDayIso, false);
+    return this.buildEntriesFromHoursByDay(slotsByDayIso, false);
   }
 
-  private buildEntriesFromHoursByDay(hoursByDayIso: Map<string, Set<number>>, isAvailable: boolean): DezyderataCreateEntry[] {
+  private buildEntriesFromHoursByDay(slotsByDayIso: Map<string, Set<number>>, isAvailable: boolean): DezyderataCreateEntry[] {
     const entries: DezyderataCreateEntry[] = [];
 
-    for (const [dayIso, hourSet] of hoursByDayIso.entries()) {
+    for (const [dayIso, slotSet] of slotsByDayIso.entries()) {
       const dayIndex = this.weekDays.findIndex((day) => day.iso === dayIso);
       if (dayIndex < 0) {
         continue;
       }
 
       const dayId = dayIndex + 1;
-      const hours = Array.from(hourSet).sort((a, b) => a - b);
+      const slots = Array.from(slotSet).sort((a, b) => a - b);
 
-      let start = hours[0];
-      let end = hours[0];
+      let start = slots[0];
+      let end = slots[0];
 
-      for (let i = 1; i < hours.length; i++) {
-        const current = hours[i];
-        if (current === end + 1) {
+      for (let i = 1; i < slots.length; i++) {
+        const current = slots[i];
+        if (current === end + this.slotMinutes) {
           end = current;
           continue;
         }
 
         entries.push({
           day_id: dayId,
-          from_hour: start,
-          to_hour: end,
+          start_time: this.formatMinutesToTimeText(start),
+          end_time: this.formatMinutesToTimeText(end + this.slotMinutes),
           is_available: isAvailable,
         });
 
@@ -1306,8 +1380,8 @@ export class HomePage implements OnInit {
 
       entries.push({
         day_id: dayId,
-        from_hour: start,
-        to_hour: end,
+        start_time: this.formatMinutesToTimeText(start),
+        end_time: this.formatMinutesToTimeText(end + this.slotMinutes),
         is_available: isAvailable,
       });
     }

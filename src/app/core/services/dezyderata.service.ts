@@ -21,8 +21,8 @@ export interface Dezyderata {
   data_do: string;
   semestr_id: number;
   day_id: number;
-  from_hour: number;
-  to_hour: number;
+  start_time: string;
+  end_time: string;
   is_available: boolean;
   day_name?: string;
   semestr_nazwa?: string;
@@ -41,8 +41,8 @@ export interface DezyderataCreate {
 
 export interface DezyderataCreateEntry {
   day_id: number;
-  from_hour: number;
-  to_hour: number;
+  start_time: string;
+  end_time: string;
   is_available: boolean;
 }
 

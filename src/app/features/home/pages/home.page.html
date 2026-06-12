@@ -62,7 +62,7 @@
             </div>
             <div class="stat-row">
               <span class="stat-label">Minimum</span>
-              <span class="stat-value">{{ requiredAvailabilityHours }} h</span>
+              <span class="stat-value">{{ formatHours(requiredAvailabilityHours) }}</span>
             </div>
             <div class="stat-row" *ngIf="selectionStrategy">
               <span class="stat-label">Tryb</span>
@@ -70,15 +70,15 @@
             </div>
             <div class="stat-row">
               <span class="stat-label">Dostępnych</span>
-              <span class="stat-value stat-value--available">{{ availableHours }} h</span>
+              <span class="stat-value stat-value--available">{{ formatHours(availableHours) }}</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">Niedostępnych</span>
-              <span class="stat-value stat-value--unavailable">{{ unavailableHours }} h</span>
+              <span class="stat-value stat-value--unavailable">{{ formatHours(unavailableHours) }}</span>
             </div>
             <div class="stat-row" *ngIf="!canConfirmHours">
               <span class="stat-label">Pozostało</span>
-              <span class="stat-value stat-value--warn">{{ remainingAvailabilityHours }} h</span>
+              <span class="stat-value stat-value--warn">{{ formatHours(remainingAvailabilityHours) }}</span>
             </div>
           </div>
 
@@ -287,9 +287,24 @@
       </ion-toolbar>
     </ion-header>
 
+    <div class="calendar-controls">
+      <div class="grid-density-switch">
+        <ion-label>Gęstość siatki</ion-label>
+        <ion-segment [value]="gridDensity" (ionChange)="onGridDensityChange($event)">
+          <ion-segment-button value="five-min">
+            <ion-label>5 min</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="hour">
+            <ion-label>1 h</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+      </div>
+    </div>
+
     <ion-content class="calendar-scroll">
-      <!-- Siatka tygodnia z godzinami (07:00-21:00) -->
-      <div class="google-calendar-grid">
+      <!-- Siatka tygodnia z 5-minutowymi slotami (07:00-21:55) -->
+      <div class="google-calendar-grid" [class.is-five-minute-grid]="gridDensity === 'five-min'"
+        [style.--calendar-grid-template-rows]="calendarGridTemplateRows">
         <div class="grid-header">
           <div class="time-spacer"></div>
           <div class="day-col-header" [class.today]="day.isToday" *ngFor="let day of weekDays">
@@ -300,18 +315,18 @@
 
         <div class="grid-body" [attr.data-tour-step]="isLecturer ? 'calendar-cell' : null"
           [class.tutorial-target-active]="isTutorialStepTarget('calendar-cell')">
-          <div class="hour-row" *ngFor="let hour of hours24">
-            <div class="hour-label">{{ hour }}:00</div>
+          <div class="hour-row" *ngFor="let slot of calendarSlots">
+            <div class="hour-label">{{ formatSlotLabel(slot) }}</div>
             <div class="day-cell" [class.today-col]="day.isToday" *ngFor="let day of weekDays">
               <button *ngIf="isLecturer" type="button" class="availability-slot"
-                [class.available]="getSlotState(day, hour) === 'available'"
-                [class.unavailable]="getSlotState(day, hour) === 'unavailable'"
-                (mousedown)="startCellSelection(day, hour, $event)" (mouseenter)="onCellHover(day, hour)">
+                [class.available]="getSlotState(day, slot) === 'available'"
+                [class.unavailable]="getSlotState(day, slot) === 'unavailable'"
+                (mousedown)="startCellSelection(day, slot, $event)" (mouseenter)="onCellHover(day, slot)">
               </button>
 
               <div *ngIf="!isLecturer" class="planner-slot"
-                [class.available]="getPlannerSlotState(day, hour) === 'available'"
-                [class.unavailable]="getPlannerSlotState(day, hour) === 'unavailable'">
+                [class.available]="getPlannerSlotState(day, slot) === 'available'"
+                [class.unavailable]="getPlannerSlotState(day, slot) === 'unavailable'">
               </div>
             </div>
           </div>
@@ -351,11 +366,11 @@
         </div>
 
         <div class="preview-body">
-          <div class="preview-row" *ngFor="let hour of hours24">
-            <div class="time-col">{{ hour }}:00</div>
+          <div class="preview-row" *ngFor="let slot of calendarSlots">
+            <div class="time-col">{{ formatSlotLabel(slot) }}</div>
             <div class="preview-cell" *ngFor="let day of submissionPreviewWeekDays"
-              [class.available]="getSubmissionSlotState(day, hour) === 'available'"
-              [class.unavailable]="getSubmissionSlotState(day, hour) === 'unavailable'">
+              [class.available]="getSubmissionSlotState(day, slot) === 'available'"
+              [class.unavailable]="getSubmissionSlotState(day, slot) === 'unavailable'">
             </div>
           </div>
         </div>
@@ -389,7 +404,7 @@
               <span class="history-date">{{ formatDateRange(week.data_od, week.data_do) }}</span>
             </div>
             <div class="history-item-details">
-              <span class="history-slots">{{ countWeekHours(week.entries) }} zaznaczonych godzin</span>
+              <span class="history-slots">{{ formatHours(countWeekHours(week.entries)) }} zaznaczeń</span>
             </div>
           </div>
         </div>
